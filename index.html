@@ -46,6 +46,48 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
   <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+  <!-- Splash Screen Startup Animation Overlay -->
+<div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+        <!-- App Logo (Matches your icon design) -->
+        <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">
+            $
+        </div>
+        <!-- Animated Sliding & Fading Text -->
+        <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+            FlowPay
+        </h1>
+    </div>
+</div>
+
+<style>
+    @keyframes pulseLogo {
+        0% { transform: scale(1); }
+        100% { transform: scale(1.05); }
+    }
+</style>
+
+<script>
+    // Trigger slide and fade animation immediately on load
+    window.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            var textElem = document.getElementById('splash-text');
+            if(textElem) {
+                textElem.style.opacity = '1';
+                textElem.style.transform = 'translateX(0)';
+            }
+        }, 150);
+
+        // Hide and remove splash screen after 1.6 seconds to reveal dashboard
+        setTimeout(function() {
+            var splash = document.getElementById('splash-screen');
+            if(splash) {
+                splash.style.opacity = '0';
+                setTimeout(function() { splash.remove(); }, 500);
+            }
+        }, 1600);
+    });
+</script>
 
   <div class="min-h-screen flex flex-col">
     <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
