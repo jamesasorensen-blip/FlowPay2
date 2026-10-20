@@ -494,17 +494,17 @@
         }
 
         const DEFAULT_DATA = {
-            balance: 0.00,
-            savingsGoal: 0.00,
-            bills: []
-                { id: '1', name: 'Rent', amount: 0.00, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
-                { id: '2', name: 'Electric Bill', amount: 0.00, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
-            ],
-            transactions: [],
-            paychecks: [
-                { id: 'p1', label: 'Primary Job', rate: 22.5, regHours: 40, otHours: 0, taxRate: 22 }
-            ]
-        };
+    balance: 0.00,
+    savingsGoal: 0.00,
+    bills: [
+        { id: '1', name: 'Rent', amount: 0.00, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
+        { id: '2', name: 'Electric Bill', amount: 0.00, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
+    ],
+    transactions: [],
+    paychecks: [
+        { id: 'p1', label: 'Primary Job', rate: 22.5, regHours: 40, otHours: 0, taxRate: 22 }
+    ]
+};
 
         function cloneData(data) {
             return JSON.parse(JSON.stringify(data));
