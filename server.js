@@ -11,8 +11,8 @@ const configuration = new Configuration({
 
   baseOptions: {
     headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID || 'YOUR_CLIENT_ID',
-      'PLAID-SECRET': process.env.PLAID_SECRET || 'YOUR_SECRET',
+      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID || '6ad6d56e03e051000e91404c',
+      'PLAID-SECRET': process.env.PLAID_SECRET || '51c5e431760d94cedb32e26711dd92',
     },
   },
 });
