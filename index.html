@@ -228,6 +228,52 @@
                 </div>
             </div>
 
+            <!-- FUTURE PAYCHECK CALCULATOR WIDGET -->
+            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                            <i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Bill Coverage Calculator
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Simulate incoming pay over a custom timeframe to review surplus or deficits.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-100/60 dark:bg-slate-800/60 p-4 rounded-xl">
+                    <div>
+                        <label for="calc-income-amount" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Expected Paycheck Amount ($)</label>
+                        <input type="number" id="calc-income-amount" min="0.01" step="0.01" placeholder="e.g. 1500.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label for="calc-target-date" class="block font-medium text-slate-600 dark:text-slate-300 text-xs mb-1">Target Pay Date / Horizon</label>
+                        <input type="date" id="calc-target-date" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <button id="calc-run-btn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Run Simulation
+                        </button>
+                    </div>
+                </div>
+                <div id="calc-result-box" class="hidden p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs space-y-2">
+                    <div class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check"></i> Simulation Results
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-700 dark:text-slate-300 pt-1">
+                        <div>
+                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Total Bills Due in Window</span>
+                            <span id="calc-res-bills" class="font-bold text-rose-500">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Projected Net Income Added</span>
+                            <span id="calc-res-income" class="font-bold text-emerald-600">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Projected Balance at Horizon</span>
+                            <span id="calc-res-balance" class="font-bold text-indigo-600">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- INTERACTIVE FINANCIAL CALENDAR WITH DYNAMIC MONTHS -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -592,7 +638,6 @@
             saveData();
         }
 
-        // Modal Handling with Focus Management
         function openModal(modalId, triggerElement = null) {
             lastFocusedElement = triggerElement || document.activeElement;
             const modal = document.getElementById(modalId);
@@ -687,12 +732,10 @@
             if (appState.activity.length > 20) appState.activity.pop();
         }
 
-        // Unified Cash-Flow Projection Engine
         function generateUnifiedProjection() {
             const startDate = new Date();
             startDate.setHours(0, 0, 0, 0);
 
-            // Create timeline map for next 90 days
             const timeline = {};
             for (let i = 0; i <= 90; i++) {
                 const d = new Date(startDate);
@@ -707,7 +750,6 @@
                 };
             }
 
-            // Populate paychecks
             appState.paychecks.forEach(p => {
                 if (timeline[p.date]) {
                     timeline[p.date].income += p.amount;
@@ -715,13 +757,11 @@
                 }
             });
 
-            // Populate recurring bills (advance dates or handle occurrences)
             appState.bills.forEach(b => {
-                let dueDateStr = b.dueDate;
-                let billAmount = b.amount;
-                let isPaid = b.paid;
+                const dueDateStr = b.dueDate;
+                const billAmount = b.amount;
+                const isPaid = b.paid;
 
-                // For projected timeline, if due date falls within range
                 if (timeline[dueDateStr] && !isPaid) {
                     timeline[dueDateStr].bills.push(b);
                     timeline[dueDateStr].billTotal += billAmount;
@@ -760,7 +800,6 @@
         function updateDashboard() {
             applyTheme();
 
-            // 1. Safe-to-Spend Calculation: Bills due before next paycheck
             const nextPayDate = getNextPaycheckDate();
             const todayStr = new Date().toISOString().split('T')[0];
 
@@ -769,7 +808,6 @@
                 if (nextPayDate) {
                     return b.dueDate >= todayStr && b.dueDate <= nextPayDate;
                 }
-                // If no paycheck scheduled, look at next 14 days
                 const limitDate = new Date();
                 limitDate.setDate(limitDate.getDate() + 14);
                 return b.dueDate >= todayStr && b.dueDate <= limitDate.toISOString().split('T')[0];
@@ -780,7 +818,6 @@
             const safeToSpend = appState.balance - (billsDueTotal + appState.essentialSpending + appState.pendingTransactions + appState.emergencyBuffer);
             const finalSafeSpend = Math.max(0, safeToSpend);
 
-            // Render top widgets
             document.getElementById('safe-to-spend-amount').textContent = formatCurrency(finalSafeSpend);
             document.getElementById('display-balance').textContent = formatCurrency(appState.balance);
             document.getElementById('buffer-display-val').textContent = appState.emergencyBuffer.toFixed(0);
@@ -792,7 +829,6 @@
             document.getElementById('required-weekly-income').textContent = formatCurrency(appState.savingsGoal);
             document.getElementById('display-savings-goal').textContent = `${formatCurrency(appState.savingsGoal)}/mo`;
 
-            // Active Month Bills Total
             const monthSelect = document.getElementById('calendar-month-select');
             const selectedMonthVal = monthSelect ? monthSelect.value : new Date().toISOString().slice(0, 7);
             const monthBills = appState.bills.filter(b => b.dueDate.startsWith(selectedMonthVal));
@@ -1026,7 +1062,7 @@
             if (!ctx) return;
             if (cashFlowChartInstance) cashFlowChartInstance.destroy();
 
-            const projection = generateUnifiedProjection().slice(0, 30); // 30-day projection
+            const projection = generateUnifiedProjection().slice(0, 30);
             const labels = projection.map(p => p.date.slice(5));
             const dataPoints = projection.map(p => p.endBalance);
 
@@ -1063,7 +1099,33 @@
             });
         }
 
-        // Action Handlers
+        function handleRunCalculator() {
+            const incomeAmt = parseFloat(document.getElementById('calc-income-amount').value) || 0;
+            const targetDate = document.getElementById('calc-target-date').value;
+
+            if (!targetDate) {
+                showToast('Please select a target date for the calculator.', 'error');
+                return;
+            }
+
+            const todayStr = new Date().toISOString().split('T')[0];
+            if (targetDate < todayStr) {
+                showToast('Target date must be today or in the future.', 'error');
+                return;
+            }
+
+            // Calculate bills due up to targetDate
+            const billsInWindow = appState.bills.filter(b => !b.paid && b.dueDate >= todayStr && b.dueDate <= targetDate);
+            const totalBillsWindow = billsInWindow.reduce((acc, b) => acc + b.amount, 0);
+
+            const projectedEndBal = appState.balance + incomeAmt - totalBillsWindow;
+
+            document.getElementById('calc-res-bills').textContent = formatCurrency(totalBillsWindow);
+            document.getElementById('calc-res-income').textContent = formatCurrency(incomeAmt);
+            document.getElementById('calc-res-balance').textContent = formatCurrency(projectedEndBal);
+            document.getElementById('calc-result-box').classList.remove('hidden');
+        }
+
         function handleSaveBalance(e) {
             e.preventDefault();
             const val = parseFloat(document.getElementById('balance-input').value);
@@ -1195,12 +1257,11 @@
                     appState.balance -= bill.amount;
                     logActivity('Paid Bill', `Paid ${formatCurrency(bill.amount)} for ${bill.name}`, 'expense');
                     
-                    // Advance recurring date if monthly/weekly
                     if (bill.frequency === 'monthly') {
                         const d = new Date(bill.dueDate);
                         d.setMonth(d.getMonth() + 1);
                         bill.dueDate = d.toISOString().split('T')[0];
-                        bill.paid = false; // Reset for next occurrence
+                        bill.paid = false;
                     } else if (bill.frequency === 'weekly') {
                         const d = new Date(bill.dueDate);
                         d.setDate(d.getDate() + 7);
@@ -1232,7 +1293,6 @@
             }
         }
 
-        // Setup Event Listeners on Load
         window.addEventListener('DOMContentLoaded', () => {
             loadData();
             initModals();
@@ -1267,6 +1327,8 @@
                 saveData();
                 updateDashboard();
             });
+
+            document.getElementById('calc-run-btn').addEventListener('click', handleRunCalculator);
 
             document.getElementById('form-balance').addEventListener('submit', handleSaveBalance);
             document.getElementById('form-buffer').addEventListener('submit', handleSaveBuffer);
