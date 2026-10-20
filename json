@@ -1,0 +1,13 @@
+{
+  "name": "flowpay-backend",
+  "version": "1.0.0",
+  "description": "Backend server for FlowPay bank integration",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "plaid": "^15.0.0"
+  }
+}
