@@ -396,9 +396,14 @@
                             </h2>
                             <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
                         </div>
-                        <button id="open-add-bill-btn" class="self-start sm:self-auto bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-plus"></i> Add Bill
-                        </button>
+                        <div class="flex items-center gap-2 self-start sm:self-auto">
+                            <select id="bills-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <button id="open-add-bill-btn" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+                                <i class="fa-solid fa-plus"></i> Add Bill
+                            </button>
+                        </div>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left text-xs">
@@ -468,7 +473,7 @@
 
     <!-- Bill Modal -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
-        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
             <button class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
             <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1" id="modal-bill-title">Add Recurring Bill</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Fill in details for your recurring payment.</p>
@@ -503,8 +508,19 @@
                     </div>
                 </div>
                 <div>
-                    <label for="bill-due-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Next Due Date</label>
+                    <label for="bill-due-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">First Due Date</label>
                     <input type="date" id="bill-due-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div>
+                    <label for="bill-repeat-type" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Recurrence Duration</label>
+                    <select id="bill-repeat-type" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <option value="forever" selected>Repeat Monthly Forever</option>
+                        <option value="until">Repeat Until Specific End Date</option>
+                    </select>
+                </div>
+                <div id="bill-end-date-container" class="hidden">
+                    <label for="bill-end-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">End Date (Final Due Date Target)</label>
+                    <input type="date" id="bill-end-date" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" class="close-modal-btn px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
@@ -621,6 +637,8 @@
                     const value = Number(appState[key]);
                     appState[key] = Number.isFinite(value) ? value : DEFAULT_STATE[key];
                 }
+
+                sortBillsByDate();
             } catch (error) {
                 appState = { ...DEFAULT_STATE };
                 console.warn('Could not load FlowPay data:', error);
@@ -695,17 +713,28 @@
                     });
                 }
             });
+
+            const repeatSelect = document.getElementById('bill-repeat-type');
+            const endDateBox = document.getElementById('bill-end-date-container');
+            if (repeatSelect && endDateBox) {
+                repeatSelect.addEventListener('change', () => {
+                    if (repeatSelect.value === 'until') {
+                        endDateBox.classList.remove('hidden');
+                    } else {
+                        endDateBox.classList.add('hidden');
+                    }
+                });
+            }
         }
 
-        function initMonthSelector() {
-            const select = document.getElementById('calendar-month-select');
-            if (!select) return;
-            select.innerHTML = '';
+        function populateMonthDropdown(selectElem) {
+            if (!selectElem) return;
+            selectElem.innerHTML = '';
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth();
 
-            for (let i = -2; i <= 6; i++) {
+            for (let i = -2; i <= 12; i++) {
                 const d = new Date(currentYear, currentMonth + i, 1);
                 const year = d.getFullYear();
                 const month = d.getMonth();
@@ -716,8 +745,17 @@
                 option.value = value;
                 option.textContent = label;
                 if (i === 0) option.selected = true;
-                select.appendChild(option);
+                selectElem.appendChild(option);
             }
+        }
+
+        function initMonthSelectors() {
+            populateMonthDropdown(document.getElementById('calendar-month-select'));
+            populateMonthDropdown(document.getElementById('bills-month-select'));
+        }
+
+        function sortBillsByDate() {
+            appState.bills.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
         }
 
         function formatCurrency(amount) {
@@ -742,6 +780,63 @@
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
             if (appState.activity.length > 20) appState.activity.pop();
+        }
+
+        function addMonthsToDateString(dateStr, monthsToAdd) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const target = new Date(y, m - 1 + monthsToAdd, 1);
+            const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+            const safeDay = Math.min(d, daysInMonth);
+            target.setDate(safeDay);
+            return target.toISOString().split('T')[0];
+        }
+
+        function addDaysToDateString(dateStr, daysToAdd) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const target = new Date(y, m - 1, d + daysToAdd);
+            return target.toISOString().split('T')[0];
+        }
+
+        function getOccurrencesForBill(bill, maxMonthsAhead = 12) {
+            const occurrences = [];
+            let currentDueDate = bill.dueDate;
+            const endDate = bill.repeatType === 'until' && bill.endDate ? bill.endDate : null;
+
+            const limitDate = new Date();
+            limitDate.setMonth(limitDate.getMonth() + maxMonthsAhead);
+            const limitStr = limitDate.toISOString().split('T')[0];
+
+            let count = 0;
+            while (count < 100) {
+                if (endDate && currentDueDate > endDate) break;
+                if (currentDueDate > limitStr) break;
+
+                occurrences.push({
+                    ...bill,
+                    dueDate: currentDueDate,
+                    paid: count === 0 ? bill.paid : false
+                });
+
+                count++;
+                if (bill.frequency === 'monthly') {
+                    currentDueDate = addMonthsToDateString(bill.dueDate, count);
+                } else if (bill.frequency === 'weekly') {
+                    currentDueDate = addDaysToDateString(bill.dueDate, count * 7);
+                } else {
+                    break;
+                }
+            }
+
+            return occurrences;
+        }
+
+        function getExpandedBillsList() {
+            let allOccurrences = [];
+            appState.bills.forEach(bill => {
+                allOccurrences = allOccurrences.concat(getOccurrencesForBill(bill));
+            });
+            allOccurrences.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            return allOccurrences;
         }
 
         function generateUnifiedProjection() {
@@ -769,7 +864,8 @@
                 }
             });
 
-            appState.bills.forEach(b => {
+            const expandedBills = getExpandedBillsList();
+            expandedBills.forEach(b => {
                 const dueDateStr = b.dueDate;
                 const billAmount = b.amount;
                 const isPaid = b.paid;
@@ -811,7 +907,8 @@
 
         function updateNextUpcomingBillCard() {
             const todayStr = new Date().toISOString().split('T')[0];
-            const unpaidBills = appState.bills
+            const expandedBills = getExpandedBillsList();
+            const unpaidBills = expandedBills
                 .filter(b => !b.paid && b.dueDate >= todayStr)
                 .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
@@ -868,11 +965,13 @@
 
         function updateDashboard() {
             applyTheme();
+            sortBillsByDate();
 
             const nextPayDate = getNextPaycheckDate();
             const todayStr = new Date().toISOString().split('T')[0];
 
-            const unpaidBillsBeforeNextPay = appState.bills.filter(b => {
+            const expandedBills = getExpandedBillsList();
+            const unpaidBillsBeforeNextPay = expandedBills.filter(b => {
                 if (b.paid) return false;
                 if (nextPayDate) {
                     return b.dueDate >= todayStr && b.dueDate <= nextPayDate;
@@ -898,9 +997,9 @@
             document.getElementById('required-weekly-income').textContent = formatCurrency(appState.savingsGoal);
             document.getElementById('display-savings-goal').textContent = `${formatCurrency(appState.savingsGoal)}/mo`;
 
-            const monthSelect = document.getElementById('calendar-month-select');
-            const selectedMonthVal = monthSelect ? monthSelect.value : new Date().toISOString().slice(0, 7);
-            const monthBills = appState.bills.filter(b => b.dueDate.startsWith(selectedMonthVal));
+            const billsMonthSelect = document.getElementById('bills-month-select');
+            const selectedBillsMonth = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedBillsMonth));
             const monthBillsTotal = monthBills.reduce((acc, b) => acc + b.amount, 0);
             document.getElementById('display-bills-total').textContent = formatCurrency(monthBillsTotal);
 
@@ -927,19 +1026,25 @@
 
         function renderBillsTable() {
             const tbody = document.getElementById('bills-table-body');
+            const billsMonthSelect = document.getElementById('bills-month-select');
             tbody.innerHTML = '';
-            if (appState.bills.length === 0) {
+
+            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            const expandedBills = getExpandedBillsList();
+            const currentMonthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal));
+
+            if (currentMonthBills.length === 0) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
                 td.colSpan = 7;
-                td.className = 'text-center py-4 text-slate-400 italic';
-                td.textContent = 'No recurring bills scheduled.';
+                td.className = 'text-center py-6 text-slate-400 italic';
+                td.textContent = 'No recurring bills due for this selected month.';
                 tr.appendChild(td);
                 tbody.appendChild(tr);
                 return;
             }
 
-            appState.bills.forEach(bill => {
+            currentMonthBills.forEach(bill => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
 
@@ -953,8 +1058,11 @@
                 catTd.appendChild(catSpan);
                 tr.appendChild(catTd);
 
-                tr.appendChild(createTextCell(bill.frequency, 'py-3 capitalize text-slate-500'));
-                tr.appendChild(createTextCell(bill.dueDate, 'py-3 text-slate-500'));
+                const freqText = bill.repeatType === 'until' && bill.endDate 
+                    ? `${bill.frequency} (until ${bill.endDate})` 
+                    : bill.frequency;
+                tr.appendChild(createTextCell(freqText, 'py-3 capitalize text-slate-500'));
+                tr.appendChild(createTextCell(bill.dueDate, 'py-3 font-medium text-indigo-600 dark:text-indigo-400'));
                 tr.appendChild(createTextCell(formatCurrency(bill.amount), 'py-3 font-bold text-slate-800 dark:text-slate-100'));
 
                 const statusTd = document.createElement('td');
@@ -971,6 +1079,7 @@
                 const editBtn = document.createElement('button');
                 editBtn.className = 'text-indigo-600 hover:text-indigo-800 font-medium';
                 editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                editBtn.title = 'Edit Original Bill';
                 editBtn.addEventListener('click', () => openEditBillModal(bill.id));
                 actionsTd.appendChild(editBtn);
 
@@ -983,6 +1092,7 @@
                 const delBtn = document.createElement('button');
                 delBtn.className = 'text-rose-500 hover:text-rose-700';
                 delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                delBtn.title = 'Delete Bill';
                 delBtn.addEventListener('click', () => deleteBill(bill.id));
                 actionsTd.appendChild(delBtn);
 
@@ -1184,7 +1294,8 @@
                 return;
             }
 
-            const billsInWindow = appState.bills.filter(b => !b.paid && b.dueDate >= todayStr && b.dueDate <= targetDate);
+            const expandedBills = getExpandedBillsList();
+            const billsInWindow = expandedBills.filter(b => !b.paid && b.dueDate >= todayStr && b.dueDate <= targetDate);
             const totalBillsWindow = billsInWindow.reduce((acc, b) => acc + b.amount, 0);
 
             const projectedEndBal = appState.balance + incomeAmt - totalBillsWindow;
@@ -1268,6 +1379,20 @@
                 document.getElementById('bill-amount').value = bill.amount;
                 document.getElementById('bill-frequency').value = bill.frequency;
                 document.getElementById('bill-due-date').value = bill.dueDate;
+                
+                const repeatType = bill.repeatType || 'forever';
+                document.getElementById('bill-repeat-type').value = repeatType;
+                
+                const endDateBox = document.getElementById('bill-end-date-container');
+                const endDateInput = document.getElementById('bill-end-date');
+                if (repeatType === 'until') {
+                    endDateBox.classList.remove('hidden');
+                    endDateInput.value = bill.endDate || '';
+                } else {
+                    endDateBox.classList.add('hidden');
+                    endDateInput.value = '';
+                }
+
                 openModal('modal-bill', document.activeElement);
             }
         }
@@ -1280,6 +1405,18 @@
             const amount = parseFloat(document.getElementById('bill-amount').value);
             const frequency = document.getElementById('bill-frequency').value;
             const dueDate = document.getElementById('bill-due-date').value;
+            const repeatType = document.getElementById('bill-repeat-type').value;
+            const endDate = repeatType === 'until' ? document.getElementById('bill-end-date').value : null;
+
+            if (repeatType === 'until' && !endDate) {
+                showToast('Please specify an end date for this recurring bill.', 'error');
+                return;
+            }
+
+            if (repeatType === 'until' && endDate && endDate < dueDate) {
+                showToast('End date must be on or after the first due date.', 'error');
+                return;
+            }
 
             if (name && Number.isFinite(amount) && amount > 0 && dueDate) {
                 if (id) {
@@ -1290,6 +1427,8 @@
                         bill.amount = amount;
                         bill.frequency = frequency;
                         bill.dueDate = dueDate;
+                        bill.repeatType = repeatType;
+                        bill.endDate = endDate;
                     }
                     logActivity('Updated Bill', `Modified ${name} (${formatCurrency(amount)})`, 'info');
                 } else {
@@ -1300,11 +1439,14 @@
                         amount,
                         frequency,
                         dueDate,
+                        repeatType,
+                        endDate,
                         paid: false
                     });
-                    logActivity('Added Bill', `Scheduled ${name} (${formatCurrency(amount)}) for ${dueDate}`, 'info');
+                    logActivity('Added Bill', `Scheduled ${name} (${formatCurrency(amount)}) starting ${dueDate}`, 'info');
                 }
 
+                sortBillsByDate();
                 saveData();
                 updateDashboard();
                 closeModal('modal-bill');
@@ -1313,6 +1455,7 @@
 
         function deleteBill(id) {
             appState.bills = appState.bills.filter(b => b.id !== id);
+            sortBillsByDate();
             saveData();
             updateDashboard();
             logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
@@ -1326,21 +1469,26 @@
                     appState.balance -= bill.amount;
                     logActivity('Paid Bill', `Paid ${formatCurrency(bill.amount)} for ${bill.name}`, 'expense');
                     
+                    let nextDate;
                     if (bill.frequency === 'monthly') {
-                        const d = new Date(bill.dueDate);
-                        d.setMonth(d.getMonth() + 1);
-                        bill.dueDate = d.toISOString().split('T')[0];
-                        bill.paid = false;
+                        nextDate = addMonthsToDateString(bill.dueDate, 1);
                     } else if (bill.frequency === 'weekly') {
-                        const d = new Date(bill.dueDate);
-                        d.setDate(d.getDate() + 7);
-                        bill.dueDate = d.toISOString().split('T')[0];
-                        bill.paid = false;
+                        nextDate = addDaysToDateString(bill.dueDate, 7);
+                    }
+
+                    if (nextDate) {
+                        if (bill.repeatType === 'until' && bill.endDate && nextDate > bill.endDate) {
+                            logActivity('Bill Completed', `${bill.name} reached its end date (${bill.endDate}).`, 'info');
+                        } else {
+                            bill.dueDate = nextDate;
+                            bill.paid = false;
+                        }
                     }
                 } else {
                     appState.balance += bill.amount;
                     logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
                 }
+                sortBillsByDate();
                 saveData();
                 updateDashboard();
             }
@@ -1365,10 +1513,9 @@
         window.addEventListener('DOMContentLoaded', () => {
             loadData();
             initModals();
-            initMonthSelector();
+            initMonthSelectors();
             applyTheme();
 
-            // Calendar Collapse / Expand Toggle Handler
             const calendarToggleBtn = document.getElementById('calendar-toggle-btn');
             const calendarContent = document.getElementById('calendar-collapsible-content');
             const calendarToggleIcon = document.getElementById('calendar-toggle-icon');
@@ -1408,6 +1555,8 @@
                 document.getElementById('modal-bill-title').textContent = 'Add Recurring Bill';
                 document.getElementById('form-bill').reset();
                 document.getElementById('bill-id').value = '';
+                document.getElementById('bill-repeat-type').value = 'forever';
+                document.getElementById('bill-end-date-container').classList.add('hidden');
                 openModal('modal-bill', e.currentTarget);
             });
             document.getElementById('clear-activity-btn').addEventListener('click', () => {
@@ -1425,9 +1574,14 @@
             document.getElementById('form-bill').addEventListener('submit', handleSaveBill);
             document.getElementById('spend-form').addEventListener('submit', handleLogSpend);
             
-            const monthSelect = document.getElementById('calendar-month-select');
-            if (monthSelect) {
-                monthSelect.addEventListener('change', updateDashboard);
+            const calendarMonthSelect = document.getElementById('calendar-month-select');
+            if (calendarMonthSelect) {
+                calendarMonthSelect.addEventListener('change', updateDashboard);
+            }
+
+            const billsMonthSelect = document.getElementById('bills-month-select');
+            if (billsMonthSelect) {
+                billsMonthSelect.addEventListener('change', updateDashboard);
             }
 
             updateDashboard();
