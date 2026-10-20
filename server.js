@@ -33,5 +33,5 @@ app.post('/api/get_balance', async (req, res) => {
 // Use Render's dynamic port or default to 10000
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(Server is running on port ${PORT});
+  console.log(`Server is running on port ${PORT`});
 });
