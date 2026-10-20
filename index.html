@@ -1,394 +1,434 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowPay - Cash Flow & Bill Coverage</title>
+    <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         body {
-            background-color: #0f172a;
-            color: #f8fafc;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 40px;
+            font-family: 'Inter', sans-serif;
         }
-
-        /* Header */
-        header {
-            background-color: #1e293b;
-            border-bottom: 1px solid #334155;
-            padding: 14px 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 50;
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
-
-        .brand-icon {
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            color: #ffffff;
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.1rem;
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
         }
-
-        .brand-title {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: #f8fafc;
+        ::-webkit-scrollbar-track {
+            background: transparent;
         }
-
-        .btn-bank {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: #ffffff;
-            border: none;
-            padding: 8px 14px;
-            border-radius: 10px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
         }
-
-        /* Main Grid */
-        main {
-            flex: 1;
-            max-width: 1100px;
-            width: 100%;
-            margin: 0 auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .grid-4 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-            gap: 16px;
-        }
-
-        .grid-2 {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 16px;
-        }
-
-        /* Cards */
-        .card {
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            border-radius: 16px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-
-        .card-title {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #94a3b8;
-            font-weight: 600;
-        }
-
-        .amount-large {
-            font-size: 1.8rem;
-            font-weight: 800;
-            margin: 8px 0 4px 0;
-            color: #ffffff;
-        }
-
-        .subtext {
-            font-size: 0.75rem;
-            color: #94a3b8;
-        }
-
-        .btn-link {
-            background: none;
-            border: none;
-            color: #818cf8;
-            font-size: 0.75rem;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        /* Forms & Inputs */
-        label {
-            display: block;
-            font-size: 0.75rem;
-            color: #cbd5e1;
-            margin-bottom: 6px;
-            margin-top: 8px;
-        }
-
-        input[type="number"], input[type="text"], input[type="date"], select {
-            width: 100%;
-            background-color: #0f172a;
-            border: 1px solid #334155;
-            border-radius: 8px;
-            padding: 8px 10px;
-            color: #ffffff;
-            font-size: 0.85rem;
-            outline: none;
-        }
-
-        input:focus, select:focus {
-            border-color: #6366f1;
-        }
-
-        .btn-action {
-            background-color: #e11d48;
-            color: #ffffff;
-            border: none;
-            padding: 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 12px;
-        }
-
-        .btn-primary {
-            background-color: #6366f1;
-            color: #ffffff;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            cursor: pointer;
-        }
-
-        /* Feedback Box */
-        .feedback {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 0.75rem;
-            line-height: 1.4;
-        }
-
-        .feedback-safe {
-            background: rgba(16, 185, 129, 0.15);
-            color: #34d399;
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-
-        .feedback-danger {
-            background: rgba(244, 63, 94, 0.15);
-            color: #fb7185;
-            border: 1px solid rgba(244, 63, 94, 0.3);
-        }
-
-        /* Tables */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-            margin-top: 10px;
-        }
-
-        th {
-            text-align: left;
-            padding: 8px;
-            color: #94a3b8;
-            border-bottom: 1px solid #334155;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-        }
-
-        td {
-            padding: 10px 8px;
-            border-bottom: 1px solid #1e293b;
-        }
-
-        .btn-del {
-            background: none;
-            border: none;
-            color: #f43f5e;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-
-        /* Modal */
-        .modal {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.85);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-            z-index: 100;
-        }
-
-        .hidden {
-            display: none !important;
-        }
-
-        .modal-content {
-            background-color: #1e293b;
-            border: 1px solid #334155;
-            width: 100%;
-            max-width: 380px;
-            border-radius: 16px;
-            padding: 20px;
-        }
-
-        .flex-between {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .dark ::-webkit-scrollbar-thumb {
+            background: #475569;
         }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
 
-    <!-- Header -->
-    <header>
-        <div class="brand">
-            <div class="brand-icon">$</div>
-            <div class="brand-title">FlowPay</div>
-        </div>
-        <button onclick="openModal('modal-bank')" class="btn-bank" id="bank-btn-label">Connect Bank</button>
-    </header>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-    <!-- Main Container -->
-    <main>
-
-        <!-- TOP INDICATORS -->
-        <div class="grid-4">
-            
-            <!-- Balance Card -->
-            <div class="card">
-                <div class="flex-between">
-                    <span class="card-title">Current Balance</span>
-                    <button onclick="openBalanceModal()" class="btn-link">Edit</button>
+    <!-- App Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation Header -->
+        <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid font-bold text-xl fa-wallet"></i>
                 </div>
-                <div class="amount-large" id="display-balance">$0.00</div>
-                <div class="subtext" id="sync-status">Status: Manual Entry</div>
-            </div>
-
-            <!-- Next Bill Spotlight -->
-            <div class="card" style="border-left: 4px solid #6366f1;">
-                <div class="flex-between">
-                    <span class="card-title" style="color: #818cf8;">Next Upcoming Bill</span>
-                    <span class="subtext" id="next-bill-due-days">Due soon</span>
-                </div>
-                <div class="flex-between" style="margin-top: 6px;">
-                    <span id="next-bill-title" style="font-weight: 700;">--</span>
-                    <span id="next-bill-cost" style="font-weight: 700; color: #818cf8;">$0.00</span>
-                </div>
-                <div class="subtext" id="next-bill-status-text" style="margin-top: 8px;">Calculating coverage...</div>
-            </div>
-
-            <!-- Bills Period Total -->
-            <div class="card">
-                <div class="flex-between">
-                    <span class="card-title">Bills Total</span>
-                    <select id="timeframe-select" onchange="renderAll()" style="width: auto; padding: 2px 6px;">
-                        <option value="week">Next 7 Days</option>
-                        <option value="month" selected>This Month</option>
-                    </select>
-                </div>
-                <div class="amount-large" id="display-bills-total">$0.00</div>
-                <div class="subtext flex-between">
-                    <span>Surplus/Deficit:</span>
-                    <span id="display-net-surplus" style="font-weight: 700;">$0.00</span>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">FlowPay</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cash Flow & Bill Coverage</p>
                 </div>
             </div>
 
-            <!-- Target Income -->
-            <div class="card">
-                <div class="flex-between">
-                    <span class="card-title" style="color: #34d399;">Target Weekly Income</span>
-                    <button onclick="openSavingsModal()" class="btn-link" style="color: #34d399;">Goal</button>
-                </div>
-                <div class="amount-large" id="display-weekly-target">$0.00</div>
-                <div class="subtext">Covers bills + <span id="display-savings-goal">$0.00</span>/mo savings</div>
+            <div class="flex items-center gap-3">
+                <!-- Sync / Connect Bank Button -->
+                <button id="btn-bank-connect" onclick="openBankModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-md transition-all active:scale-95">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span id="bank-status-text">Connect Bank</span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
             </div>
+        </header>
 
-        </div>
+        <!-- Main Content Grid -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
 
-        <!-- MIDDLE SECTION: Spend Logger & Paycheck Calculator -->
-        <div class="grid-2">
-            
-            <!-- Quick Spend Logger -->
-            <div class="card">
-                <span class="card-title" style="color: #f43f5e; margin-bottom: 8px; display: block;">Log Quick Expense</span>
+            <!-- TOP ROW: Key Indicators & Next Bill Spotlight -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 
-                <label>Amount ($)</label>
-                <input type="number" id="spend-amt" placeholder="0.00" oninput="previewSpendImpact()">
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div>
-                        <label>Category</label>
-                        <select id="spend-cat">
-                            <option>Groceries</option>
-                            <option>Dining Out</option>
-                            <option>Gas / Transport</option>
-                            <option>Shopping</option>
-                            <option>Other</option>
+                <!-- Account Balance Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
+                        <button onclick="openEditBalanceModal()" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1" id="balance-subtext">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
+                        </p>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Bank Sync Status:</span>
+                        <span id="sync-status-badge" class="font-medium text-amber-600 dark:text-amber-400">Manual Entry</span>
+                    </div>
+                </div>
+
+                <!-- Next Bill Spotlight Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">In 0 days</span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex justify-between items-baseline">
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100" id="next-bill-name">--</h3>
+                            <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400" id="next-bill-amount">$0.00</span>
+                        </div>
+                        <div class="mt-2 space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">Amount Needed:</span>
+                                <span class="font-semibold" id="next-bill-needed">$0.00</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div id="next-bill-progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">
+                        Calculating status...
+                    </p>
+                </div>
+
+                <!-- Total Bills Due Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Period Bills Total</span>
+                        <select id="timeframe-select" onchange="updateDashboard()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2 py-1 font-medium focus:ring-1 focus:ring-indigo-500">
+                            <option value="week">Next 7 Days</option>
+                            <option value="month" selected>This Month</option>
                         </select>
                     </div>
-                    <div>
-                        <label>Note</label>
-                        <input type="text" id="spend-note" placeholder="Coffee, Dinner...">
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Net Surplus / Deficit:</span>
+                        <span id="net-surplus-amount" class="font-bold">$0.00</span>
                     </div>
                 </div>
 
-                <button onclick="logSpend()" class="btn-action">Deduct & Recalculate</button>
+                <!-- Required Income & Savings Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Income Needed</span>
+                        <button onclick="openSavingsGoalModal()" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
+                            <i class="fa-solid fa-bullseye"></i> Goal
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Needed per week to cover bills & save</p>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Target Savings Goal:</span>
+                        <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
+                    </div>
+                </div>
 
-                <div id="spend-impact-box" class="feedback feedback-safe hidden"></div>
             </div>
 
-            <!-- Future Paycheck & Overtime Calculator -->
-            <div class="card">
-                <span class="card-title" style="color: #34d399; margin-bottom: 8px; display: block;">Future Paycheck Calculator</span>
+            <!-- MIDDLE SECTION: Interactive Spend Logger & Cash Flow Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <!-- Quick Spend Logger -->
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
-                        <label>Hourly Rate ($)</label>
-                        <input type="number" id="pay-rate" placeholder="22.50" oninput="calculatePaycheck()">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-minus-circle text-rose-500"></i> Log Quick Spend
+                            </h2>
+                            <span class="text-xs text-slate-400">Instant Impact</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                            Log any expense to immediately see how it impacts your ability to cover upcoming bills.
+                        </p>
+                        
+                        <form id="spend-form" onsubmit="handleLogSpend(event)" class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Amount ($)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                                    <input type="number" step="0.01" id="spend-amount" required placeholder="0.00" class="w-full pl-7 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 font-semibold">
+                                </div>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Category</label>
+                                    <select id="spend-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+                                        <option value="Groceries">Groceries</option>
+                                        <option value="Dining Out">Dining Out</option>
+                                        <option value="Gas / Transport">Gas / Transport</option>
+                                        <option value="Shopping">Shopping</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Description</label>
+                                    <input type="text" id="spend-note" placeholder="e.g. Coffee, Lunch" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-md transition active:scale-98 flex items-center justify-center gap-2 mt-2">
+                                <i class="fa-solid fa-receipt"></i> Deduct & Recalculate
+                            </button>
+                        </form>
                     </div>
-                    <div>
-                        <label>Reg. Hours (≤40)</label>
-                        <input type="number" id="pay-reg-hrs" value="40" oninput="calculatePaycheck()">
+
+                    <!-- Impact Warning Banner -->
+                    <div id="spend-impact-box" class="mt-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs space-y-1">
+                        <div class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator text-indigo-500"></i> Live Spending Cushion
+                        </div>
+                        <p id="spend-impact-text" class="text-slate-500 dark:text-slate-400">
+                            Enter an amount above to preview impact on your next bill.
+                        </p>
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <div>
-                        <label>Overtime Hours (1.5x)</label>
-                        <input type="number" id="pay-ot-hrs" value="0" oninput="calculatePaycheck()">
+                <!-- Visual Breakdown: Cash Flow Timeline & Coverage Chart -->
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-indigo-500"></i> Balance Projection vs. Bills
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Estimated account balance trajectory over time as upcoming bills hit</p>
+                        </div>
                     </div>
-                    <div>
-                        <label>Est. Tax Rate (%)</label>
-                        <input type="number" id="pay-tax-rate" value="25" oninput="calculatePaycheck()">
+
+                    <div class="w-full h-64 relative">
+                        <canvas id="cashFlowChart"></canvas>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-200/60 dark:border-slate-700/60 mt-2">
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Starting Balance</span>
+                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200" id="chart-start-bal">$0</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Upcoming Bills</span>
+                            <span class="text-sm font-bold text-rose-500" id="chart-total-out">$0</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Projected Safe Floor</span>
+                            <span class="text-sm font-bold text-emerald-500" id="chart-lowest-bal">$0</span>
+                        </div>
                     </div>
                 </div>
 
-                <div style="margin-top:
+            </div>
+
+            <!-- FUTURE PAYCHECK & OVERTIME CALCULATOR SECTION -->
+            <div class="glass rounded-2xl p-6 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+                    <div>
+                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Future Paycheck & Overtime Calculator
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Input hours & rate to simulate take-home pay after taxes and check next bill affordability</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hourly Rate ($)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                            <input type="number" step="0.01" id="calc-pay-rate" placeholder="22.50" oninput="calculatePaycheck()" class="w-full pl-7 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Regular Hours (≤40)</label>
+                        <input type="number" step="1" id="calc-reg-hours" value="40" placeholder="40" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Overtime Hours (1.5x)</label>
+                        <input type="number" step="1" id="calc-ot-hours" value="0" placeholder="0" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Est. Tax Rate (%)</label>
+                        <input type="number" step="1" id="calc-tax-rate" value="25" placeholder="25" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                    </div>
+                </div>
+
+                <!-- Paycheck Calculation Results -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-xs">
+                    <div class="flex justify-between md:block">
+                        <span class="text-slate-500 block">Gross Earnings:</span>
+                        <span id="res-gross-pay" class="font-bold text-slate-800 dark:text-slate-200 text-sm">$0.00</span>
+                    </div>
+                    <div class="flex justify-between md:block">
+                        <span class="text-slate-500 block">Est. Taxes (Fed/State/FICA):</span>
+                        <span id="res-total-tax" class="font-bold text-rose-500 text-sm">-$0.00</span>
+                    </div>
+                    <div class="flex justify-between md:block border-t md:border-t-0 pt-2 md:pt-0 border-slate-200 dark:border-slate-700">
+                        <span class="text-slate-500 block">Net Take-Home Pay:</span>
+                        <span id="res-net-pay" class="font-bold text-emerald-600 dark:text-emerald-400 text-base">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Paycheck Affordability Verdict Box -->
+                <div id="paycheck-verdict-box" class="mt-3 p-3 rounded-xl bg-slate-200/50 dark:bg-slate-800/50 text-xs hidden">
+                    <span id="paycheck-verdict-text" class="font-medium text-slate-700 dark:text-slate-300"></span>
+                </div>
+            </div>
+
+            <!-- BOTTOM SECTION: Managed Bills List & Recent Transactions -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Bills Management List (2 Cols) -->
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-check text-indigo-500"></i> Recurring Bills Schedule
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
+                        </div>
+                        <button onclick="openAddBillModal()" class="self-start sm:self-auto bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Add Bill
+                        </button>
+                    </div>
+
+                    <!-- Bills Table / List -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase font-semibold">
+                                    <th class="pb-3 pl-2">Bill Name</th>
+                                    <th class="pb-3">Frequency</th>
+                                    <th class="pb-3">Due Date</th>
+                                    <th class="pb-3">Amount</th>
+                                    <th class="pb-3">Status</th>
+                                    <th class="pb-3 text-right pr-2">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bills-table-body" class="divide-y divide-slate-100 dark:divide-slate-800">
+                                <!-- Dynamic Bills Injected Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Activity & Transactions Log -->
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Recent Activity
+                            </h2>
+                            <button onclick="clearSpendHistory()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">Clear</button>
+                        </div>
+                        
+                        <div id="activity-log" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1">
+                            <!-- Transactions Injected Here -->
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+                        <span class="text-[11px] text-slate-400">All data saved locally in browser</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL: Add / Edit Bill -->
+    <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-bill')" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1" id="modal-bill-title">Add Recurring Bill</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Fill in details for your recurring payment.</p>
+
+            <form id="form-bill" onsubmit="handleSaveBill(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="bill-id">
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Bill Name</label>
+                    <input type="text" id="bill-name" required placeholder="e.g. Rent, Netflix, Electricity" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Amount ($)</label>
+                        <input type="number" step="0.01" id="bill-amount" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Frequency</label>
+                        <select id="bill-frequency" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Next Due Date</label>
+                    <input type="date" id="bill-due-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl
