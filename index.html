@@ -274,7 +274,7 @@
                 </div>
             </div>
 
-            <!-- INTERACTIVE FINANCIAL CALENDAR WITH DYNAMIC MONTHS -->
+            <!-- INTERACTIVE FINANCIAL CALENDAR WITH DYNAMIC MONTHS (COLLAPSIBLE) -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
@@ -284,18 +284,30 @@
                         <p class="text-xs text-slate-500 dark:text-slate-400">Balances dynamically drop for bill due dates and rise when income/paychecks hit.</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <button id="open-paycheck-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                            <i class="fa-solid fa-plus-circle"></i> Add Paycheck
+                        <button id="calendar-toggle-btn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            <i id="calendar-toggle-icon" class="fa-solid fa-chevron-down"></i> <span id="calendar-toggle-text">Expand Calendar</span>
                         </button>
-                        <select id="calendar-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
-                            <!-- Populated dynamically -->
-                        </select>
                     </div>
                 </div>
 
-                <!-- Calendar Grid Container -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid">
-                    <!-- Populated dynamically -->
+                <!-- Collapsible Content Wrapper -->
+                <div id="calendar-collapsible-content" class="hidden space-y-4 pt-2">
+                    <div class="flex items-center justify-between gap-2">
+                        <div class="text-xs text-slate-500">Select month view:</div>
+                        <div class="flex items-center gap-2">
+                            <button id="open-paycheck-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                                <i class="fa-solid fa-plus-circle"></i> Add Paycheck
+                            </button>
+                            <select id="calendar-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Calendar Grid Container -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid">
+                        <!-- Populated dynamically -->
+                    </div>
                 </div>
             </div>
 
@@ -842,7 +854,6 @@
 
             neededEl.textContent = formatCurrency(nextBill.amount);
             
-            // Coverage progress vs current available balance
             const coverageRatio = Math.min(100, Math.max(0, (appState.balance / nextBill.amount) * 100));
             progressEl.style.width = `${coverageRatio}%`;
 
@@ -1356,6 +1367,25 @@
             initModals();
             initMonthSelector();
             applyTheme();
+
+            // Calendar Collapse / Expand Toggle Handler
+            const calendarToggleBtn = document.getElementById('calendar-toggle-btn');
+            const calendarContent = document.getElementById('calendar-collapsible-content');
+            const calendarToggleIcon = document.getElementById('calendar-toggle-icon');
+            const calendarToggleText = document.getElementById('calendar-toggle-text');
+
+            calendarToggleBtn.addEventListener('click', () => {
+                const isClosed = calendarContent.classList.contains('hidden');
+                if (isClosed) {
+                    calendarContent.classList.remove('hidden');
+                    calendarToggleIcon.className = 'fa-solid fa-chevron-up';
+                    calendarToggleText.textContent = 'Collapse Calendar';
+                } else {
+                    calendarContent.classList.add('hidden');
+                    calendarToggleIcon.className = 'fa-solid fa-chevron-down';
+                    calendarToggleText.textContent = 'Expand Calendar';
+                }
+            });
 
             document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
             document.getElementById('open-balance-btn').addEventListener('click', (e) => {
