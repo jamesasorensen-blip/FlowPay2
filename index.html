@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -23,11 +22,9 @@
                     }
                 }
             }
-        }
+        };
     </script>
-    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -52,15 +49,10 @@
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
 
-    <!-- Splash Screen Startup Animation Overlay -->
     <div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
         <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">
-                $
-            </div>
-            <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
-                FlowPay
-            </h1>
+            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">$</div>
+            <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">FlowPay</h1>
         </div>
     </div>
     <style>
@@ -70,24 +62,28 @@
         }
     </style>
     <script>
-        window.addEventListener('DOMContentLoaded', function() {
-            setTimeout(function() {
-                var textElem = document.getElementById('splash-text');
-                if(textElem) { textElem.style.opacity = '1'; textElem.style.transform = 'translateX(0)'; }
+        window.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                const textElem = document.getElementById('splash-text');
+                if (textElem) {
+                    textElem.style.opacity = '1';
+                    textElem.style.transform = 'translateX(0)';
+                }
             }, 150);
-            setTimeout(function() {
-                var splash = document.getElementById('splash-screen');
-                if(splash) { splash.style.opacity = '0'; setTimeout(function() { splash.remove(); }, 500); }
+
+            setTimeout(function () {
+                const splash = document.getElementById('splash-screen');
+                if (splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(function () { splash.remove(); }, 500);
+                }
             }, 1600);
         });
     </script>
 
-    <!-- Toast Notification Container -->
     <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-    <!-- App Container -->
     <div class="min-h-screen flex flex-col">
-        <!-- Navigation Header -->
         <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
@@ -111,13 +107,8 @@
             </div>
         </header>
 
-        <!-- Main Content Grid -->
         <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
-
-            <!-- TOP ROW: Key Indicators -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                
-                <!-- Account Balance Card -->
                 <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
@@ -137,7 +128,6 @@
                     </div>
                 </div>
 
-                <!-- Next Bill Spotlight Card -->
                 <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
@@ -161,7 +151,6 @@
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
                 </div>
 
-                <!-- Total Bills Due Card -->
                 <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Period Bills Total</span>
@@ -182,7 +171,6 @@
                     </div>
                 </div>
 
-                <!-- Required Income & Savings Card -->
                 <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
                     <div class="flex items-center justify-between">
                         <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Income Needed</span>
@@ -199,13 +187,9 @@
                         <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
                     </div>
                 </div>
-
             </div>
 
-            <!-- MIDDLE SECTION: Quick Spend & Chart -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Quick Spend Logger -->
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-4">
@@ -253,7 +237,6 @@
                     </div>
                 </div>
 
-                <!-- Chart Projection -->
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
                         <div>
@@ -279,10 +262,8 @@
                         </div>
                     </div>
                 </div>
-
             </div>
 
-            <!-- MULTI-PAYCHECK & STATE TAX CALCULATOR SECTION -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
@@ -291,7 +272,6 @@
                         </h2>
                         <p class="text-xs text-slate-500 dark:text-slate-400">Select your state, stack multiple paychecks with the '+' button, and check sequential bill affordability.</p>
                     </div>
-                    <!-- State Tax Selector -->
                     <div class="flex items-center gap-2">
                         <label for="state-select" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Residency State:</label>
                         <select id="state-select" onchange="calculateAllPaychecks()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
@@ -341,17 +321,12 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Paycheck Cards Container -->
-                <div id="paycheck-container" class="space-y-3">
-                    <!-- Paycheck rows injected via JS -->
-                </div>
+                <div id="paycheck-container" class="space-y-3"></div>
 
-                <!-- Add Paycheck Button -->
                 <button onclick="addPaycheckRow()" class="w-full py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus-circle text-sm"></i> Add Another Paycheck (+)
                 </button>
 
-                <!-- Combined Summary Box -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs mt-4">
                     <div>
                         <span class="text-slate-500 block">Total Stacked Gross:</span>
@@ -368,7 +343,6 @@
                 </div>
             </div>
 
-            <!-- SEQUENTIAL BILL-BY-BILL AFFORDABILITY BREAKDOWN -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex items-center justify-between">
                     <div>
@@ -378,16 +352,10 @@
                         <p class="text-xs text-slate-500 dark:text-slate-400">Step-by-step verification showing if you can pay each bill one after another with your stacked income.</p>
                     </div>
                 </div>
-
-                <div id="sequential-timeline" class="space-y-2.5">
-                    <!-- Dynamically rendered timeline -->
-                </div>
+                <div id="sequential-timeline" class="space-y-2.5"></div>
             </div>
 
-            <!-- BOTTOM SECTION: Managed Bills & Recent Activity -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                <!-- Bills Management List -->
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div>
@@ -417,7 +385,6 @@
                     </div>
                 </div>
 
-                <!-- Recent Activity -->
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-3">
@@ -432,14 +399,10 @@
                         <span class="text-[11px] text-slate-400">All data saved locally in browser</span>
                     </div>
                 </div>
-
             </div>
-
         </main>
     </div>
 
-    <!-- MODALS -->
-    <!-- Add / Edit Bill Modal -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-bill')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -476,7 +439,6 @@
         </div>
     </div>
 
-    <!-- Edit Balance Modal -->
     <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-balance')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -493,7 +455,6 @@
         </div>
     </div>
 
-    <!-- Savings Goal Modal -->
     <div id="modal-goal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-goal')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -510,7 +471,6 @@
         </div>
     </div>
 
-    <!-- Bank Connection Modal -->
     <div id="modal-bank" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-bank')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -520,46 +480,57 @@
         </div>
     </div>
 
-    <!-- SCRIPT LOGIC -->
     <script>
         const STORAGE_KEY = 'flowpay-data-v2';
-        const DEFAULT_DATA = { 
-            balance: 1450.00, 
-            savingsGoal: 400.00, 
-            bills: [
-                { id: '1', name: 'Apartment Rent', amount: 850.00, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
-                { id: '2', name: 'Electric Bill', amount: 110.00, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
-            ], 
-            transactions: [],
-            paychecks: [
-                { id: 'p1', label: 'Primary Job', rate: 22.50, regHours: 40, otHours: 0, taxRate: 22 }
-            ]
-        };
-        let state = loadState();
-        let cashFlowChart = null;
 
         function getRelativeDate(daysFromNow) {
-            const d = new Date();
-            d.setDate(d.getDate() + daysFromNow);
-            return d.toISOString().split('T')[0];
+            const date = new Date();
+            date.setDate(date.getDate() + daysFromNow);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const DEFAULT_DATA = {
+            balance: 1450,
+            savingsGoal: 400,
+            bills: [
+                { id: '1', name: 'Apartment Rent', amount: 850, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
+                { id: '2', name: 'Electric Bill', amount: 110, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
+            ],
+            transactions: [],
+            paychecks: [
+                { id: 'p1', label: 'Primary Job', rate: 22.5, regHours: 40, otHours: 0, taxRate: 22 }
+            ]
+        };
+
+        function cloneData(data) {
+            return JSON.parse(JSON.stringify(data));
         }
 
         function loadState() {
             try {
                 const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-                if (!saved || typeof saved !== 'object') return structuredClone(DEFAULT_DATA);
+                if (!saved || typeof saved !== 'object') return cloneData(DEFAULT_DATA);
+
                 return {
-                    balance: Number.isFinite(Number(saved.balance)) ? Number(saved.balance) : 1450.00,
-                    savingsGoal: Number.isFinite(Number(saved.savingsGoal)) ? Math.max(0, Number(saved.savingsGoal)) : 400.00,
-                    bills: Array.isArray(saved.bills) ? saved.bills : structuredClone(DEFAULT_DATA.bills),
+                    balance: Number.isFinite(Number(saved.balance)) ? Number(saved.balance) : DEFAULT_DATA.balance,
+                    savingsGoal: Number.isFinite(Number(saved.savingsGoal)) ? Math.max(0, Number(saved.savingsGoal)) : DEFAULT_DATA.savingsGoal,
+                    bills: Array.isArray(saved.bills) ? saved.bills : cloneData(DEFAULT_DATA.bills),
                     transactions: Array.isArray(saved.transactions) ? saved.transactions : [],
-                    paychecks: Array.isArray(saved.paychecks) && saved.paychecks.length > 0 ? saved.paychecks : structuredClone(DEFAULT_DATA.paychecks)
+                    paychecks: Array.isArray(saved.paychecks) && saved.paychecks.length > 0
+                        ? saved.paychecks
+                        : cloneData(DEFAULT_DATA.paychecks)
                 };
             } catch (error) {
                 console.error('Could not load saved data:', error);
-                return structuredClone(DEFAULT_DATA);
+                return cloneData(DEFAULT_DATA);
             }
         }
+
+        let state = loadState();
+        let cashFlowChart = null;
 
         function saveState() {
             try {
@@ -574,34 +545,40 @@
         }
 
         function parseLocalDate(value) {
+            if (!value || typeof value !== 'string') return new Date(NaN);
             const [year, month, day] = value.split('-').map(Number);
             return new Date(year, month - 1, day);
         }
 
         function formatDate(value) {
-            return parseLocalDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const date = parseLocalDate(value);
+            return Number.isNaN(date.getTime())
+                ? 'Invalid date'
+                : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         }
 
-        window.onload = function() {
+        window.addEventListener('DOMContentLoaded', function () {
             initChart();
             renderPaycheckRows();
             updateDashboard();
-        };
+        });
 
         function updateDashboard() {
-            state.bills.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
+            state.bills.sort((a, b) => parseLocalDate(a.dueDate) - parseLocalDate(b.dueDate));
 
             const timeframe = document.getElementById('timeframe-select').value;
-            const now = new Date();
-            now.setHours(0,0,0,0);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            let periodBills = state.bills.filter(bill => {
-                const due = new Date(bill.dueDate);
-                const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-                return timeframe === 'week' ? (diffDays >= 0 && diffDays <= 7) : (diffDays >= 0 && diffDays <= 30);
+            const periodBills = state.bills.filter(bill => {
+                const due = parseLocalDate(bill.dueDate);
+                const diffDays = Math.ceil((due - today) / 86400000);
+                return timeframe === 'week'
+                    ? diffDays >= 0 && diffDays <= 7
+                    : diffDays >= 0 && diffDays <= 30;
             });
 
-            const totalPeriodBills = periodBills.reduce((acc, b) => acc + parseFloat(b.amount), 0);
+            const totalPeriodBills = periodBills.reduce((total, bill) => total + (Number(bill.amount) || 0), 0);
             const netSurplus = state.balance - totalPeriodBills;
 
             document.getElementById('display-balance').innerText = money(state.balance);
@@ -611,18 +588,18 @@
             const surplusElem = document.getElementById('net-surplus-amount');
 
             if (netSurplus >= 0) {
-                statusBadge.innerText = "Fully Covered";
-                statusBadge.className = "px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300";
+                statusBadge.innerText = 'Fully Covered';
+                statusBadge.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
                 surplusElem.innerText = `+${money(netSurplus)}`;
-                surplusElem.className = "font-bold text-emerald-600 dark:text-emerald-400";
+                surplusElem.className = 'font-bold text-emerald-600 dark:text-emerald-400';
             } else {
                 statusBadge.innerText = `Short by ${money(Math.abs(netSurplus))}`;
-                statusBadge.className = "px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300";
+                statusBadge.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300';
                 surplusElem.innerText = `-${money(Math.abs(netSurplus))}`;
-                surplusElem.className = "font-bold text-rose-600 dark:text-rose-400";
+                surplusElem.className = 'font-bold text-rose-600 dark:text-rose-400';
             }
 
-            updateNextBillSpotlight(now);
+            updateNextBillSpotlight(today);
             updateSavingsCalculations();
             renderBillsTable();
             renderActivityLog();
@@ -632,124 +609,156 @@
         }
 
         function updateNextBillSpotlight(todayDate) {
-            const upcoming = state.bills.filter(b => new Date(b.dueDate) >= todayDate);
+            const upcoming = state.bills.filter(bill => {
+                const due = parseLocalDate(bill.dueDate);
+                return !Number.isNaN(due.getTime()) && due >= todayDate;
+            });
+
+            const neededElem = document.getElementById('next-bill-needed');
+            const statusElem = document.getElementById('next-bill-status-text');
+            const progressElem = document.getElementById('next-bill-progress');
+
             if (upcoming.length === 0) {
-                document.getElementById('next-bill-name').innerText = "None Upcoming";
-                document.getElementById('next-bill-amount').innerText = "$0.00";
-                document.getElementById('next-bill-days').innerText = "N/A";
-                document.getElementById('next-bill-needed').innerText = "$0.00";
-                document.getElementById('next-bill-progress').style.width = "100%";
-                document.getElementById('next-bill-status-text').innerText = "All active bills paid!";
+                document.getElementById('next-bill-name').innerText = 'None Upcoming';
+                document.getElementById('next-bill-amount').innerText = '$0.00';
+                document.getElementById('next-bill-days').innerText = 'N/A';
+                neededElem.innerText = '$0.00';
+                neededElem.className = 'font-semibold';
+                progressElem.style.width = '100%';
+                statusElem.innerText = 'All active bills paid!';
                 return;
             }
 
             const next = upcoming[0];
-            const diffDays = Math.ceil((new Date(next.dueDate) - todayDate) / (1000 * 60 * 60 * 24));
-            
+            const diffDays = Math.ceil((parseLocalDate(next.dueDate) - todayDate) / 86400000);
+
             document.getElementById('next-bill-name').innerText = next.name;
             document.getElementById('next-bill-amount').innerText = money(next.amount);
-            document.getElementById('next-bill-days').innerText = diffDays === 0 ? 'Due Today!' : `In ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+            document.getElementById('next-bill-days').innerText = diffDays === 0
+                ? 'Due Today!'
+                : `In ${diffDays} day${diffDays === 1 ? '' : 's'}`;
 
-            let percent = Math.min(100, Math.max(0, (state.balance / next.amount) * 100));
-            document.getElementById('next-bill-progress').style.width = `${percent}%`;
+            const amount = Number(next.amount) || 0;
+            const percent = amount > 0 ? Math.min(100, Math.max(0, (state.balance / amount) * 100)) : 100;
+            progressElem.style.width = `${percent}%`;
 
-            if (state.balance >= next.amount) {
-                document.getElementById('next-bill-needed').innerText = "$0.00 (Covered)";
-                document.getElementById('next-bill-needed').className = "font-semibold text-emerald-600 dark:text-emerald-400";
-                document.getElementById('next-bill-status-text').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> Sufficient funds available right now.`;
+            if (state.balance >= amount) {
+                neededElem.innerText = '$0.00 (Covered)';
+                neededElem.className = 'font-semibold text-emerald-600 dark:text-emerald-400';
+                statusElem.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i> Sufficient funds available right now.';
             } else {
-                const needed = next.amount - state.balance;
-                document.getElementById('next-bill-needed').innerText = money(needed);
-                document.getElementById('next-bill-needed').className = "font-semibold text-rose-600 dark:text-rose-400";
-                document.getElementById('next-bill-status-text').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> You need <span class="font-bold text-rose-500">${money(needed)}</span> more to cover this bill!`;
+                const needed = amount - state.balance;
+                neededElem.innerText = money(needed);
+                neededElem.className = 'font-semibold text-rose-600 dark:text-rose-400';
+                statusElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> You need <span class="font-bold text-rose-500">${money(needed)}</span> more to cover this bill!`;
             }
         }
 
         function updateSavingsCalculations() {
-            const monthlyBills = state.bills.reduce((acc, b) => acc + (b.frequency === 'weekly' ? b.amount * 4.33 : b.amount), 0);
+            const monthlyBills = state.bills.reduce((total, bill) => {
+                const amount = Number(bill.amount) || 0;
+                return total + (bill.frequency === 'weekly' ? amount * 4.33 : amount);
+            }, 0);
+
             const totalMonthlyRequirement = monthlyBills + state.savingsGoal;
             document.getElementById('display-savings-goal').innerText = `${money(state.savingsGoal)}/mo`;
             document.getElementById('required-weekly-income').innerText = money(totalMonthlyRequirement / 4.33);
         }
 
-        /* --- MULTI-PAYCHECK & STATE TAX RENDER LOGIC --- */
         function renderPaycheckRows() {
             const container = document.getElementById('paycheck-container');
             container.innerHTML = '';
 
             state.paychecks.forEach((pc, index) => {
                 const row = document.createElement('div');
-                row.className = "grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center text-xs";
+                row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center text-xs';
                 row.innerHTML = `
                     <div class="md:col-span-3">
                         <label class="block font-medium text-slate-500 mb-1">Paycheck Label</label>
-                        <input type="text" value="${pc.label}" oninput="updatePaycheckField('${pc.id}', 'label', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                        <input type="text" value="${escapeHtml(pc.label)}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'label', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block font-medium text-slate-500 mb-1">Rate ($/hr)</label>
-                        <input type="number" min="0" step="0.5" value="${pc.rate}" oninput="updatePaycheckField('${pc.id}', 'rate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                        <input type="number" min="0" step="0.5" value="${Number(pc.rate) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'rate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block font-medium text-slate-500 mb-1">Reg. Hours</label>
-                        <input type="number" min="0" max="80" value="${pc.regHours}" oninput="updatePaycheckField('${pc.id}', 'regHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                        <input type="number" min="0" max="80" value="${Number(pc.regHours) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'regHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block font-medium text-slate-500 mb-1">Overtime (1.5x)</label>
-                        <input type="number" min="0" value="${pc.otHours}" oninput="updatePaycheckField('${pc.id}', 'otHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                        <input type="number" min="0" value="${Number(pc.otHours) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'otHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
                     </div>
                     <div class="md:col-span-2">
                         <label class="block font-medium text-slate-500 mb-1">Fed/FICA Tax (%)</label>
-                        <input type="number" min="0" max="60" value="${pc.taxRate}" oninput="updatePaycheckField('${pc.id}', 'taxRate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                        <input type="number" min="0" max="60" value="${Number(pc.taxRate) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'taxRate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
                     </div>
                     <div class="md:col-span-1 flex justify-end items-end pt-4">
-                        ${state.paychecks.length > 1 ? `<button onclick="removePaycheckRow('${pc.id}')" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
+                        ${state.paychecks.length > 1 ? `<button onclick="removePaycheckRow('${escapeHtml(pc.id)}')" aria-label="Remove paycheck" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
                     </div>
                 `;
                 container.appendChild(row);
             });
         }
 
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, character => ({
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            })[character]);
+        }
+
         function addPaycheckRow() {
             state.paychecks.push({
-                id: 'p_' + Date.now(),
+                id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
                 label: `Job #${state.paychecks.length + 1}`,
-                rate: 20.00,
+                rate: 20,
                 regHours: 40,
                 otHours: 0,
                 taxRate: 22
             });
             renderPaycheckRows();
             calculateAllPaychecks();
+            saveState();
         }
 
         function removePaycheckRow(id) {
-            state.paychecks = state.paychecks.filter(p => p.id !== id);
+            if (state.paychecks.length <= 1) return;
+            state.paychecks = state.paychecks.filter(paycheck => paycheck.id !== id);
             renderPaycheckRows();
             calculateAllPaychecks();
+            saveState();
         }
 
-        function updatePaycheckField(id, field, val) {
-            const pc = state.paychecks.find(p => p.id === id);
-            if (pc) {
-                pc[field] = field === 'label' ? val : (parseFloat(val) || 0);
-                calculateAllPaychecks();
-            }
+        function updatePaycheckField(id, field, value) {
+            const paycheck = state.paychecks.find(item => item.id === id);
+            if (!paycheck) return;
+
+            paycheck[field] = field === 'label' ? value : (parseFloat(value) || 0);
+            calculateAllPaychecks();
+            saveState();
         }
 
         function calculateAllPaychecks() {
-            const stateTaxRate = parseFloat(document.getElementById('state-select').value) || 0;
+            const stateSelect = document.getElementById('state-select');
+            if (!stateSelect) return;
+
+            const stateTaxRate = parseFloat(stateSelect.value) || 0;
             let totalGross = 0;
             let totalTaxes = 0;
             let totalNet = 0;
 
-            state.paychecks.forEach(pc => {
-                const regPay = pc.regHours * pc.rate;
-                const otPay = pc.otHours * (pc.rate * 1.5);
-                const gross = regPay + otPay;
-                
-                const fedFicaTax = gross * (pc.taxRate / 100);
-                const stateTax = gross * (stateTaxRate / 100);
-                const taxes = fedFicaTax + stateTax;
+            state.paychecks.forEach(paycheck => {
+                const rate = Number(paycheck.rate) || 0;
+                const regularHours = Number(paycheck.regHours) || 0;
+                const overtimeHours = Number(paycheck.otHours) || 0;
+                const taxRate = Number(paycheck.taxRate) || 0;
+
+                const gross = regularHours * rate + overtimeHours * rate * 1.5;
+                const taxes = gross * (taxRate / 100) + gross * (stateTaxRate / 100);
                 const net = gross - taxes;
 
                 totalGross += gross;
@@ -764,38 +773,38 @@
             renderSequentialTimeline(totalNet);
         }
 
-        /* --- SEQUENTIAL BILL AFFORDABILITY TIMELINE --- */
         function renderSequentialTimeline(totalNetPaycheck) {
             const container = document.getElementById('sequential-timeline');
             container.innerHTML = '';
 
             if (state.bills.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">No bills scheduled.</p>";`;
+                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">No bills scheduled.</p>';
                 return;
             }
 
             let runningPool = state.balance + totalNetPaycheck;
 
-            state.bills.forEach((bill, idx) => {
-                const canAfford = runningPool >= bill.amount;
-                const leftover = runningPool - bill.amount;
-                const deficit = bill.amount - runningPool;
+            state.bills.forEach((bill, index) => {
+                const amount = Number(bill.amount) || 0;
+                const canAfford = runningPool >= amount;
+                const leftover = runningPool - amount;
+                const deficit = amount - runningPool;
 
                 const item = document.createElement('div');
                 item.className = `p-3 rounded-xl border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${canAfford ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'}`;
-                
-                let statusHtml = '';
+
+                let statusHtml;
                 if (canAfford) {
                     statusHtml = `<span class="font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Affordable (${money(leftover)} remaining buffer)</span>`;
-                    runningPool = leftover; // deduct for next bill in sequence
+                    runningPool = leftover;
                 } else {
                     statusHtml = `<span class="font-bold text-rose-600 dark:text-rose-400">⚠ Short by ${money(deficit)} (Need ${money(deficit)} more)</span>`;
-                    runningPool = 0; // depleted
+                    runningPool = 0;
                 }
 
                 item.innerHTML = `
                     <div>
-                        <div class="font-bold text-slate-800 dark:text-slate-100">#${idx + 1}. ${bill.name} (${money(bill.amount)})</div>
+                        <div class="font-bold text-slate-800 dark:text-slate-100">#${index + 1}. ${escapeHtml(bill.name)} (${money(amount)})</div>
                         <div class="text-[11px] text-slate-500">Due: ${formatDate(bill.dueDate)}</div>
                     </div>
                     <div>${statusHtml}</div>
@@ -804,10 +813,11 @@
             });
         }
 
-        /* --- CHART & UTILITIES --- */
         function initChart() {
-            const ctx = document.getElementById('cashFlowChart').getContext('2d');
-            cashFlowChart = new Chart(ctx, {
+            const canvas = document.getElementById('cashFlowChart');
+            if (!canvas || typeof Chart === 'undefined') return;
+
+            cashFlowChart = new Chart(canvas.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: [],
@@ -829,7 +839,10 @@
                     plugins: { legend: { display: false } },
                     scales: {
                         x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                        y: { grid: { color: 'rgba(226, 232, 240, 0.5)' }, ticks: { font: { size: 10 }, callback: v => '$' + v } }
+                        y: {
+                            grid: { color: 'rgba(226, 232, 240, 0.5)' },
+                            ticks: { font: { size: 10 }, callback: value => '$' + value }
+                        }
                     }
                 }
             });
@@ -837,21 +850,20 @@
 
         function updateCashFlowChart() {
             if (!cashFlowChart) return;
+
             const labels = ['Today'];
             const points = [state.balance];
-            let runningBal = state.balance;
-            let lowest = runningBal;
+            let runningBalance = state.balance;
+            let lowest = runningBalance;
             let totalOut = 0;
 
-            const today = new Date();
-            today.setHours(0,0,0,0);
-
             state.bills.forEach(bill => {
-                runningBal -= parseFloat(bill.amount);
-                totalOut += parseFloat(bill.amount);
-                if (runningBal < lowest) lowest = runningBal;
-                labels.push(`${bill.name}`);
-                points.push(runningBal);
+                const amount = Number(bill.amount) || 0;
+                runningBalance -= amount;
+                totalOut += amount;
+                lowest = Math.min(lowest, runningBalance);
+                labels.push(bill.name);
+                points.push(runningBalance);
             });
 
             cashFlowChart.data.labels = labels;
@@ -872,90 +884,167 @@
             openModal('modal-bill');
         }
 
-        function handleSaveBill(e) {
-            e.preventDefault();
+        function handleSaveBill(event) {
+            event.preventDefault();
+
             const id = document.getElementById('bill-id').value;
-            const name = document.getElementById('bill-name').value;
+            const name = document.getElementById('bill-name').value.trim();
             const amount = parseFloat(document.getElementById('bill-amount').value);
             const frequency = document.getElementById('bill-frequency').value;
             const dueDate = document.getElementById('bill-due-date').value;
 
+            if (!name || !Number.isFinite(amount) || amount <= 0 || !dueDate) return;
+
             if (id) {
-                const idx = state.bills.findIndex(b => b.id === id);
-                if (idx !== -1) state.bills[idx] = { id, name, amount, frequency, dueDate, category: 'General' };
+                const index = state.bills.findIndex(bill => bill.id === id);
+                if (index !== -1) {
+                    state.bills[index] = { ...state.bills[index], name, amount, frequency, dueDate };
+                }
             } else {
-                state.bills.push({ id: 'b_' + Date.now(), name, amount, frequency, dueDate, category: 'General' });
+                state.bills.push({
+                    id: `b_${Date.now()}`,
+                    name,
+                    amount,
+                    frequency,
+                    dueDate,
+                    category: 'General'
+                });
             }
+
             closeModal('modal-bill');
             updateDashboard();
         }
 
         function deleteBill(id) {
-            state.bills = state.bills.filter(b => b.id !== id);
+            state.bills = state.bills.filter(bill => bill.id !== id);
             updateDashboard();
         }
 
         function renderBillsTable() {
             const tbody = document.getElementById('bills-table-body');
             tbody.innerHTML = '';
+
             if (state.bills.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No recurring bills added yet.</td></tr>`;
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">No recurring bills added yet.</td></tr>';
                 return;
             }
+
             state.bills.forEach(bill => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors";
-                tr.innerHTML = `
-                    <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${bill.name}</td>
-                    <td class="py-3 capitalize text-slate-500">${bill.frequency}</td>
+                const row = document.createElement('tr');
+                row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors';
+                row.innerHTML = `
+                    <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(bill.name)}</td>
+                    <td class="py-3 capitalize text-slate-500">${escapeHtml(bill.frequency)}</td>
                     <td class="py-3 font-medium text-slate-700 dark:text-slate-300">${formatDate(bill.dueDate)}</td>
                     <td class="py-3 font-bold text-slate-900 dark:text-white">${money(bill.amount)}</td>
                     <td class="py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">Active</span></td>
                     <td class="py-3 text-right pr-2 space-x-2">
-                        <button onclick="deleteBill('${bill.id}')" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
+                        <button onclick="deleteBill('${escapeHtml(bill.id)}')" aria-label="Delete ${escapeHtml(bill.name)}" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
                     </td>
                 `;
-                tbody.appendChild(tr);
+                tbody.appendChild(row);
             });
         }
 
         function renderActivityLog() {
             const container = document.getElementById('activity-log');
             container.innerHTML = '';
+
             if (state.transactions.length === 0) {
-                container.innerHTML = `<p class="text-center text-slate-400 text-xs py-4">No recent activity recorded.</p>`;
+                container.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">No recent activity recorded.</p>';
                 return;
             }
-            state.transactions.forEach(tx => {
+
+            state.transactions.forEach(transaction => {
                 const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 text-xs";
-                item.innerHTML = `<div><div class="font-semibold text-slate-800 dark:text-slate-200">${tx.title}</div><div class="text-[10px] text-slate-400">${tx.category}</div></div><span class="font-bold text-rose-500">-${money(tx.amount)}</span>`;
+                item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 text-xs';
+                item.innerHTML = `
+                    <div>
+                        <div class="font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(transaction.title)}</div>
+                        <div class="text-[10px] text-slate-400">${escapeHtml(transaction.category)}</div>
+                    </div>
+                    <span class="font-bold text-rose-500">-${money(transaction.amount)}</span>
+                `;
                 container.appendChild(item);
             });
         }
 
-        function handleLogSpend(e) {
-            e.preventDefault();
+        function handleLogSpend(event) {
+            event.preventDefault();
+
             const amount = parseFloat(document.getElementById('spend-amount').value);
             const category = document.getElementById('spend-category').value;
-            const note = document.getElementById('spend-note').value || category;
-            if (isNaN(amount) || amount <= 0) return;
+            const note = document.getElementById('spend-note').value.trim() || category;
+
+            if (!Number.isFinite(amount) || amount <= 0) return;
 
             state.balance -= amount;
-            state.transactions.unshift({ id: Date.now(), title: note, amount, category, date: getRelativeDate(0) });
+            state.transactions.unshift({
+                id: Date.now(),
+                title: note,
+                amount,
+                category,
+                date: getRelativeDate(0)
+            });
+
             document.getElementById('spend-form').reset();
             updateDashboard();
         }
 
-        function clearSpendHistory() { state.transactions = []; updateDashboard(); }
-        function openEditBalanceModal() { document.getElementById('balance-input').value = state.balance; openModal('modal-balance'); }
-        function handleSaveBalance(e) { e.preventDefault(); state.balance = parseFloat(document.getElementById('balance-input').value) || 0; closeModal('modal-balance'); updateDashboard(); }
-        function openSavingsGoalModal() { document.getElementById('goal-input').value = state.savingsGoal; openModal('modal-goal'); }
-        function handleSaveGoal(e) { e.preventDefault(); state.savingsGoal = parseFloat(document.getElementById('goal-input').value) || 0; closeModal('modal-goal'); updateDashboard(); }
-        function openBankModal() { openModal('modal-bank'); }
-        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden'); }
-        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+        function clearSpendHistory() {
+            state.transactions = [];
+            updateDashboard();
+        }
+
+        function openEditBalanceModal() {
+            document.getElementById('balance-input').value = state.balance;
+            openModal('modal-balance');
+        }
+
+        function handleSaveBalance(event) {
+            event.preventDefault();
+            const value = parseFloat(document.getElementById('balance-input').value);
+            if (!Number.isFinite(value)) return;
+
+            state.balance = value;
+            closeModal('modal-balance');
+            updateDashboard();
+        }
+
+        function openSavingsGoalModal() {
+            document.getElementById('goal-input').value = state.savingsGoal;
+            openModal('modal-goal');
+        }
+
+        function handleSaveGoal(event) {
+            event.preventDefault();
+            const value = parseFloat(document.getElementById('goal-input').value);
+            if (!Number.isFinite(value) || value < 0) return;
+
+            state.savingsGoal = value;
+            closeModal('modal-goal');
+            updateDashboard();
+        }
+
+        function openBankModal() {
+            openModal('modal-bank');
+        }
+
+        function openModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
     </script>
 </body>
 </html>
