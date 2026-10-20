@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
+    <title>FlowPay - Personal Cash Flow &amp; Bill Coverage Tracker</title>
     <link rel="icon" type="image/png" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -18,7 +18,7 @@
                             500: '#6366f1',
                             600: '#4f46e5',
                             700: '#4338ca',
-                            900: '#312e81',
+                            900: '#312e81'
                         }
                     }
                 }
@@ -29,23 +29,32 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
         body { font-family: 'Inter', sans-serif; }
+
         .glass {
             background: rgba(255, 255, 255, 0.7);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
+
         .dark .glass {
             background: rgba(30, 41, 59, 0.7);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
         }
+
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        @keyframes pulseLogo {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
@@ -56,12 +65,7 @@
             <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">FlowPay</h1>
         </div>
     </div>
-    <style>
-        @keyframes pulseLogo {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
-        }
-    </style>
+
     <script>
         window.addEventListener('DOMContentLoaded', function () {
             setTimeout(function () {
@@ -92,7 +96,7 @@
                 </div>
                 <div>
                     <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">FlowPay</h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">Cash Flow & Bill Coverage</p>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cash Flow &amp; Bill Coverage</p>
                 </div>
             </div>
 
@@ -109,8 +113,6 @@
         </header>
 
         <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
-            
-            <!-- SAFE-TO-SPEND PROMINENT WIDGET -->
             <div class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/20 relative overflow-hidden">
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
@@ -149,7 +151,6 @@
                 </div>
             </div>
 
-            <!-- 4 CORE METRIC CARDS -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
                     <div class="flex items-center justify-between">
@@ -222,7 +223,7 @@
                     </div>
                     <div class="mt-2">
                         <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Needed per week to cover bills & save</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Needed per week to cover bills &amp; save</p>
                     </div>
                     <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
                         <span class="text-slate-500">Target Savings Goal:</span>
@@ -231,28 +232,23 @@
                 </div>
             </div>
 
-            <!-- INTERACTIVE FINANCIAL CALENDAR -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
-                            <i class="fa-solid fa-calendar-days text-indigo-500"></i> Monthly Financial Calendar & Balance Projection
+                            <i class="fa-solid fa-calendar-days text-indigo-500"></i> Monthly Financial Calendar &amp; Balance Projection
                         </h2>
                         <p class="text-xs text-slate-500 dark:text-slate-400">Daily balance tracker with automated bill due date deductions and payday boosts.</p>
                     </div>
                     <div class="flex items-center gap-2">
                         <select id="calendar-month-select" onchange="renderFinancialCalendar()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
-                            <option value="10" selected>October 2026</option>
-                            <option value="11">November 2026</option>
-                            <option value="12">December 2026</option>
+                            <option value="2026-10" selected>October 2026</option>
+                            <option value="2026-11">November 2026</option>
+                            <option value="2026-12">December 2026</option>
                         </select>
                     </div>
                 </div>
-
-                <!-- Calendar Grid Container -->
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid">
-                    <!-- Populated dynamically -->
-                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid"></div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -291,7 +287,7 @@
                                 </div>
                             </div>
                             <button type="submit" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2 mt-2">
-                                <i class="fa-solid fa-receipt"></i> Deduct & Recalculate
+                                <i class="fa-solid fa-receipt"></i> Deduct &amp; Recalculate
                             </button>
                         </form>
                     </div>
@@ -330,7 +326,6 @@
                 </div>
             </div>
 
-            <!-- RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -379,7 +374,6 @@
         </main>
     </div>
 
-    <!-- MODALS -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-bill')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -452,46 +446,76 @@
         </div>
     </div>
 
-    <!-- APPLICATION JAVASCRIPT -->
     <script>
-        // State management
-        let appState = {
-            balance: 600.00,
-            emergencyBuffer: 75.00,
-            essentialSpending: 100.00,
-            pendingTransactions: 0.00,
-            savingsGoal: 200.00,
+        const DEFAULT_STATE = {
+            balance: 600,
+            emergencyBuffer: 75,
+            essentialSpending: 100,
+            pendingTransactions: 0,
+            savingsGoal: 200,
             bills: [
-                { id: 1, name: 'Electricity Bill', amount: 50.00, frequency: 'monthly', dueDate: '2026-10-22', paid: false },
-                { id: 2, name: 'Internet Subscription', amount: 200.00, frequency: 'monthly', dueDate: '2026-10-24', paid: false }
+                { id: 1, name: 'Electricity Bill', amount: 50, frequency: 'monthly', dueDate: '2026-10-22', paid: false },
+                { id: 2, name: 'Internet Subscription', amount: 200, frequency: 'monthly', dueDate: '2026-10-24', paid: false }
             ],
             activity: []
         };
 
-        // Load saved state if available
+        let appState = structuredClone(DEFAULT_STATE);
+        let cashFlowChartInstance = null;
+
         function loadData() {
-            const saved = localStorage.getItem('flowpay_state');
-            if (saved) {
-                try { appState = JSON.parse(saved); } catch(e) {}
+            try {
+                const saved = localStorage.getItem('flowpay_state');
+                if (!saved) return;
+
+                const parsed = JSON.parse(saved);
+                appState = {
+                    ...structuredClone(DEFAULT_STATE),
+                    ...parsed,
+                    bills: Array.isArray(parsed.bills) ? parsed.bills : [],
+                    activity: Array.isArray(parsed.activity) ? parsed.activity : []
+                };
+            } catch (error) {
+                console.error('Could not load saved FlowPay data:', error);
+                appState = structuredClone(DEFAULT_STATE);
             }
         }
 
         function saveData() {
-            localStorage.setItem('flowpay_state', JSON.stringify(appState));
+            try {
+                localStorage.setItem('flowpay_state', JSON.stringify(appState));
+            } catch (error) {
+                console.error('Could not save FlowPay data:', error);
+            }
+        }
+
+        function money(value) {
+            return `$${Number(value || 0).toFixed(2)}`;
         }
 
         function toggleTheme() {
             document.documentElement.classList.toggle('dark');
+            localStorage.setItem('flowpay_theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        function loadTheme() {
+            if (localStorage.getItem('flowpay_theme') === 'dark') {
+                document.documentElement.classList.add('dark');
+            }
         }
 
         function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            document.getElementById(id).classList.add('flex');
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
 
         function closeModal(id) {
-            document.getElementById(id).classList.remove('flex');
-            document.getElementById(id).classList.add('hidden');
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.classList.remove('flex');
+            modal.classList.add('hidden');
         }
 
         function openEditBalanceModal() {
@@ -499,16 +523,16 @@
             openModal('modal-balance');
         }
 
-        function handleSaveBalance(e) {
-            e.preventDefault();
-            const val = parseFloat(document.getElementById('balance-input').value);
-            if (!isNaN(val)) {
-                appState.balance = val;
-                logActivity('Updated Balance', `Set available balance to $${val.toFixed(2)}`, 'info');
-                saveData();
-                updateDashboard();
-                closeModal('modal-balance');
-            }
+        function handleSaveBalance(event) {
+            event.preventDefault();
+            const value = Number(document.getElementById('balance-input').value);
+            if (!Number.isFinite(value)) return;
+
+            appState.balance = value;
+            logActivity('Updated Balance', `Set available balance to ${money(value)}`, 'info');
+            saveData();
+            updateDashboard();
+            closeModal('modal-balance');
         }
 
         function openBufferModal() {
@@ -516,16 +540,16 @@
             openModal('modal-buffer');
         }
 
-        function handleSaveBuffer(e) {
-            e.preventDefault();
-            const val = parseFloat(document.getElementById('buffer-input').value);
-            if (!isNaN(val)) {
-                appState.emergencyBuffer = val;
-                logActivity('Buffer Updated', `Set emergency cash buffer to $${val.toFixed(2)}`, 'info');
-                saveData();
-                updateDashboard();
-                closeModal('modal-buffer');
-            }
+        function handleSaveBuffer(event) {
+            event.preventDefault();
+            const value = Number(document.getElementById('buffer-input').value);
+            if (!Number.isFinite(value) || value < 0) return;
+
+            appState.emergencyBuffer = value;
+            logActivity('Buffer Updated', `Set emergency cash buffer to ${money(value)}`, 'info');
+            saveData();
+            updateDashboard();
+            closeModal('modal-buffer');
         }
 
         function openAddBillModal() {
@@ -535,34 +559,36 @@
             openModal('modal-bill');
         }
 
-        function handleSaveBill(e) {
-            e.preventDefault();
+        function handleSaveBill(event) {
+            event.preventDefault();
+
             const id = document.getElementById('bill-id').value;
-            const name = document.getElementById('bill-name').value;
-            const amount = parseFloat(document.getElementById('bill-amount').value);
+            const name = document.getElementById('bill-name').value.trim();
+            const amount = Number(document.getElementById('bill-amount').value);
             const frequency = document.getElementById('bill-frequency').value;
             const dueDate = document.getElementById('bill-due-date').value;
 
+            if (!name || !Number.isFinite(amount) || amount <= 0 || !dueDate) return;
+
             if (id) {
-                const bill = appState.bills.find(b => b.id == id);
+                const bill = appState.bills.find(item => String(item.id) === id);
                 if (bill) {
                     bill.name = name;
                     bill.amount = amount;
                     bill.frequency = frequency;
                     bill.dueDate = dueDate;
+                    logActivity('Updated Bill', `Modified ${name} (${money(amount)})`, 'info');
                 }
-                logActivity('Updated Bill', `Modified ${name} ($${amount.toFixed(2)})`, 'info');
             } else {
-                const newBill = {
+                appState.bills.push({
                     id: Date.now(),
                     name,
                     amount,
                     frequency,
                     dueDate,
                     paid: false
-                };
-                appState.bills.push(newBill);
-                logActivity('Added Bill', `Scheduled ${name} ($${amount.toFixed(2)}) for ${dueDate}`, 'info');
+                });
+                logActivity('Added Bill', `Scheduled ${name} (${money(amount)}) for ${dueDate}`, 'info');
             }
 
             saveData();
@@ -571,42 +597,45 @@
         }
 
         function deleteBill(id) {
-            appState.bills = appState.bills.filter(b => b.id !== id);
+            appState.bills = appState.bills.filter(bill => String(bill.id) !== String(id));
+            logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
             saveData();
             updateDashboard();
-            logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
         }
 
         function toggleBillPaid(id) {
-            const bill = appState.bills.find(b => b.id === id);
-            if (bill) {
-                bill.paid = !bill.paid;
-                if (bill.paid) {
-                    appState.balance -= bill.amount;
-                    logActivity('Paid Bill', `Paid $${bill.amount.toFixed(2)} for ${bill.name}`, 'expense');
-                } else {
-                    appState.balance += bill.amount;
-                    logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
-                }
-                saveData();
-                updateDashboard();
+            const bill = appState.bills.find(item => String(item.id) === String(id));
+            if (!bill) return;
+
+            bill.paid = !bill.paid;
+            if (bill.paid) {
+                appState.balance -= Number(bill.amount);
+                logActivity('Paid Bill', `Paid ${money(bill.amount)} for ${bill.name}`, 'expense');
+            } else {
+                appState.balance += Number(bill.amount);
+                logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
             }
+
+            saveData();
+            updateDashboard();
         }
 
-        function handleLogSpend(e) {
-            e.preventDefault();
-            const amount = parseFloat(document.getElementById('spend-amount').value);
+        function handleLogSpend(event) {
+            event.preventDefault();
+            const amount = Number(document.getElementById('spend-amount').value);
             const category = document.getElementById('spend-category').value;
-            const note = document.getElementById('spend-note').value || category;
+            const note = document.getElementById('spend-note').value.trim() || category;
 
-            if (!isNaN(amount) && amount > 0) {
-                appState.balance -= amount;
-                logActivity('Expense Logged', `Spent $${amount.toFixed(2)} on ${note}`, 'expense');
-                saveData();
-                updateDashboard();
-                document.getElementById('spend-form').reset();
-                document.getElementById('spend-impact-text').innerText = `Successfully deducted $${amount.toFixed(2)}. Safe-to-spend updated!`;
-            }
+            if (!Number.isFinite(amount) || amount <= 0) return;
+
+            appState.balance -= amount;
+            logActivity('Expense Logged', `Spent ${money(amount)} on ${note}`, 'expense');
+            saveData();
+            updateDashboard();
+
+            document.getElementById('spend-form').reset();
+            document.getElementById('spend-impact-text').innerText =
+                `Successfully deducted ${money(amount)}. Safe-to-spend updated!`;
         }
 
         function logActivity(title, desc, type) {
@@ -616,7 +645,10 @@
                 type,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             });
-            if (appState.activity.length > 20) appState.activity.pop();
+
+            if (appState.activity.length > 20) {
+                appState.activity.length = 20;
+            }
         }
 
         function clearSpendHistory() {
@@ -625,150 +657,304 @@
             updateDashboard();
         }
 
-        // --- DASHBOARD RE-CALCULATION & RENDERING ---
-        let cashFlowChartInstance = null;
+        function getSelectedPeriodBills() {
+            const timeframe = document.getElementById('timeframe-select').value;
+            const now = new Date();
+            const end = new Date(now);
+            if (timeframe === 'week') {
+                end.setDate(end.getDate() + 7);
+            } else {
+                end.setMonth(end.getMonth() + 1, 0);
+            }
+            end.setHours(23, 59, 59, 999);
+
+            return appState.bills.filter(bill => {
+                if (bill.paid) return false;
+                const due = new Date(`${bill.dueDate}T00:00:00`);
+                return !Number.isNaN(due.getTime()) && due >= new Date(now.setHours(0, 0, 0, 0)) && due <= end;
+            });
+        }
 
         function updateDashboard() {
-            // 1. Calculate Unpaid Bills Total
-            const unpaidBillsTotal = appState.bills.reduce((acc, b) => b.paid ? acc : acc + b.amount, 0);
+            const unpaidBills = appState.bills.filter(bill => !bill.paid);
+            const unpaidBillsTotal = unpaidBills.reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+            const safeToSpend = appState.balance - unpaidBillsTotal -
+                Number(appState.essentialSpending || 0) -
+                Number(appState.pendingTransactions || 0) -
+                Number(appState.emergencyBuffer || 0);
 
-            // 2. Safe-to-Spend Calculation Formula:
-            // Available Balance - (Bills + Essentials + Pending + Buffer)
-            const safeToSpend = appState.balance - (unpaidBillsTotal + appState.essentialSpending + appState.pendingTransactions + appState.emergencyBuffer);
-            const finalSafeSpend = Math.max(0, safeToSpend);
+            document.getElementById('safe-to-spend-amount').innerText = money(Math.max(0, safeToSpend));
+            document.getElementById('display-balance').innerText = money(appState.balance);
+            document.getElementById('buffer-display-val').innerText = Number(appState.emergencyBuffer).toFixed(0);
+            document.getElementById('sts-bills').innerText = money(unpaidBillsTotal);
+            document.getElementById('sts-essentials').innerText = money(appState.essentialSpending);
+            document.getElementById('sts-pending').innerText = money(appState.pendingTransactions);
+            document.getElementById('sts-buffer').innerText = money(appState.emergencyBuffer);
 
-            // Update UI widgets
-            document.getElementById('safe-to-spend-amount').innerText = `$${finalSafeSpend.toFixed(2)}`;
-            document.getElementById('display-balance').innerText = `$${appState.balance.toFixed(2)}`;
-            document.getElementById('buffer-display-val').innerText = appState.emergencyBuffer.toFixed(0);
-            document.getElementById('sts-bills').innerText = `$${unpaidBillsTotal.toFixed(2)}`;
-            document.getElementById('sts-essentials').innerText = `$${appState.essentialSpending.toFixed(2)}`;
-            document.getElementById('sts-pending').innerText = `$${appState.pendingTransactions.toFixed(2)}`;
-            document.getElementById('sts-buffer').innerText = `$${appState.emergencyBuffer.toFixed(2)}`;
-            document.getElementById('display-bills-total').innerText = `$${unpaidBillsTotal.toFixed(2)}`;
+            const periodBillsTotal = getSelectedPeriodBills().reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+            const netSurplus = appState.balance - periodBillsTotal;
+            document.getElementById('display-bills-total').innerText = money(periodBillsTotal);
+            document.getElementById('net-surplus-amount').innerText = money(netSurplus);
 
-            // Render Bills Table
-            const tbody = document.getElementById('bills-table-body');
-            tbody.innerHTML = '';
-            if (appState.bills.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400 italic">No recurring bills scheduled.</td></tr>`;
-            } else {
-                appState.bills.forEach(bill => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition";
-                    tr.innerHTML = `
-                        <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${bill.name}</td>
-                        <td class="py-3 capitalize text-slate-500">${bill.frequency}</td>
-                        <td class="py-3 text-slate-500">${bill.dueDate}</td>
-                        <td class="py-3 font-bold text-slate-800 dark:text-slate-100">$${bill.amount.toFixed(2)}</td>
-                        <td class="py-3">
-                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${bill.paid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'}">
-                                ${bill.paid ? 'Paid' : 'Pending'}
-                            </span>
-                        </td>
-                        <td class="py-3 text-right pr-2 space-x-2">
-                            <button onclick="toggleBillPaid(${bill.id})" class="text-indigo-600 hover:text-indigo-800 font-medium">${bill.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
-                            <button onclick="deleteBill(${bill.id})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
+            const coverageBadge = document.getElementById('coverage-status-badge');
+            coverageBadge.innerText = netSurplus >= 0 ? 'Bills Covered' : 'Shortfall';
+            coverageBadge.className = `px-2 py-0.5 rounded-md text-xs font-semibold ${
+                netSurplus >= 0
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                    : 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300'
+            }`;
+            document.getElementById('net-surplus-amount').className =
+                `font-bold ${netSurplus >= 0 ? 'text-emerald-600' : 'text-rose-500'}`;
 
-            // Render Activity Log
-            const actLog = document.getElementById('activity-log');
-            actLog.innerHTML = '';
-            if (appState.activity.length === 0) {
-                actLog.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>`;
-            } else {
-                appState.activity.forEach(act => {
-                    const div = document.createElement('div');
-                    div.className = "flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60";
-                    div.innerHTML = `
-                        <div>
-                            <span class="font-semibold block text-slate-800 dark:text-slate-200">${act.title}</span>
-                            <span class="text-[11px] text-slate-500">${act.desc}</span>
-                        </div>
-                        <span class="text-[10px] text-slate-400">${act.time}</span>
-                    `;
-                    actLog.appendChild(div);
-                });
-            }
-
+            updateNextBill(unpaidBills);
+            updateIncomeGoal(unpaidBillsTotal);
+            renderBillsTable();
+            renderActivityLog();
             renderFinancialCalendar();
             renderChart(unpaidBillsTotal);
         }
 
-        // --- INTERACTIVE FINANCIAL CALENDAR RENDERING ---
-        function renderFinancialCalendar() {
-            const grid = document.getElementById('financial-calendar-grid');
-            grid.innerHTML = '';
+        function updateNextBill(unpaidBills) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
 
-            // Generate days for October 2026 (Days 1 to 31)
-            let runningBal = appState.balance;
-            
-            for (let day = 1; day <= 31; day++) {
-                const dateStr = `2026-10-${day < 10 ? '0' + day : day}`;
-                // Check if any bills are due on this date
-                const dueBills = appState.bills.filter(b => b.dueDate === dateStr && !b.paid);
-                
-                const cell = document.createElement('div');
-                cell.className = "bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs min-h-[110px]";
+            const upcoming = unpaidBills
+                .filter(bill => new Date(`${bill.dueDate}T00:00:00`) >= today)
+                .sort((a, b) => a.dueDate.localeCompare(b.dueDate))[0];
 
-                let billsHtml = '';
-                let endBal = runningBal;
-
-                if (dueBills.length > 0) {
-                    dueBills.forEach(b => {
-                        endBal -= b.amount;
-                        billsHtml += `
-                            <div class="mt-1 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1.5 rounded-lg text-rose-700 dark:text-rose-300">
-                                <p class="font-semibold truncate">${b.name}</p>
-                                <p class="text-[10px] text-rose-600 dark:text-rose-400">-$${b.amount.toFixed(2)}</p>
-                                <div class="mt-1 pt-1 border-t border-rose-200/50 dark:border-rose-900/50 font-bold text-slate-700 dark:text-slate-200 text-[11px]">
-                                    Bal: $${endBal.toFixed(2)}
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else {
-                    billsHtml = `<div class="text-[10px] text-slate-400 italic text-center py-1">No bills due</div>`;
-                }
-
-                cell.innerHTML = `
-                    <div>
-                        <div class="flex justify-between items-center">
-                            <span class="font-bold text-slate-700 dark:text-slate-300 text-xs">Oct ${day}</span>
-                            <span class="text-[10px] text-slate-400">2026</span>
-                        </div>
-                        <div class="mt-1 text-sm font-extrabold text-slate-900 dark:text-white">$${runningBal.toFixed(2)}</div>
-                    </div>
-                    <div>
-                        ${billsHtml}
-                    </div>
-                `;
-
-                runningBal = endBal;
-                grid.appendChild(cell);
+            if (!upcoming) {
+                document.getElementById('next-bill-days').innerText = 'No upcoming bills';
+                document.getElementById('next-bill-name').innerText = '--';
+                document.getElementById('next-bill-amount').innerText = money(0);
+                document.getElementById('next-bill-needed').innerText = money(0);
+                document.getElementById('next-bill-progress').style.width = '0%';
+                document.getElementById('next-bill-status-text').innerText = 'Add a future-dated bill to see coverage.';
+                return;
             }
+
+            const dueDate = new Date(`${upcoming.dueDate}T00:00:00`);
+            const days = Math.ceil((dueDate - today) / 86400000);
+            const covered = Math.max(0, Math.min(100, (appState.balance / upcoming.amount) * 100));
+
+            document.getElementById('next-bill-days').innerText = days === 0 ? 'Due today' : `${days} day${days === 1 ? '' : 's'}`;
+            document.getElementById('next-bill-name').innerText = upcoming.name;
+            document.getElementById('next-bill-amount').innerText = money(upcoming.amount);
+            document.getElementById('next-bill-needed').innerText = money(Math.max(0, upcoming.amount - appState.balance));
+            document.getElementById('next-bill-progress').style.width = `${covered}%`;
+            document.getElementById('next-bill-status-text').innerText =
+                appState.balance >= upcoming.amount ? 'Current balance covers this bill.' : 'More funds are needed to cover this bill.';
         }
 
-        // --- CHART RENDERING ---
-        function renderChart(totalOut) {
-            const ctx = document.getElementById('cashFlowChart').getContext('2d');
-            if (cashFlowChartInstance) cashFlowChartInstance.destroy();
+        function updateIncomeGoal(unpaidBillsTotal) {
+            const weeklyIncome = (unpaidBillsTotal + Number(appState.savingsGoal || 0)) / 4.33;
+            document.getElementById('required-weekly-income').innerText = money(weeklyIncome);
+            document.getElementById('display-savings-goal').innerText = `${money(appState.savingsGoal)}/mo`;
+        }
 
-            document.getElementById('chart-start-bal').innerText = `$${appState.balance.toFixed(2)}`;
-            document.getElementById('chart-total-out').innerText = `-$${totalOut.toFixed(2)}`;
-            document.getElementById('chart-lowest-bal').innerText = `$${Math.max(0, appState.balance - totalOut).toFixed(2)}`;
+        function renderBillsTable() {
+            const tbody = document.getElementById('bills-table-body');
+            tbody.replaceChildren();
+
+            if (appState.bills.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-slate-400 italic">No recurring bills scheduled.</td></tr>';
+                return;
+            }
+
+            appState.bills.forEach(bill => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
+
+                const nameCell = document.createElement('td');
+                nameCell.className = 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200';
+                nameCell.textContent = bill.name;
+
+                const frequencyCell = document.createElement('td');
+                frequencyCell.className = 'py-3 capitalize text-slate-500';
+                frequencyCell.textContent = bill.frequency;
+
+                const dueDateCell = document.createElement('td');
+                dueDateCell.className = 'py-3 text-slate-500';
+                dueDateCell.textContent = bill.dueDate;
+
+                const amountCell = document.createElement('td');
+                amountCell.className = 'py-3 font-bold text-slate-800 dark:text-slate-100';
+                amountCell.textContent = money(bill.amount);
+
+                const statusCell = document.createElement('td');
+                statusCell.className = 'py-3';
+                const status = document.createElement('span');
+                status.className = `px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                    bill.paid
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'
+                }`;
+                status.textContent = bill.paid ? 'Paid' : 'Pending';
+                statusCell.appendChild(status);
+
+                const actionCell = document.createElement('td');
+                actionCell.className = 'py-3 text-right pr-2 space-x-2';
+
+                const paidButton = document.createElement('button');
+                paidButton.type = 'button';
+                paidButton.className = 'text-indigo-600 hover:text-indigo-800 font-medium';
+                paidButton.textContent = bill.paid ? 'Mark Unpaid' : 'Mark Paid';
+                paidButton.addEventListener('click', () => toggleBillPaid(bill.id));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.type = 'button';
+                deleteButton.className = 'text-rose-500 hover:text-rose-700';
+                deleteButton.setAttribute('aria-label', `Delete ${bill.name}`);
+                deleteButton.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                deleteButton.addEventListener('click', () => deleteBill(bill.id));
+
+                actionCell.append(paidButton, deleteButton);
+                tr.append(nameCell, frequencyCell, dueDateCell, amountCell, statusCell, actionCell);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderActivityLog() {
+            const activityLog = document.getElementById('activity-log');
+            activityLog.replaceChildren();
+
+            if (appState.activity.length === 0) {
+                activityLog.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>';
+                return;
+            }
+
+            appState.activity.forEach(activity => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60';
+
+                const details = document.createElement('div');
+                const title = document.createElement('span');
+                title.className = 'font-semibold block text-slate-800 dark:text-slate-200';
+                title.textContent = activity.title;
+
+                const description = document.createElement('span');
+                description.className = 'text-[11px] text-slate-500';
+                description.textContent = activity.desc;
+
+                const time = document.createElement('span');
+                time.className = 'text-[10px] text-slate-400';
+                time.textContent = activity.time;
+
+                details.append(title, description);
+                row.append(details, time);
+                activityLog.appendChild(row);
+            });
+        }
+
+        function renderFinancialCalendar() {
+            const grid = document.getElementById('financial-calendar-grid');
+            grid.replaceChildren();
+
+            const [year, month] = document.getElementById('calendar-month-select').value.split('-').map(Number);
+            const monthIndex = month - 1;
+            const daysInMonth = new Date(year, month, 0).getDate();
+            const monthName = new Date(year, monthIndex, 1).toLocaleString('en', { month: 'short' });
+            const runningBalances = new Map();
+            let runningBalance = Number(appState.balance);
+
+            for (let day = 1; day <= daysInMonth; day++) {
+                const date = new Date(year, monthIndex, day);
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const dueBills = appState.bills.filter(bill => bill.dueDate === dateStr && !bill.paid);
+                let endBalance = runningBalance;
+
+                const cell = document.createElement('div');
+                cell.className = 'bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs min-h-[110px]';
+
+                const heading = document.createElement('div');
+                const headingRow = document.createElement('div');
+                headingRow.className = 'flex justify-between items-center';
+
+                const dayLabel = document.createElement('span');
+                dayLabel.className = 'font-bold text-slate-700 dark:text-slate-300 text-xs';
+                dayLabel.textContent = `${monthName} ${day}`;
+
+                const yearLabel = document.createElement('span');
+                yearLabel.className = 'text-[10px] text-slate-400';
+                yearLabel.textContent = String(year);
+
+                const balanceLabel = document.createElement('div');
+                balanceLabel.className = 'mt-1 text-sm font-extrabold text-slate-900 dark:text-white';
+                balanceLabel.textContent = money(runningBalance);
+
+                headingRow.append(dayLabel, yearLabel);
+                heading.append(headingRow, balanceLabel);
+
+                const billContainer = document.createElement('div');
+                if (dueBills.length === 0) {
+                    const none = document.createElement('div');
+                    none.className = 'text-[10px] text-slate-400 italic text-center py-1';
+                    none.textContent = 'No bills due';
+                    billContainer.appendChild(none);
+                } else {
+                    dueBills.forEach(bill => {
+                        endBalance -= Number(bill.amount);
+                        const billCard = document.createElement('div');
+                        billCard.className = 'mt-1 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1.5 rounded-lg text-rose-700 dark:text-rose-300';
+
+                        const billName = document.createElement('p');
+                        billName.className = 'font-semibold truncate';
+                        billName.textContent = bill.name;
+
+                        const billAmount = document.createElement('p');
+                        billAmount.className = 'text-[10px] text-rose-600 dark:text-rose-400';
+                        billAmount.textContent = `-${money(bill.amount)}`;
+
+                        const projectedBalance = document.createElement('div');
+                        projectedBalance.className = 'mt-1 pt-1 border-t border-rose-200/50 dark:border-rose-900/50 font-bold text-slate-700 dark:text-slate-200 text-[11px]';
+                        projectedBalance.textContent = `Bal: ${money(endBalance)}`;
+
+                        billCard.append(billName, billAmount, projectedBalance);
+                        billContainer.appendChild(billCard);
+                    });
+                }
+
+                runningBalances.set(dateStr, runningBalance);
+                runningBalance = endBalance;
+                cell.append(heading, billContainer);
+                grid.appendChild(cell);
+            }
+
+            return runningBalances;
+        }
+
+        function renderChart(totalOut) {
+            const canvas = document.getElementById('cashFlowChart');
+            const ctx = canvas.getContext('2d');
+
+            if (cashFlowChartInstance) {
+                cashFlowChartInstance.destroy();
+            }
+
+            document.getElementById('chart-start-bal').innerText = money(appState.balance);
+            document.getElementById('chart-total-out').innerText = `-${money(totalOut)}`;
+            document.getElementById('chart-lowest-bal').innerText = money(Math.max(0, appState.balance - totalOut));
+
+            const unpaidBills = appState.bills
+                .filter(bill => !bill.paid)
+                .sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+            const labels = ['Today'];
+            const data = [Number(appState.balance)];
+            let projectedBalance = Number(appState.balance);
+
+            unpaidBills.forEach(bill => {
+                projectedBalance -= Number(bill.amount);
+                labels.push(`${bill.name} (${bill.dueDate})`);
+                data.push(projectedBalance);
+            });
 
             cashFlowChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: ['Start', 'Week 1', 'Week 2', 'Week 3', 'End Month'],
+                    labels,
                     datasets: [{
                         label: 'Projected Balance',
-                        data: [appState.balance, appState.balance - (totalOut * 0.25), appState.balance - (totalOut * 0.5), appState.balance - (totalOut * 0.75), appState.balance - totalOut],
+                        data,
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         fill: true,
@@ -787,8 +973,8 @@
             });
         }
 
-        // Initialize App on Load
-        window.addEventListener('DOMContentLoaded', () => {
+        window.addEventListener('DOMContentLoaded', function () {
+            loadTheme();
             loadData();
             updateDashboard();
         });
