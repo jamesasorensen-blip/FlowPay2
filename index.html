@@ -286,7 +286,7 @@
             <div class="card">
                 <div class="flex-between">
                     <span class="card-title">Current Balance</span>
-                    <button onclick="openModal('modal-balance')" class="btn-link">Edit</button>
+                    <button onclick="openBalanceModal()" class="btn-link">Edit</button>
                 </div>
                 <div class="amount-large" id="display-balance">$0.00</div>
                 <div class="subtext" id="sync-status">Status: Manual Entry</div>
@@ -302,7 +302,7 @@
                     <span id="next-bill-title" style="font-weight: 700;">--</span>
                     <span id="next-bill-cost" style="font-weight: 700; color: #818cf8;">$0.00</span>
                 </div>
-                <div class="subtext" id="next-bill-status-msg" style="margin-top: 8px;">Calculating coverage...</div>
+                <div class="subtext" id="next-bill-status-text" style="margin-top: 8px;">Calculating coverage...</div>
             </div>
 
             <!-- Bills Period Total -->
@@ -325,7 +325,7 @@
             <div class="card">
                 <div class="flex-between">
                     <span class="card-title" style="color: #34d399;">Target Weekly Income</span>
-                    <button onclick="openModal('modal-savings')" class="btn-link" style="color: #34d399;">Goal</button>
+                    <button onclick="openSavingsModal()" class="btn-link" style="color: #34d399;">Goal</button>
                 </div>
                 <div class="amount-large" id="display-weekly-target">$0.00</div>
                 <div class="subtext">Covers bills + <span id="display-savings-goal">$0.00</span>/mo savings</div>
@@ -391,152 +391,4 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 12px; background: #0f172a; padding: 10px; border-radius: 8px; border: 1px solid #334155;" class="subtext">
-                    <div class="flex-between"><span>Gross Pay:</span><span id="res-gross" style="color: #ffffff; font-weight: 600;">$0.00</span></div>
-                    <div class="flex-between"><span>Taxes:</span><span id="res-tax" style="color: #f43f5e; font-weight: 600;">-$0.00</span></div>
-                    <div class="flex-between" style="border-top: 1px solid #334155; margin-top: 4px; padding-top: 4px;">
-                        <span style="font-weight: 700; color: #ffffff;">Take-Home Pay:</span>
-                        <span id="res-net" style="color: #34d399; font-size: 0.95rem; font-weight: 700;">$0.00</span>
-                    </div>
-                </div>
-
-                <div id="paycheck-verdict-box" class="feedback feedback-safe hidden"></div>
-            </div>
-
-        </div>
-
-        <!-- BOTTOM SECTION: Managed Bills List -->
-        <div class="card">
-            <div class="flex-between">
-                <div>
-                    <h3 style="font-size: 0.9rem; font-weight: 700;">Recurring Bills Schedule</h3>
-                    <span class="subtext">Manage upcoming expenses</span>
-                </div>
-                <button onclick="openModal('modal-add-bill')" class="btn-primary">+ Add Bill</button>
-            </div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Bill Name</th>
-                        <th>Frequency</th>
-                        <th>Due Date</th>
-                        <th>Amount</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody id="bills-list-body">
-                    <!-- Dynamic rendering -->
-                </tbody>
-            </table>
-        </div>
-
-    </main>
-
-    <!-- MODAL: Edit Balance -->
-    <div id="modal-balance" class="modal hidden">
-        <div class="modal-content">
-            <div class="flex-between" style="margin-bottom: 10px;">
-                <h3 style="font-size: 0.95rem; font-weight: 700;">Update Balance</h3>
-                <button onclick="closeModal('modal-balance')" class="btn-link">✕</button>
-            </div>
-            <label>Current Available Cash ($)</label>
-            <input type="number" id="input-balance">
-            <button onclick="saveBalance()" class="btn-primary" style="width: 100%; margin-top: 12px;">Save Balance</button>
-        </div>
-    </div>
-
-    <!-- MODAL: Savings Goal -->
-    <div id="modal-savings" class="modal hidden">
-        <div class="modal-content">
-            <div class="flex-between" style="margin-bottom: 10px;">
-                <h3 style="font-size: 0.95rem; font-weight: 700;">Monthly Savings Goal</h3>
-                <button onclick="closeModal('modal-savings')" class="btn-link">✕</button>
-            </div>
-            <label>Monthly Target Savings ($)</label>
-            <input type="number" id="input-savings-goal">
-            <button onclick="saveSavingsGoal()" class="btn-primary" style="width: 100%; margin-top: 12px;">Update Target</button>
-        </div>
-    </div>
-
-    <!-- MODAL: Add Bill -->
-    <div id="modal-add-bill" class="modal hidden">
-        <div class="modal-content">
-            <div class="flex-between" style="margin-bottom: 10px;">
-                <h3 style="font-size: 0.95rem; font-weight: 700;">Add Recurring Bill</h3>
-                <button onclick="closeModal('modal-add-bill')" class="btn-link">✕</button>
-            </div>
-            <label>Bill Name</label>
-            <input type="text" id="bill-name" placeholder="Rent, Electric...">
-            <label>Amount ($)</label>
-            <input type="number" id="bill-amount" placeholder="150">
-            <label>Due Date</label>
-            <input type="date" id="bill-date">
-            <label>Frequency</label>
-            <select id="bill-freq">
-                <option value="weekly">Weekly</option>
-                <option value="monthly" selected>Monthly</option>
-            </select>
-            <button onclick="addBill()" class="btn-primary" style="width: 100%; margin-top: 12px;">Save Bill</button>
-        </div>
-    </div>
-
-    <!-- MODAL: Bank Selection -->
-    <div id="modal-bank" class="modal hidden">
-        <div class="modal-content">
-            <div class="flex-between" style="margin-bottom: 10px;">
-                <h3 style="font-size: 0.95rem; font-weight: 700;">Select Bank (Simulated)</h3>
-                <button onclick="closeModal('modal-bank')" class="btn-link">✕</button>
-            </div>
-            <button onclick="connectBank('Chase', 3420.50)" class="btn-primary" style="width: 100%; margin-top: 6px; background: #3b82f6;">Chase Bank ($3,420.50)</button>
-            <button onclick="connectBank('Bank of America', 2150.00)" class="btn-primary" style="width: 100%; margin-top: 6px; background: #ef4444;">Bank of America ($2,150.00)</button>
-            <button onclick="connectBank('Wells Fargo', 4890.25)" class="btn-primary" style="width: 100%; margin-top: 6px; background: #f59e0b;">Wells Fargo ($4,890.25)</button>
-        </div>
-    </div>
-
-    <script>
-        // State
-        var balance = parseFloat(localStorage.getItem('flowpay_bal')) || 1450.00;
-        var savingsGoal = parseFloat(localStorage.getItem('flowpay_savings')) || 400.00;
-        var connectedBank = localStorage.getItem('flowpay_bank') || null;
-
-        var defaultBills = [
-            { id: 1, name: 'Rent / Mortgage', amount: 850.00, dueDate: '2026-10-25', freq: 'monthly' },
-            { id: 2, name: 'Electric Bill', amount: 110.00, dueDate: '2026-10-28', freq: 'monthly' }
-        ];
-
-        var bills = JSON.parse(localStorage.getItem('flowpay_bills_list')) || defaultBills;
-
-        function saveState() {
-            localStorage.setItem('flowpay_bal', balance.toString());
-            localStorage.setItem('flowpay_savings', savingsGoal.toString());
-            localStorage.setItem('flowpay_bills_list', JSON.stringify(bills));
-            if (connectedBank) localStorage.setItem('flowpay_bank', connectedBank);
-        }
-
-        function formatUSD(num) {
-            return '$' + (num \vert{}\vert{} 0).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-        }
-
-        function renderAll() {
-            document.getElementById('display-balance').textContent = formatUSD(balance);
-            document.getElementById('sync-status').textContent = connectedBank ? 'Synced: ' + connectedBank : 'Status: Manual Entry';
-            document.getElementById('bank-btn-label').textContent = connectedBank ? connectedBank : 'Connect Bank';
-
-            // Filter Bills
-            var timeframe = document.getElementById('timeframe-select').value;
-            var billsTotal = 0;
-            bills.forEach(function(b) { billsTotal += parseFloat(b.amount); });
-
-            document.getElementById('display-bills-total').textContent = formatUSD(billsTotal);
-
-            var net = balance - billsTotal;
-            var netElem = document.getElementById('display-net-surplus');
-            netElem.textContent = formatUSD(net);
-            netElem.style.color = net >= 0 ? '#34d399' : '#f43f5e';
-
-            // Target Weekly Income
-            var totalMonthlyNeeded = billsTotal + savingsGoal;
-            var weeklyTarget = totalMonthlyNeeded / 4.33;
-            document.getElementById('display-weekly-target').textContent = formatUSD(weeklyTarget);
-            document.getElementById('display-savings-goal').textCon
+                <div style="margin-top:
