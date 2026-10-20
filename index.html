@@ -109,6 +109,47 @@
         </header>
 
         <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+            
+            <!-- SAFE-TO-SPEND PROMINENT WIDGET -->
+            <div class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/20 relative overflow-hidden">
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                    <div>
+                        <span class="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full border border-indigo-500/30">
+                            Available to Spend Safely
+                        </span>
+                        <div class="text-4xl sm:text-6xl font-extrabold tracking-tight mt-3 text-white" id="safe-to-spend-amount">$0.00</div>
+                        <p class="text-xs text-indigo-200/80 mt-2 max-w-xl">
+                            Calculated from your available balance minus bills due, essentials, pending transactions, and your emergency cash buffer.
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 md:flex-col md:items-end w-full md:w-auto">
+                        <button onclick="openBufferModal()" class="bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
+                            <i class="fa-solid fa-shield-halved"></i> Set Emergency Buffer ($<span id="buffer-display-val">75</span>)
+                        </button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-indigo-800/40 text-xs text-indigo-200">
+                    <div>
+                        <span class="block opacity-75">Bills Due Before Payday</span>
+                        <span class="text-sm font-bold text-rose-300" id="sts-bills">$0.00</span>
+                    </div>
+                    <div>
+                        <span class="block opacity-75">Essential Spending</span>
+                        <span class="text-sm font-bold text-amber-300" id="sts-essentials">$100.00</span>
+                    </div>
+                    <div>
+                        <span class="block opacity-75">Pending Transactions</span>
+                        <span class="text-sm font-bold text-indigo-300" id="sts-pending">$0.00</span>
+                    </div>
+                    <div>
+                        <span class="block opacity-75">Emergency Buffer</span>
+                        <span class="text-sm font-bold text-emerald-300" id="sts-buffer">$75.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4 CORE METRIC CARDS -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
                     <div class="flex items-center justify-between">
@@ -118,7 +159,7 @@
                         </button>
                     </div>
                     <div class="mt-2">
-                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$600.00</div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1" id="balance-subtext">
                             <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
                         </p>
@@ -190,6 +231,30 @@
                 </div>
             </div>
 
+            <!-- INTERACTIVE FINANCIAL CALENDAR -->
+            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                            <i class="fa-solid fa-calendar-days text-indigo-500"></i> Monthly Financial Calendar & Balance Projection
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Daily balance tracker with automated bill due date deductions and payday boosts.</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="calendar-month-select" onchange="renderFinancialCalendar()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
+                            <option value="10" selected>October 2026</option>
+                            <option value="11">November 2026</option>
+                            <option value="12">December 2026</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid Container -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
@@ -199,7 +264,7 @@
                             </h2>
                             <span class="text-xs text-slate-400">Instant Impact</span>
                         </div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Log any expense to immediately see how it impacts your ability to cover upcoming bills.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Log any expense to immediately see how it impacts your safe-to-spend balance.</p>
                         <form id="spend-form" onsubmit="handleLogSpend(event)" class="space-y-3">
                             <div>
                                 <label for="spend-amount" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Amount ($)</label>
@@ -234,7 +299,7 @@
                         <div class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
                             <i class="fa-solid fa-calculator text-indigo-500"></i> Live Spending Cushion
                         </div>
-                        <p id="spend-impact-text" class="text-slate-500 dark:text-slate-400">Enter an amount above to preview impact on your next bill.</p>
+                        <p id="spend-impact-text" class="text-slate-500 dark:text-slate-400">Enter an amount above to preview impact on your safe-to-spend balance.</p>
                     </div>
                 </div>
 
@@ -265,97 +330,7 @@
                 </div>
             </div>
 
-            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
-                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Stackable Future Paycheck Calculator
-                        </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Select your state, stack multiple paychecks with the '+' button, and check sequential bill affordability.</p>
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <label for="state-select" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Residency State:</label>
-                        <select id="state-select" onchange="calculateAllPaychecks()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
-                            <option value="0">No State Tax / AK, FL, NV, NH, SD, TN, TX, WA, WY (0%)</option>
-                            <option value="3">Alabama (3%)</option>
-                            <option value="5">Arizona (5%)</option>
-                            <option value="4.5">Arkansas (4.5%)</option>
-                            <option value="7.25" selected>California (7.25%)</option>
-                            <option value="4.4">Colorado (4.4%)</option>
-                            <option value="5.5">Connecticut (5.5%)</option>
-                            <option value="4.5">Delaware (4.5%)</option>
-                            <option value="5">Georgia (5%)</option>
-                            <option value="6">Hawaii (6%)</option>
-                            <option value="5.8">Idaho (5.8%)</option>
-                            <option value="4.95">Illinois (4.95%)</option>
-                            <option value="3.05">Indiana (3.05%)</option>
-                            <option value="5.7">Iowa (5.7%)</option>
-                            <option value="5.7">Kansas (5.7%)</option>
-                            <option value="5.8">Kentucky (5.8%)</option>
-                            <option value="4.25">Louisiana (4.25%)</option>
-                            <option value="5.5">Maine (5.5%)</option>
-                            <option value="4.75">Maryland (4.75%)</option>
-                            <option value="5.0">Massachusetts (5.0%)</option>
-                            <option value="4.25">Michigan (4.25%)</option>
-                            <option value="6.8">Minnesota (6.8%)</option>
-                            <option value="4.7">Mississippi (4.7%)</option>
-                            <option value="4.8">Missouri (4.8%)</option>
-                            <option value="6.5">Montana (6.5%)</option>
-                            <option value="5.2">Nebraska (5.2%)</option>
-                            <option value="4.5">New Jersey (4.5%)</option>
-                            <option value="4.9">New Mexico (4.9%)</option>
-                            <option value="6.5">New York (6.5%)</option>
-                            <option value="4.75">North Carolina (4.75%)</option>
-                            <option value="1.5">North Dakota (1.5%)</option>
-                            <option value="3.5">Ohio (3.5%)</option>
-                            <option value="4.75">Oklahoma (4.75%)</option>
-                            <option value="8.0">Oregon (8.0%)</option>
-                            <option value="5.0">Pennsylvania (5.0%)</option>
-                            <option value="5.99">Rhode Island (5.99%)</option>
-                            <option value="3.0">South Carolina (3.0%)</option>
-                            <option value="5.0">Utah (5.0%)</option>
-                            <option value="6.75">Vermont (6.75%)</option>
-                            <option value="5.75">Virginia (5.75%)</option>
-                            <option value="5.0">West Virginia (5.0%)</option>
-                            <option value="6.0">Wisconsin (6.0%)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div id="paycheck-container" class="space-y-3"></div>
-
-                <button onclick="addPaycheckRow()" class="w-full py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus-circle text-sm"></i> Add Another Paycheck (+)
-                </button>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs mt-4">
-                    <div>
-                        <span class="text-slate-500 block">Total Stacked Gross:</span>
-                        <span id="stacked-gross" class="font-bold text-slate-800 dark:text-slate-200 text-sm">$0.00</span>
-                    </div>
-                    <div>
-                        <span class="text-slate-500 block">Total Taxes (Fed + State + FICA):</span>
-                        <span id="stacked-taxes" class="font-bold text-rose-500 text-sm">-$0.00</span>
-                    </div>
-                    <div class="border-t md:border-t-0 pt-2 md:pt-0 border-slate-200 dark:border-slate-700">
-                        <span class="text-slate-500 block">Total Combined Net Take-Home:</span>
-                        <span id="stacked-net" class="font-bold text-emerald-600 dark:text-emerald-400 text-base">$0.00</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                            <i class="fa-solid fa-list-check text-indigo-500"></i> Sequential Bill Affordability Timeline
-                        </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Step-by-step verification showing if you can pay each bill one after another with your stacked income.</p>
-                    </div>
-                </div>
-                <div id="sequential-timeline" class="space-y-2.5"></div>
-            </div>
-
+            <!-- RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -404,6 +379,7 @@
         </main>
     </div>
 
+    <!-- MODALS -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button onclick="closeModal('modal-bill')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -445,393 +421,358 @@
             <button onclick="closeModal('modal-balance')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Update Current Balance</h3>
             <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Enter your account's current available balance.</p>
-            <form onsubmit="handleSaveBalance(event)" class="space-y-3">
-                <label for="balance-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
-                <input type="number" step="0.01" id="balance-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+            <form onsubmit="handleSaveBalance(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="balance-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Balance ($)</label>
+                    <input type="number" step="0.01" id="balance-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" onclick="closeModal('modal-balance')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Balance</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Update</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="modal-goal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button onclick="closeModal('modal-goal')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Monthly Savings Goal</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Set a monthly amount to include in your weekly income target.</p>
-            <form onsubmit="handleSaveGoal(event)" class="space-y-3">
-                <label for="goal-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Savings goal ($ / month)</label>
-                <input type="number" min="0" step="0.01" id="goal-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+            <button onclick="closeModal('modal-buffer')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Emergency Cash Buffer</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Set your minimum reserve cash floor to protect against overdrafts.</p>
+            <form onsubmit="handleSaveBuffer(event)" class="space-y-3 text-xs">
+                <div>
+                    <label for="buffer-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Minimum Buffer ($)</label>
+                    <input type="number" min="0" step="0.01" id="buffer-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('modal-goal')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 font-semibold">Save Goal</button>
+                    <button type="button" onclick="closeModal('modal-buffer')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Buffer</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div id="modal-bank" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-        <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button onclick="closeModal('modal-bank')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Bank Sync</h3>
-            <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">This standalone demo stores data only in your browser and does not connect to a bank. Update your balance manually to keep your dashboard current.</p>
-            <button onclick="openEditBalanceModal(); closeModal('modal-bank')" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Enter Balance Manually</button>
-        </div>
-    </div>
-
+    <!-- APPLICATION JAVASCRIPT -->
     <script>
-        const STORAGE_KEY = 'flowpay-data-v2';
+        // State management
+        let appState = {
+            balance: 600.00,
+            emergencyBuffer: 75.00,
+            essentialSpending: 100.00,
+            pendingTransactions: 0.00,
+            savingsGoal: 200.00,
+            bills: [
+                { id: 1, name: 'Electricity Bill', amount: 50.00, frequency: 'monthly', dueDate: '2026-10-22', paid: false },
+                { id: 2, name: 'Internet Subscription', amount: 200.00, frequency: 'monthly', dueDate: '2026-10-24', paid: false }
+            ],
+            activity: []
+        };
 
-        function getRelativeDate(daysFromNow) {
-            const date = new Date();
-            date.setDate(date.getDate() + daysFromNow);
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
+        // Load saved state if available
+        function loadData() {
+            const saved = localStorage.getItem('flowpay_state');
+            if (saved) {
+                try { appState = JSON.parse(saved); } catch(e) {}
+            }
         }
 
-        const DEFAULT_DATA = {
-    balance: 0.00,
-    savingsGoal: 0.00,
-    bills: [
-        { id: '1', name: 'Rent', amount: 0.00, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
-        { id: '2', name: 'Electric Bill', amount: 0.00, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
-    ],
-    transactions: [],
-    paychecks: [
-        { id: 'p1', label: 'Primary Job', rate: 22.5, regHours: 40, otHours: 0, taxRate: 22 }
-    ]
-};
-
-        function cloneData(data) {
-            return JSON.parse(JSON.stringify(data));
+        function saveData() {
+            localStorage.setItem('flowpay_state', JSON.stringify(appState));
         }
 
-        function loadState() {
-            try {
-                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-                if (!saved || typeof saved !== 'object') return cloneData(DEFAULT_DATA);
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
 
-                return {
-                    balance: Number.isFinite(Number(saved.balance)) ? Number(saved.balance) : DEFAULT_DATA.balance,
-                    savingsGoal: Number.isFinite(Number(saved.savingsGoal)) ? Math.max(0, Number(saved.savingsGoal)) : DEFAULT_DATA.savingsGoal,
-                    bills: Array.isArray(saved.bills) ? saved.bills : cloneData(DEFAULT_DATA.bills),
-                    transactions: Array.isArray(saved.transactions) ? saved.transactions : [],
-                    paychecks: Array.isArray(saved.paychecks) && saved.paychecks.length > 0
-                        ? saved.paychecks
-                        : cloneData(DEFAULT_DATA.paychecks)
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+            document.getElementById(id).classList.add('flex');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('flex');
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function openEditBalanceModal() {
+            document.getElementById('balance-input').value = appState.balance;
+            openModal('modal-balance');
+        }
+
+        function handleSaveBalance(e) {
+            e.preventDefault();
+            const val = parseFloat(document.getElementById('balance-input').value);
+            if (!isNaN(val)) {
+                appState.balance = val;
+                logActivity('Updated Balance', `Set available balance to $${val.toFixed(2)}`, 'info');
+                saveData();
+                updateDashboard();
+                closeModal('modal-balance');
+            }
+        }
+
+        function openBufferModal() {
+            document.getElementById('buffer-input').value = appState.emergencyBuffer;
+            openModal('modal-buffer');
+        }
+
+        function handleSaveBuffer(e) {
+            e.preventDefault();
+            const val = parseFloat(document.getElementById('buffer-input').value);
+            if (!isNaN(val)) {
+                appState.emergencyBuffer = val;
+                logActivity('Buffer Updated', `Set emergency cash buffer to $${val.toFixed(2)}`, 'info');
+                saveData();
+                updateDashboard();
+                closeModal('modal-buffer');
+            }
+        }
+
+        function openAddBillModal() {
+            document.getElementById('modal-bill-title').innerText = 'Add Recurring Bill';
+            document.getElementById('form-bill').reset();
+            document.getElementById('bill-id').value = '';
+            openModal('modal-bill');
+        }
+
+        function handleSaveBill(e) {
+            e.preventDefault();
+            const id = document.getElementById('bill-id').value;
+            const name = document.getElementById('bill-name').value;
+            const amount = parseFloat(document.getElementById('bill-amount').value);
+            const frequency = document.getElementById('bill-frequency').value;
+            const dueDate = document.getElementById('bill-due-date').value;
+
+            if (id) {
+                const bill = appState.bills.find(b => b.id == id);
+                if (bill) {
+                    bill.name = name;
+                    bill.amount = amount;
+                    bill.frequency = frequency;
+                    bill.dueDate = dueDate;
+                }
+                logActivity('Updated Bill', `Modified ${name} ($${amount.toFixed(2)})`, 'info');
+            } else {
+                const newBill = {
+                    id: Date.now(),
+                    name,
+                    amount,
+                    frequency,
+                    dueDate,
+                    paid: false
                 };
-            } catch (error) {
-                console.error('Could not load saved data:', error);
-                return cloneData(DEFAULT_DATA);
+                appState.bills.push(newBill);
+                logActivity('Added Bill', `Scheduled ${name} ($${amount.toFixed(2)}) for ${dueDate}`, 'info');
             }
-        }
 
-        let state = loadState();
-        let cashFlowChart = null;
-
-        function saveState() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            } catch (error) {
-                console.error('Could not save data:', error);
-            }
-        }
-
-        function money(value) {
-            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
-        }
-
-        function parseLocalDate(value) {
-            if (!value || typeof value !== 'string') return new Date(NaN);
-            const [year, month, day] = value.split('-').map(Number);
-            return new Date(year, month - 1, day);
-        }
-
-        function formatDate(value) {
-            const date = parseLocalDate(value);
-            return Number.isNaN(date.getTime())
-                ? 'Invalid date'
-                : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        window.addEventListener('DOMContentLoaded', function () {
-            initChart();
-            renderPaycheckRows();
+            saveData();
             updateDashboard();
-        });
+            closeModal('modal-bill');
+        }
+
+        function deleteBill(id) {
+            appState.bills = appState.bills.filter(b => b.id !== id);
+            saveData();
+            updateDashboard();
+            logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
+        }
+
+        function toggleBillPaid(id) {
+            const bill = appState.bills.find(b => b.id === id);
+            if (bill) {
+                bill.paid = !bill.paid;
+                if (bill.paid) {
+                    appState.balance -= bill.amount;
+                    logActivity('Paid Bill', `Paid $${bill.amount.toFixed(2)} for ${bill.name}`, 'expense');
+                } else {
+                    appState.balance += bill.amount;
+                    logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
+                }
+                saveData();
+                updateDashboard();
+            }
+        }
+
+        function handleLogSpend(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('spend-amount').value);
+            const category = document.getElementById('spend-category').value;
+            const note = document.getElementById('spend-note').value || category;
+
+            if (!isNaN(amount) && amount > 0) {
+                appState.balance -= amount;
+                logActivity('Expense Logged', `Spent $${amount.toFixed(2)} on ${note}`, 'expense');
+                saveData();
+                updateDashboard();
+                document.getElementById('spend-form').reset();
+                document.getElementById('spend-impact-text').innerText = `Successfully deducted $${amount.toFixed(2)}. Safe-to-spend updated!`;
+            }
+        }
+
+        function logActivity(title, desc, type) {
+            appState.activity.unshift({
+                title,
+                desc,
+                type,
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            });
+            if (appState.activity.length > 20) appState.activity.pop();
+        }
+
+        function clearSpendHistory() {
+            appState.activity = [];
+            saveData();
+            updateDashboard();
+        }
+
+        // --- DASHBOARD RE-CALCULATION & RENDERING ---
+        let cashFlowChartInstance = null;
 
         function updateDashboard() {
-            state.bills.sort((a, b) => parseLocalDate(a.dueDate) - parseLocalDate(b.dueDate));
+            // 1. Calculate Unpaid Bills Total
+            const unpaidBillsTotal = appState.bills.reduce((acc, b) => b.paid ? acc : acc + b.amount, 0);
 
-            const timeframe = document.getElementById('timeframe-select').value;
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // 2. Safe-to-Spend Calculation Formula:
+            // Available Balance - (Bills + Essentials + Pending + Buffer)
+            const safeToSpend = appState.balance - (unpaidBillsTotal + appState.essentialSpending + appState.pendingTransactions + appState.emergencyBuffer);
+            const finalSafeSpend = Math.max(0, safeToSpend);
 
-            const periodBills = state.bills.filter(bill => {
-                const due = parseLocalDate(bill.dueDate);
-                const diffDays = Math.ceil((due - today) / 86400000);
-                return timeframe === 'week'
-                    ? diffDays >= 0 && diffDays <= 7
-                    : diffDays >= 0 && diffDays <= 30;
-            });
+            // Update UI widgets
+            document.getElementById('safe-to-spend-amount').innerText = `$${finalSafeSpend.toFixed(2)}`;
+            document.getElementById('display-balance').innerText = `$${appState.balance.toFixed(2)}`;
+            document.getElementById('buffer-display-val').innerText = appState.emergencyBuffer.toFixed(0);
+            document.getElementById('sts-bills').innerText = `$${unpaidBillsTotal.toFixed(2)}`;
+            document.getElementById('sts-essentials').innerText = `$${appState.essentialSpending.toFixed(2)}`;
+            document.getElementById('sts-pending').innerText = `$${appState.pendingTransactions.toFixed(2)}`;
+            document.getElementById('sts-buffer').innerText = `$${appState.emergencyBuffer.toFixed(2)}`;
+            document.getElementById('display-bills-total').innerText = `$${unpaidBillsTotal.toFixed(2)}`;
 
-            const totalPeriodBills = periodBills.reduce((total, bill) => total + (Number(bill.amount) || 0), 0);
-            const netSurplus = state.balance - totalPeriodBills;
-
-            document.getElementById('display-balance').innerText = money(state.balance);
-            document.getElementById('display-bills-total').innerText = money(totalPeriodBills);
-
-            const statusBadge = document.getElementById('coverage-status-badge');
-            const surplusElem = document.getElementById('net-surplus-amount');
-
-            if (netSurplus >= 0) {
-                statusBadge.innerText = 'Fully Covered';
-                statusBadge.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300';
-                surplusElem.innerText = `+${money(netSurplus)}`;
-                surplusElem.className = 'font-bold text-emerald-600 dark:text-emerald-400';
+            // Render Bills Table
+            const tbody = document.getElementById('bills-table-body');
+            tbody.innerHTML = '';
+            if (appState.bills.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-slate-400 italic">No recurring bills scheduled.</td></tr>`;
             } else {
-                statusBadge.innerText = `Short by ${money(Math.abs(netSurplus))}`;
-                statusBadge.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300';
-                surplusElem.innerText = `-${money(Math.abs(netSurplus))}`;
-                surplusElem.className = 'font-bold text-rose-600 dark:text-rose-400';
+                appState.bills.forEach(bill => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition";
+                    tr.innerHTML = `
+                        <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${bill.name}</td>
+                        <td class="py-3 capitalize text-slate-500">${bill.frequency}</td>
+                        <td class="py-3 text-slate-500">${bill.dueDate}</td>
+                        <td class="py-3 font-bold text-slate-800 dark:text-slate-100">$${bill.amount.toFixed(2)}</td>
+                        <td class="py-3">
+                            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${bill.paid ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300'}">
+                                ${bill.paid ? 'Paid' : 'Pending'}
+                            </span>
+                        </td>
+                        <td class="py-3 text-right pr-2 space-x-2">
+                            <button onclick="toggleBillPaid(${bill.id})" class="text-indigo-600 hover:text-indigo-800 font-medium">${bill.paid ? 'Mark Unpaid' : 'Mark Paid'}</button>
+                            <button onclick="deleteBill(${bill.id})" class="text-rose-500 hover:text-rose-700"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
 
-            updateNextBillSpotlight(today);
-            updateSavingsCalculations();
-            renderBillsTable();
-            renderActivityLog();
-            updateCashFlowChart();
-            calculateAllPaychecks();
-            saveState();
-        }
-
-        function updateNextBillSpotlight(todayDate) {
-            const upcoming = state.bills.filter(bill => {
-                const due = parseLocalDate(bill.dueDate);
-                return !Number.isNaN(due.getTime()) && due >= todayDate;
-            });
-
-            const neededElem = document.getElementById('next-bill-needed');
-            const statusElem = document.getElementById('next-bill-status-text');
-            const progressElem = document.getElementById('next-bill-progress');
-
-            if (upcoming.length === 0) {
-                document.getElementById('next-bill-name').innerText = 'None Upcoming';
-                document.getElementById('next-bill-amount').innerText = '$0.00';
-                document.getElementById('next-bill-days').innerText = 'N/A';
-                neededElem.innerText = '$0.00';
-                neededElem.className = 'font-semibold';
-                progressElem.style.width = '100%';
-                statusElem.innerText = 'All active bills paid!';
-                return;
-            }
-
-            const next = upcoming[0];
-            const diffDays = Math.ceil((parseLocalDate(next.dueDate) - todayDate) / 86400000);
-
-            document.getElementById('next-bill-name').innerText = next.name;
-            document.getElementById('next-bill-amount').innerText = money(next.amount);
-            document.getElementById('next-bill-days').innerText = diffDays === 0
-                ? 'Due Today!'
-                : `In ${diffDays} day${diffDays === 1 ? '' : 's'}`;
-
-            const amount = Number(next.amount) || 0;
-            const percent = amount > 0 ? Math.min(100, Math.max(0, (state.balance / amount) * 100)) : 100;
-            progressElem.style.width = `${percent}%`;
-
-            if (state.balance >= amount) {
-                neededElem.innerText = '$0.00 (Covered)';
-                neededElem.className = 'font-semibold text-emerald-600 dark:text-emerald-400';
-                statusElem.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500"></i> Sufficient funds available right now.';
+            // Render Activity Log
+            const actLog = document.getElementById('activity-log');
+            actLog.innerHTML = '';
+            if (appState.activity.length === 0) {
+                actLog.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>`;
             } else {
-                const needed = amount - state.balance;
-                neededElem.innerText = money(needed);
-                neededElem.className = 'font-semibold text-rose-600 dark:text-rose-400';
-                statusElem.innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> You need <span class="font-bold text-rose-500">${money(needed)}</span> more to cover this bill!`;
-            }
-        }
-
-        function updateSavingsCalculations() {
-            const monthlyBills = state.bills.reduce((total, bill) => {
-                const amount = Number(bill.amount) || 0;
-                return total + (bill.frequency === 'weekly' ? amount * 4.33 : amount);
-            }, 0);
-
-            const totalMonthlyRequirement = monthlyBills + state.savingsGoal;
-            document.getElementById('display-savings-goal').innerText = `${money(state.savingsGoal)}/mo`;
-            document.getElementById('required-weekly-income').innerText = money(totalMonthlyRequirement / 4.33);
-        }
-
-        function renderPaycheckRows() {
-            const container = document.getElementById('paycheck-container');
-            container.innerHTML = '';
-
-            state.paychecks.forEach((pc, index) => {
-                const row = document.createElement('div');
-                row.className = 'grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center text-xs';
-                row.innerHTML = `
-                    <div class="md:col-span-3">
-                        <label class="block font-medium text-slate-500 mb-1">Paycheck Label</label>
-                        <input type="text" value="${escapeHtml(pc.label)}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'label', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-medium text-slate-500 mb-1">Rate ($/hr)</label>
-                        <input type="number" min="0" step="0.5" value="${Number(pc.rate) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'rate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-medium text-slate-500 mb-1">Reg. Hours</label>
-                        <input type="number" min="0" max="80" value="${Number(pc.regHours) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'regHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-medium text-slate-500 mb-1">Overtime (1.5x)</label>
-                        <input type="number" min="0" value="${Number(pc.otHours) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'otHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="block font-medium text-slate-500 mb-1">Fed/FICA Tax (%)</label>
-                        <input type="number" min="0" max="60" value="${Number(pc.taxRate) || 0}" oninput="updatePaycheckField('${escapeHtml(pc.id)}', 'taxRate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
-                    </div>
-                    <div class="md:col-span-1 flex justify-end items-end pt-4">
-                        ${state.paychecks.length > 1 ? `<button onclick="removePaycheckRow('${escapeHtml(pc.id)}')" aria-label="Remove paycheck" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
-                    </div>
-                `;
-                container.appendChild(row);
-            });
-        }
-
-        function escapeHtml(value) {
-            return String(value ?? '').replace(/[&<>"']/g, character => ({
-                '&': '&amp;',
-                '<': '&lt;',
-                '>': '&gt;',
-                '"': '&quot;',
-                "'": '&#39;'
-            })[character]);
-        }
-
-        function addPaycheckRow() {
-            state.paychecks.push({
-                id: `p_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-                label: `Job #${state.paychecks.length + 1}`,
-                rate: 20,
-                regHours: 40,
-                otHours: 0,
-                taxRate: 22
-            });
-            renderPaycheckRows();
-            calculateAllPaychecks();
-            saveState();
-        }
-
-        function removePaycheckRow(id) {
-            if (state.paychecks.length <= 1) return;
-            state.paychecks = state.paychecks.filter(paycheck => paycheck.id !== id);
-            renderPaycheckRows();
-            calculateAllPaychecks();
-            saveState();
-        }
-
-        function updatePaycheckField(id, field, value) {
-            const paycheck = state.paychecks.find(item => item.id === id);
-            if (!paycheck) return;
-
-            paycheck[field] = field === 'label' ? value : (parseFloat(value) || 0);
-            calculateAllPaychecks();
-            saveState();
-        }
-
-        function calculateAllPaychecks() {
-            const stateSelect = document.getElementById('state-select');
-            if (!stateSelect) return;
-
-            const stateTaxRate = parseFloat(stateSelect.value) || 0;
-            let totalGross = 0;
-            let totalTaxes = 0;
-            let totalNet = 0;
-
-            state.paychecks.forEach(paycheck => {
-                const rate = Number(paycheck.rate) || 0;
-                const regularHours = Number(paycheck.regHours) || 0;
-                const overtimeHours = Number(paycheck.otHours) || 0;
-                const taxRate = Number(paycheck.taxRate) || 0;
-
-                const gross = regularHours * rate + overtimeHours * rate * 1.5;
-                const taxes = gross * (taxRate / 100) + gross * (stateTaxRate / 100);
-                const net = gross - taxes;
-
-                totalGross += gross;
-                totalTaxes += taxes;
-                totalNet += net;
-            });
-
-            document.getElementById('stacked-gross').innerText = money(totalGross);
-            document.getElementById('stacked-taxes').innerText = `-${money(totalTaxes)}`;
-            document.getElementById('stacked-net').innerText = money(totalNet);
-
-            renderSequentialTimeline(totalNet);
-        }
-
-        function renderSequentialTimeline(totalNetPaycheck) {
-            const container = document.getElementById('sequential-timeline');
-            container.innerHTML = '';
-
-            if (state.bills.length === 0) {
-                container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">No bills scheduled.</p>';
-                return;
+                appState.activity.forEach(act => {
+                    const div = document.createElement('div');
+                    div.className = "flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60";
+                    div.innerHTML = `
+                        <div>
+                            <span class="font-semibold block text-slate-800 dark:text-slate-200">${act.title}</span>
+                            <span class="text-[11px] text-slate-500">${act.desc}</span>
+                        </div>
+                        <span class="text-[10px] text-slate-400">${act.time}</span>
+                    `;
+                    actLog.appendChild(div);
+                });
             }
 
-            let runningPool = state.balance + totalNetPaycheck;
+            renderFinancialCalendar();
+            renderChart(unpaidBillsTotal);
+        }
 
-            state.bills.forEach((bill, index) => {
-                const amount = Number(bill.amount) || 0;
-                const canAfford = runningPool >= amount;
-                const leftover = runningPool - amount;
-                const deficit = amount - runningPool;
+        // --- INTERACTIVE FINANCIAL CALENDAR RENDERING ---
+        function renderFinancialCalendar() {
+            const grid = document.getElementById('financial-calendar-grid');
+            grid.innerHTML = '';
 
-                const item = document.createElement('div');
-                item.className = `p-3 rounded-xl border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${canAfford ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'}`;
+            // Generate days for October 2026 (Days 1 to 31)
+            let runningBal = appState.balance;
+            
+            for (let day = 1; day <= 31; day++) {
+                const dateStr = `2026-10-${day < 10 ? '0' + day : day}`;
+                // Check if any bills are due on this date
+                const dueBills = appState.bills.filter(b => b.dueDate === dateStr && !b.paid);
+                
+                const cell = document.createElement('div');
+                cell.className = "bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs min-h-[110px]";
 
-                let statusHtml;
-                if (canAfford) {
-                    statusHtml = `<span class="font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Affordable (${money(leftover)} remaining buffer)</span>`;
-                    runningPool = leftover;
+                let billsHtml = '';
+                let endBal = runningBal;
+
+                if (dueBills.length > 0) {
+                    dueBills.forEach(b => {
+                        endBal -= b.amount;
+                        billsHtml += `
+                            <div class="mt-1 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1.5 rounded-lg text-rose-700 dark:text-rose-300">
+                                <p class="font-semibold truncate">${b.name}</p>
+                                <p class="text-[10px] text-rose-600 dark:text-rose-400">-$${b.amount.toFixed(2)}</p>
+                                <div class="mt-1 pt-1 border-t border-rose-200/50 dark:border-rose-900/50 font-bold text-slate-700 dark:text-slate-200 text-[11px]">
+                                    Bal: $${endBal.toFixed(2)}
+                                </div>
+                            </div>
+                        `;
+                    });
                 } else {
-                    statusHtml = `<span class="font-bold text-rose-600 dark:text-rose-400">⚠ Short by ${money(deficit)} (Need ${money(deficit)} more)</span>`;
-                    runningPool = 0;
+                    billsHtml = `<div class="text-[10px] text-slate-400 italic text-center py-1">No bills due</div>`;
                 }
 
-                item.innerHTML = `
+                cell.innerHTML = `
                     <div>
-                        <div class="font-bold text-slate-800 dark:text-slate-100">#${index + 1}. ${escapeHtml(bill.name)} (${money(amount)})</div>
-                        <div class="text-[11px] text-slate-500">Due: ${formatDate(bill.dueDate)}</div>
+                        <div class="flex justify-between items-center">
+                            <span class="font-bold text-slate-700 dark:text-slate-300 text-xs">Oct ${day}</span>
+                            <span class="text-[10px] text-slate-400">2026</span>
+                        </div>
+                        <div class="mt-1 text-sm font-extrabold text-slate-900 dark:text-white">$${runningBal.toFixed(2)}</div>
                     </div>
-                    <div>${statusHtml}</div>
+                    <div>
+                        ${billsHtml}
+                    </div>
                 `;
-                container.appendChild(item);
-            });
+
+                runningBal = endBal;
+                grid.appendChild(cell);
+            }
         }
 
-        function initChart() {
-            const canvas = document.getElementById('cashFlowChart');
-            if (!canvas || typeof Chart === 'undefined') return;
+        // --- CHART RENDERING ---
+        function renderChart(totalOut) {
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+            if (cashFlowChartInstance) cashFlowChartInstance.destroy();
 
-            cashFlowChart = new Chart(canvas.getContext('2d'), {
+            document.getElementById('chart-start-bal').innerText = `$${appState.balance.toFixed(2)}`;
+            document.getElementById('chart-total-out').innerText = `-$${totalOut.toFixed(2)}`;
+            document.getElementById('chart-lowest-bal').innerText = `$${Math.max(0, appState.balance - totalOut).toFixed(2)}`;
+
+            cashFlowChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: [],
+                    labels: ['Start', 'Week 1', 'Week 2', 'Week 3', 'End Month'],
                     datasets: [{
-                        label: 'Projected Balance ($)',
-                        data: [],
+                        label: 'Projected Balance',
+                        data: [appState.balance, appState.balance - (totalOut * 0.25), appState.balance - (totalOut * 0.5), appState.balance - (totalOut * 0.75), appState.balance - totalOut],
                         borderColor: '#6366f1',
                         backgroundColor: 'rgba(99, 102, 241, 0.1)',
                         fill: true,
-                        tension: 0.3,
-                        borderWidth: 2,
-                        pointBackgroundColor: '#4f46e5',
-                        pointRadius: 4
+                        tension: 0.3
                     }]
                 },
                 options: {
@@ -839,213 +780,18 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                        y: {
-                            grid: { color: 'rgba(226, 232, 240, 0.5)' },
-                            ticks: { font: { size: 10 }, callback: value => '$' + value }
-                        }
+                        y: { grid: { color: 'rgba(150,150,150,0.1)' } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
         }
 
-        function updateCashFlowChart() {
-            if (!cashFlowChart) return;
-
-            const labels = ['Today'];
-            const points = [state.balance];
-            let runningBalance = state.balance;
-            let lowest = runningBalance;
-            let totalOut = 0;
-
-            state.bills.forEach(bill => {
-                const amount = Number(bill.amount) || 0;
-                runningBalance -= amount;
-                totalOut += amount;
-                lowest = Math.min(lowest, runningBalance);
-                labels.push(bill.name);
-                points.push(runningBalance);
-            });
-
-            cashFlowChart.data.labels = labels;
-            cashFlowChart.data.datasets[0].data = points;
-            cashFlowChart.update();
-
-            document.getElementById('chart-start-bal').innerText = money(state.balance);
-            document.getElementById('chart-total-out').innerText = money(totalOut);
-            document.getElementById('chart-lowest-bal').innerText = money(lowest);
-            document.getElementById('chart-lowest-bal').className = `text-sm font-bold ${lowest < 0 ? 'text-rose-500' : 'text-emerald-500'}`;
-        }
-
-        function openAddBillModal() {
-            document.getElementById('form-bill').reset();
-            document.getElementById('bill-id').value = '';
-            document.getElementById('bill-due-date').value = getRelativeDate(7);
-            document.getElementById('modal-bill-title').innerText = 'Add Recurring Bill';
-            openModal('modal-bill');
-        }
-
-        function handleSaveBill(event) {
-            event.preventDefault();
-
-            const id = document.getElementById('bill-id').value;
-            const name = document.getElementById('bill-name').value.trim();
-            const amount = parseFloat(document.getElementById('bill-amount').value);
-            const frequency = document.getElementById('bill-frequency').value;
-            const dueDate = document.getElementById('bill-due-date').value;
-
-            if (!name || !Number.isFinite(amount) || amount <= 0 || !dueDate) return;
-
-            if (id) {
-                const index = state.bills.findIndex(bill => bill.id === id);
-                if (index !== -1) {
-                    state.bills[index] = { ...state.bills[index], name, amount, frequency, dueDate };
-                }
-            } else {
-                state.bills.push({
-                    id: `b_${Date.now()}`,
-                    name,
-                    amount,
-                    frequency,
-                    dueDate,
-                    category: 'General'
-                });
-            }
-
-            closeModal('modal-bill');
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            loadData();
             updateDashboard();
-        }
-
-        function deleteBill(id) {
-            state.bills = state.bills.filter(bill => bill.id !== id);
-            updateDashboard();
-        }
-
-        function renderBillsTable() {
-            const tbody = document.getElementById('bills-table-body');
-            tbody.innerHTML = '';
-
-            if (state.bills.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 text-slate-400">No recurring bills added yet.</td></tr>';
-                return;
-            }
-
-            state.bills.forEach(bill => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors';
-                row.innerHTML = `
-                    <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(bill.name)}</td>
-                    <td class="py-3 capitalize text-slate-500">${escapeHtml(bill.frequency)}</td>
-                    <td class="py-3 font-medium text-slate-700 dark:text-slate-300">${formatDate(bill.dueDate)}</td>
-                    <td class="py-3 font-bold text-slate-900 dark:text-white">${money(bill.amount)}</td>
-                    <td class="py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">Active</span></td>
-                    <td class="py-3 text-right pr-2 space-x-2">
-                        <button onclick="deleteBill('${escapeHtml(bill.id)}')" aria-label="Delete ${escapeHtml(bill.name)}" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
-
-        function renderActivityLog() {
-            const container = document.getElementById('activity-log');
-            container.innerHTML = '';
-
-            if (state.transactions.length === 0) {
-                container.innerHTML = '<p class="text-center text-slate-400 text-xs py-4">No recent activity recorded.</p>';
-                return;
-            }
-
-            state.transactions.forEach(transaction => {
-                const item = document.createElement('div');
-                item.className = 'flex items-center justify-between p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 text-xs';
-                item.innerHTML = `
-                    <div>
-                        <div class="font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(transaction.title)}</div>
-                        <div class="text-[10px] text-slate-400">${escapeHtml(transaction.category)}</div>
-                    </div>
-                    <span class="font-bold text-rose-500">-${money(transaction.amount)}</span>
-                `;
-                container.appendChild(item);
-            });
-        }
-
-        function handleLogSpend(event) {
-            event.preventDefault();
-
-            const amount = parseFloat(document.getElementById('spend-amount').value);
-            const category = document.getElementById('spend-category').value;
-            const note = document.getElementById('spend-note').value.trim() || category;
-
-            if (!Number.isFinite(amount) || amount <= 0) return;
-
-            state.balance -= amount;
-            state.transactions.unshift({
-                id: Date.now(),
-                title: note,
-                amount,
-                category,
-                date: getRelativeDate(0)
-            });
-
-            document.getElementById('spend-form').reset();
-            updateDashboard();
-        }
-
-        function clearSpendHistory() {
-            state.transactions = [];
-            updateDashboard();
-        }
-
-        function openEditBalanceModal() {
-            document.getElementById('balance-input').value = state.balance;
-            openModal('modal-balance');
-        }
-
-        function handleSaveBalance(event) {
-            event.preventDefault();
-            const value = parseFloat(document.getElementById('balance-input').value);
-            if (!Number.isFinite(value)) return;
-
-            state.balance = value;
-            closeModal('modal-balance');
-            updateDashboard();
-        }
-
-        function openSavingsGoalModal() {
-            document.getElementById('goal-input').value = state.savingsGoal;
-            openModal('modal-goal');
-        }
-
-        function handleSaveGoal(event) {
-            event.preventDefault();
-            const value = parseFloat(document.getElementById('goal-input').value);
-            if (!Number.isFinite(value) || value < 0) return;
-
-            state.savingsGoal = value;
-            closeModal('modal-goal');
-            updateDashboard();
-        }
-
-        function openBankModal() {
-            openModal('modal-bank');
-        }
-
-        function openModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeModal(id) {
-            const modal = document.getElementById(id);
-            modal.classList.remove('flex');
-            modal.classList.add('hidden');
-        }
-
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-        }
+        });
     </script>
 </body>
 </html>
