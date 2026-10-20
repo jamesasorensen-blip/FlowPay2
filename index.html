@@ -1,995 +1,961 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
-  <link rel="manifest" href="manifest.json">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: {
-              50: '#eef2ff', 100: '#e0e7ff', 500: '#6366f1',
-              600: '#4f46e5', 700: '#4338ca', 900: '#312e81'
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            900: '#312e81',
+                        }
+                    }
+                }
             }
-          }
         }
-      }
-    };
-  </script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-    .glass {
-      background: rgba(255, 255, 255, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .dark .glass {
-      background: rgba(30, 41, 59, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-    .dark ::-webkit-scrollbar-thumb { background: #475569; }
-  </style>
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .dark .glass {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+    </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
-  <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
-  <!-- Splash Screen Startup Animation Overlay -->
-<div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
-    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-        <!-- App Logo (Matches your icon design) -->
-        <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">
-            $
+
+    <!-- Splash Screen Startup Animation Overlay -->
+    <div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">
+                $
+            </div>
+            <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
+                FlowPay
+            </h1>
         </div>
-        <!-- Animated Sliding & Fading Text -->
-        <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">
-            FlowPay
-        </h1>
     </div>
-</div>
+    <style>
+        @keyframes pulseLogo {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+    </style>
+    <script>
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                var textElem = document.getElementById('splash-text');
+                if(textElem) { textElem.style.opacity = '1'; textElem.style.transform = 'translateX(0)'; }
+            }, 150);
+            setTimeout(function() {
+                var splash = document.getElementById('splash-screen');
+                if(splash) { splash.style.opacity = '0'; setTimeout(function() { splash.remove(); }, 500); }
+            }, 1600);
+        });
+    </script>
 
-<style>
-    @keyframes pulseLogo {
-        0% { transform: scale(1); }
-        100% { transform: scale(1.05); }
-    }
-</style>
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
-<script>
-    // Trigger slide and fade animation immediately on load
-    window.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            var textElem = document.getElementById('splash-text');
-            if(textElem) {
-                textElem.style.opacity = '1';
-                textElem.style.transform = 'translateX(0)';
-            }
-        }, 150);
-
-        // Hide and remove splash screen after 1.6 seconds to reveal dashboard
-        setTimeout(function() {
-            var splash = document.getElementById('splash-screen');
-            if(splash) {
-                splash.style.opacity = '0';
-                setTimeout(function() { splash.remove(); }, 500);
-            }
-        }, 1600);
-    });
-</script>
-
-  <div class="min-h-screen flex flex-col">
-    <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-          <i class="fa-solid fa-wallet font-bold text-xl"></i>
-        </div>
-        <div>
-          <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">FlowPay</h1>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Cash Flow & Bill Coverage</p>
-        </div>
-      </div>
-      <div class="flex items-center gap-3">
-        <button id="btn-bank-connect" onclick="openBankModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-md transition-all active:scale-95">
-          <i class="fa-solid fa-building-columns"></i>
-          <span id="bank-status-text">Connect Bank</span>
-        </button>
-        <button onclick="toggleTheme()" aria-label="Toggle theme" class="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
-          <i class="fa-solid fa-moon dark:hidden"></i>
-          <i class="fa-solid fa-sun hidden dark:block"></i>
-        </button>
-      </div>
-    </header>
-
-    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
-            <button onclick="openEditBalanceModal()" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
-              <i class="fa-solid fa-pen-to-square"></i> Edit
-            </button>
-          </div>
-          <div class="mt-2">
-            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1" id="balance-subtext">
-              <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
-            </p>
-          </div>
-          <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-            <span class="text-slate-500">Bank Sync Status:</span>
-            <span id="sync-status-badge" class="font-medium text-amber-600 dark:text-amber-400">Manual Entry</span>
-          </div>
-        </div>
-
-        <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">No bills</span>
-          </div>
-          <div class="mt-2">
-            <div class="flex justify-between items-baseline gap-2">
-              <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 truncate" id="next-bill-name">--</h3>
-              <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400" id="next-bill-amount">$0.00</span>
-            </div>
-            <div class="mt-2 space-y-1">
-              <div class="flex justify-between text-xs">
-                <span class="text-slate-500">Amount Needed:</span>
-                <span class="font-semibold" id="next-bill-needed">$0.00</span>
-              </div>
-              <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                <div id="next-bill-progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
-              </div>
-            </div>
-          </div>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
-        </div>
-
-        <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Period Bills Total</span>
-            <select id="timeframe-select" onchange="updateDashboard()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2 py-1 font-medium focus:ring-1 focus:ring-indigo-500">
-              <option value="week">Next 7 Days</option>
-              <option value="month" selected>This Month</option>
-            </select>
-          </div>
-          <div class="mt-2">
-            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
-            <div class="flex items-center gap-2 mt-2">
-              <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
-            </div>
-          </div>
-          <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-            <span class="text-slate-500">Net Surplus / Deficit:</span>
-            <span id="net-surplus-amount" class="font-bold">$0.00</span>
-          </div>
-        </div>
-
-        <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Income Needed</span>
-            <button onclick="openSavingsGoalModal()" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
-              <i class="fa-solid fa-bullseye"></i> Goal
-            </button>
-          </div>
-          <div class="mt-2">
-            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Needed per week to cover bills & save</p>
-          </div>
-          <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-            <span class="text-slate-500">Target Savings Goal:</span>
-            <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-4">
-              <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-minus-circle text-rose-500"></i> Log Quick Spend
-              </h2>
-              <span class="text-xs text-slate-400">Instant Impact</span>
-            </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Log any expense to immediately see how it impacts your ability to cover upcoming bills.</p>
-            <form id="spend-form" onsubmit="handleLogSpend(event)" class="space-y-3">
-              <div>
-                <label for="spend-amount" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Amount ($)</label>
-                <div class="relative">
-                  <span class="absolute left-3 top-2.5 text-slate-400">$</span>
-                  <input type="number" min="0.01" step="0.01" id="spend-amount" required placeholder="0.00" class="w-full pl-7 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 font-semibold">
-                </div>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label for="spend-category" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Category</label>
-                  <select id="spend-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
-                    <option value="Groceries">Groceries</option>
-                    <option value="Dining Out">Dining Out</option>
-                    <option value="Gas / Transport">Gas / Transport</option>
-                    <option value="Shopping">Shopping</option>
-                    <option value="Entertainment">Entertainment</option>
-                    <option value="Other">Other</option>
-                  </select>
+    <!-- App Container -->
+    <div class="min-h-screen flex flex-col">
+        <!-- Navigation Header -->
+        <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                    <i class="fa-solid fa-wallet font-bold text-xl"></i>
                 </div>
                 <div>
-                  <label for="spend-note" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Description</label>
-                  <input type="text" id="spend-note" placeholder="e.g. Coffee, Lunch" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+                    <h1 class="font-bold text-lg leading-tight bg-gradient-to-r from-indigo-600 to-violet-600 dark:from-indigo-400 dark:to-violet-400 bg-clip-text text-transparent">FlowPay</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Cash Flow & Bill Coverage</p>
                 </div>
-              </div>
-              <button type="submit" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2 mt-2">
-                <i class="fa-solid fa-receipt"></i> Deduct & Recalculate
-              </button>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <button id="btn-bank-connect" onclick="openBankModal()" class="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl shadow-md transition-all active:scale-95">
+                    <i class="fa-solid fa-building-columns"></i>
+                    <span id="bank-status-text">Connect Bank</span>
+                </button>
+                <button onclick="toggleTheme()" aria-label="Toggle theme" class="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-moon dark:hidden"></i>
+                    <i class="fa-solid fa-sun hidden dark:block"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+            <!-- TOP ROW: Key Indicators -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Account Balance Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
+                        <button onclick="openEditBalanceModal()" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1" id="balance-subtext">
+                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
+                        </p>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Bank Sync Status:</span>
+                        <span id="sync-status-badge" class="font-medium text-amber-600 dark:text-amber-400">Manual Entry</span>
+                    </div>
+                </div>
+
+                <!-- Next Bill Spotlight Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">No bills</span>
+                    </div>
+                    <div class="mt-2">
+                        <div class="flex justify-between items-baseline gap-2">
+                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 truncate" id="next-bill-name">--</h3>
+                            <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400" id="next-bill-amount">$0.00</span>
+                        </div>
+                        <div class="mt-2 space-y-1">
+                            <div class="flex justify-between text-xs">
+                                <span class="text-slate-500">Amount Needed:</span>
+                                <span class="font-semibold" id="next-bill-needed">$0.00</span>
+                            </div>
+                            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                <div id="next-bill-progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
+                </div>
+
+                <!-- Total Bills Due Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Period Bills Total</span>
+                        <select id="timeframe-select" onchange="updateDashboard()" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-lg px-2 py-1 font-medium focus:ring-1 focus:ring-indigo-500">
+                            <option value="week">Next 7 Days</option>
+                            <option value="month" selected>This Month</option>
+                        </select>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
+                        <div class="flex items-center gap-2 mt-2">
+                            <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Net Surplus / Deficit:</span>
+                        <span id="net-surplus-amount" class="font-bold">$0.00</span>
+                    </div>
+                </div>
+
+                <!-- Required Income & Savings Card -->
+                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Income Needed</span>
+                        <button onclick="openSavingsGoalModal()" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
+                            <i class="fa-solid fa-bullseye"></i> Goal
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Needed per week to cover bills & save</p>
+                    </div>
+                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <span class="text-slate-500">Target Savings Goal:</span>
+                        <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MIDDLE SECTION: Quick Spend & Chart -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Quick Spend Logger -->
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-minus-circle text-rose-500"></i> Log Quick Spend
+                            </h2>
+                            <span class="text-xs text-slate-400">Instant Impact</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Log any expense to immediately see how it impacts your ability to cover upcoming bills.</p>
+                        <form id="spend-form" onsubmit="handleLogSpend(event)" class="space-y-3">
+                            <div>
+                                <label for="spend-amount" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Amount ($)</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-2.5 text-slate-400">$</span>
+                                    <input type="number" min="0.01" step="0.01" id="spend-amount" required placeholder="0.00" class="w-full pl-7 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 font-semibold">
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label for="spend-category" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Category</label>
+                                    <select id="spend-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+                                        <option value="Groceries">Groceries</option>
+                                        <option value="Dining Out">Dining Out</option>
+                                        <option value="Gas / Transport">Gas / Transport</option>
+                                        <option value="Shopping">Shopping</option>
+                                        <option value="Entertainment">Entertainment</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label for="spend-note" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Description</label>
+                                    <input type="text" id="spend-note" placeholder="e.g. Coffee, Lunch" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+                                </div>
+                            </div>
+                            <button type="submit" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs rounded-xl shadow-md transition active:scale-95 flex items-center justify-center gap-2 mt-2">
+                                <i class="fa-solid fa-receipt"></i> Deduct & Recalculate
+                            </button>
+                        </form>
+                    </div>
+                    <div id="spend-impact-box" class="mt-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs space-y-1">
+                        <div class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-calculator text-indigo-500"></i> Live Spending Cushion
+                        </div>
+                        <p id="spend-impact-text" class="text-slate-500 dark:text-slate-400">Enter an amount above to preview impact on your next bill.</p>
+                    </div>
+                </div>
+
+                <!-- Chart Projection -->
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-indigo-500"></i> Balance Projection vs. Bills
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Estimated account balance trajectory over time as upcoming bills hit</p>
+                        </div>
+                    </div>
+                    <div class="w-full h-64 relative"><canvas id="cashFlowChart"></canvas></div>
+                    <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-200/60 dark:border-slate-700/60 mt-2">
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Starting Balance</span>
+                            <span class="text-sm font-bold text-slate-800 dark:text-slate-200" id="chart-start-bal">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Upcoming Bills</span>
+                            <span class="text-sm font-bold text-rose-500" id="chart-total-out">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] uppercase text-slate-400 font-semibold">Projected Safe Floor</span>
+                            <span class="text-sm font-bold text-emerald-500" id="chart-lowest-bal">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- MULTI-PAYCHECK & STATE TAX CALCULATOR SECTION -->
+            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Stackable Future Paycheck Calculator
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Select your state, stack multiple paychecks with the '+' button, and check sequential bill affordability.</p>
+                    </div>
+                    <!-- State Tax Selector -->
+                    <div class="flex items-center gap-2">
+                        <label for="state-select" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Residency State:</label>
+                        <select id="state-select" onchange="calculateAllPaychecks()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+                            <option value="0">No State Tax / AK, FL, NV, NH, SD, TN, TX, WA, WY (0%)</option>
+                            <option value="3">Alabama (3%)</option>
+                            <option value="5">Arizona (5%)</option>
+                            <option value="4.5">Arkansas (4.5%)</option>
+                            <option value="7.25" selected>California (7.25%)</option>
+                            <option value="4.4">Colorado (4.4%)</option>
+                            <option value="5.5">Connecticut (5.5%)</option>
+                            <option value="4.5">Delaware (4.5%)</option>
+                            <option value="5">Georgia (5%)</option>
+                            <option value="6">Hawaii (6%)</option>
+                            <option value="5.8">Idaho (5.8%)</option>
+                            <option value="4.95">Illinois (4.95%)</option>
+                            <option value="3.05">Indiana (3.05%)</option>
+                            <option value="5.7">Iowa (5.7%)</option>
+                            <option value="5.7">Kansas (5.7%)</option>
+                            <option value="5.8">Kentucky (5.8%)</option>
+                            <option value="4.25">Louisiana (4.25%)</option>
+                            <option value="5.5">Maine (5.5%)</option>
+                            <option value="4.75">Maryland (4.75%)</option>
+                            <option value="5.0">Massachusetts (5.0%)</option>
+                            <option value="4.25">Michigan (4.25%)</option>
+                            <option value="6.8">Minnesota (6.8%)</option>
+                            <option value="4.7">Mississippi (4.7%)</option>
+                            <option value="4.8">Missouri (4.8%)</option>
+                            <option value="6.5">Montana (6.5%)</option>
+                            <option value="5.2">Nebraska (5.2%)</option>
+                            <option value="4.5">New Jersey (4.5%)</option>
+                            <option value="4.9">New Mexico (4.9%)</option>
+                            <option value="6.5">New York (6.5%)</option>
+                            <option value="4.75">North Carolina (4.75%)</option>
+                            <option value="1.5">North Dakota (1.5%)</option>
+                            <option value="3.5">Ohio (3.5%)</option>
+                            <option value="4.75">Oklahoma (4.75%)</option>
+                            <option value="8.0">Oregon (8.0%)</option>
+                            <option value="5.0">Pennsylvania (5.0%)</option>
+                            <option value="5.99">Rhode Island (5.99%)</option>
+                            <option value="3.0">South Carolina (3.0%)</option>
+                            <option value="5.0">Utah (5.0%)</option>
+                            <option value="6.75">Vermont (6.75%)</option>
+                            <option value="5.75">Virginia (5.75%)</option>
+                            <option value="5.0">West Virginia (5.0%)</option>
+                            <option value="6.0">Wisconsin (6.0%)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Dynamic Paycheck Cards Container -->
+                <div id="paycheck-container" class="space-y-3">
+                    <!-- Paycheck rows injected via JS -->
+                </div>
+
+                <!-- Add Paycheck Button -->
+                <button onclick="addPaycheckRow()" class="w-full py-2 bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus-circle text-sm"></i> Add Another Paycheck (+)
+                </button>
+
+                <!-- Combined Summary Box -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs mt-4">
+                    <div>
+                        <span class="text-slate-500 block">Total Stacked Gross:</span>
+                        <span id="stacked-gross" class="font-bold text-slate-800 dark:text-slate-200 text-sm">$0.00</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Total Taxes (Fed + State + FICA):</span>
+                        <span id="stacked-taxes" class="font-bold text-rose-500 text-sm">-$0.00</span>
+                    </div>
+                    <div class="border-t md:border-t-0 pt-2 md:pt-0 border-slate-200 dark:border-slate-700">
+                        <span class="text-slate-500 block">Total Combined Net Take-Home:</span>
+                        <span id="stacked-net" class="font-bold text-emerald-600 dark:text-emerald-400 text-base">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEQUENTIAL BILL-BY-BILL AFFORDABILITY BREAKDOWN -->
+            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <i class="fa-solid fa-list-check text-indigo-500"></i> Sequential Bill Affordability Timeline
+                        </h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Step-by-step verification showing if you can pay each bill one after another with your stacked income.</p>
+                    </div>
+                </div>
+
+                <div id="sequential-timeline" class="space-y-2.5">
+                    <!-- Dynamically rendered timeline -->
+                </div>
+            </div>
+
+            <!-- BOTTOM SECTION: Managed Bills & Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                
+                <!-- Bills Management List -->
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-calendar-check text-indigo-500"></i> Recurring Bills Schedule
+                            </h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
+                        </div>
+                        <button onclick="openAddBillModal()" class="self-start sm:self-auto bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-plus"></i> Add Bill
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase font-semibold">
+                                    <th class="pb-3 pl-2">Bill Name</th>
+                                    <th class="pb-3">Frequency</th>
+                                    <th class="pb-3">Due Date</th>
+                                    <th class="pb-3">Amount</th>
+                                    <th class="pb-3">Status</th>
+                                    <th class="pb-3 text-right pr-2">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bills-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Recent Activity -->
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Recent Activity
+                            </h2>
+                            <button onclick="clearSpendHistory()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">Clear</button>
+                        </div>
+                        <div id="activity-log" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1"></div>
+                    </div>
+                    <div class="pt-4 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+                        <span class="text-[11px] text-slate-400">All data saved locally in browser</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <!-- Add / Edit Bill Modal -->
+    <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-bill')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1" id="modal-bill-title">Add Recurring Bill</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Fill in details for your recurring payment.</p>
+            <form id="form-bill" onsubmit="handleSaveBill(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="bill-id">
+                <div>
+                    <label for="bill-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Bill Name</label>
+                    <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Rent, Netflix, Electricity" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="bill-amount" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Amount ($)</label>
+                        <input type="number" min="0.01" step="0.01" id="bill-amount" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                    </div>
+                    <div>
+                        <label for="bill-frequency" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Frequency</label>
+                        <select id="bill-frequency" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                            <option value="weekly">Weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="bill-due-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Next Due Date</label>
+                    <input type="date" id="bill-due-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-bill')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Bill</button>
+                </div>
             </form>
-          </div>
-          <div id="spend-impact-box" class="mt-4 p-3 rounded-xl bg-slate-100 dark:bg-slate-800/80 text-xs space-y-1">
-            <div class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-              <i class="fa-solid fa-calculator text-indigo-500"></i> Live Spending Cushion
-            </div>
-            <p id="spend-impact-text" class="text-slate-500 dark:text-slate-400">Enter an amount above to preview impact on your next bill.</p>
-          </div>
         </div>
-
-        <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
-          <div class="flex items-center justify-between mb-2">
-            <div>
-              <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-chart-line text-indigo-500"></i> Balance Projection vs. Bills
-              </h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Estimated account balance trajectory over time as upcoming bills hit</p>
-            </div>
-          </div>
-          <div class="w-full h-64 relative"><canvas id="cashFlowChart"></canvas></div>
-          <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-200/60 dark:border-slate-700/60 mt-2">
-            <div>
-              <span class="block text-[10px] uppercase text-slate-400 font-semibold">Starting Balance</span>
-              <span class="text-sm font-bold text-slate-800 dark:text-slate-200" id="chart-start-bal">$0.00</span>
-            </div>
-            <div>
-              <span class="block text-[10px] uppercase text-slate-400 font-semibold">Upcoming Bills</span>
-              <span class="text-sm font-bold text-rose-500" id="chart-total-out">$0.00</span>
-            </div>
-            <div>
-              <span class="block text-[10px] uppercase text-slate-400 font-semibold">Projected Safe Floor</span>
-              <span class="text-sm font-bold text-emerald-500" id="chart-lowest-bal">$0.00</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="glass rounded-2xl p-6 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
-          <div>
-            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <i class="fa-solid fa-money-bill-wave text-emerald-500"></i> Future Paycheck & Overtime Calculator
-            </h2>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Input hours & rate to simulate take-home pay after taxes and check next bill affordability</p>
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-          <div>
-            <label for="calc-pay-rate" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Hourly Rate ($)</label>
-            <div class="relative">
-              <span class="absolute left-3 top-2.5 text-slate-400">$</span>
-              <input type="number" min="0" step="0.01" id="calc-pay-rate" placeholder="22.50" oninput="calculatePaycheck()" class="w-full pl-7 pr-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
-            </div>
-          </div>
-          <div>
-            <label for="calc-reg-hours" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Regular Hours (≤40)</label>
-            <input type="number" min="0" max="40" step="1" id="calc-reg-hours" value="40" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
-          </div>
-          <div>
-            <label for="calc-ot-hours" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Overtime Hours (1.5x)</label>
-            <input type="number" min="0" step="1" id="calc-ot-hours" value="0" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
-          </div>
-          <div>
-            <label for="calc-tax-rate" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Est. Tax Rate (%)</label>
-            <input type="number" min="0" max="100" step="1" id="calc-tax-rate" value="25" oninput="calculatePaycheck()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
-          </div>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 text-xs">
-          <div class="flex justify-between md:block">
-            <span class="text-slate-500 block">Gross Earnings:</span>
-            <span id="res-gross-pay" class="font-bold text-slate-800 dark:text-slate-200 text-sm">$0.00</span>
-          </div>
-          <div class="flex justify-between md:block">
-            <span class="text-slate-500 block">Est. Taxes (Fed/State/FICA):</span>
-            <span id="res-total-tax" class="font-bold text-rose-500 text-sm">-$0.00</span>
-          </div>
-          <div class="flex justify-between md:block border-t md:border-t-0 pt-2 md:pt-0 border-slate-200 dark:border-slate-700">
-            <span class="text-slate-500 block">Net Take-Home Pay:</span>
-            <span id="res-net-pay" class="font-bold text-emerald-600 dark:text-emerald-400 text-base">$0.00</span>
-          </div>
-        </div>
-        <div id="paycheck-verdict-box" class="mt-3 p-3 rounded-xl bg-slate-200/50 dark:bg-slate-800/50 text-xs hidden">
-          <span id="paycheck-verdict-text" class="font-medium text-slate-700 dark:text-slate-300"></span>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div>
-              <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-calendar-check text-indigo-500"></i> Recurring Bills Schedule
-              </h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
-            </div>
-            <button onclick="openAddBillModal()" class="self-start sm:self-auto bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-plus"></i> Add Bill
-            </button>
-          </div>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase font-semibold">
-                  <th class="pb-3 pl-2">Bill Name</th>
-                  <th class="pb-3">Frequency</th>
-                  <th class="pb-3">Due Date</th>
-                  <th class="pb-3">Amount</th>
-                  <th class="pb-3">Status</th>
-                  <th class="pb-3 text-right pr-2">Action</th>
-                </tr>
-              </thead>
-              <tbody id="bills-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div>
-            <div class="flex items-center justify-between mb-3">
-              <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Recent Activity
-              </h2>
-              <button onclick="clearSpendHistory()" class="text-[11px] text-slate-400 hover:text-rose-500 transition">Clear</button>
-            </div>
-            <div id="activity-log" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1"></div>
-          </div>
-          <div class="pt-4 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
-            <span class="text-[11px] text-slate-400">All data saved locally in browser</span>
-          </div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <!-- Add / Edit Bill Modal -->
-  <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-      <button onclick="closeModal('modal-bill')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-        <i class="fa-solid fa-xmark text-lg"></i>
-      </button>
-      <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1" id="modal-bill-title">Add Recurring Bill</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Fill in details for your recurring payment.</p>
-      <form id="form-bill" onsubmit="handleSaveBill(event)" class="space-y-3 text-xs">
-        <input type="hidden" id="bill-id">
-        <div>
-          <label for="bill-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Bill Name</label>
-          <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Rent, Netflix, Electricity" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label for="bill-amount" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Amount ($)</label>
-            <input type="number" min="0.01" step="0.01" id="bill-amount" required placeholder="0.00" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-          </div>
-          <div>
-            <label for="bill-frequency" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Frequency</label>
-            <select id="bill-frequency" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-              <option value="weekly">Weekly</option>
-              <option value="monthly" selected>Monthly</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label for="bill-due-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Next Due Date</label>
-          <input type="date" id="bill-due-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-        </div>
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('modal-bill')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Bill</button>
-        </div>
-      </form>
     </div>
-  </div>
 
-  <!-- Edit Balance Modal -->
-  <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-      <button onclick="closeModal('modal-balance')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-      <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Update Current Balance</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Enter your account's current available balance.</p>
-      <form onsubmit="handleSaveBalance(event)" class="space-y-3">
-        <label for="balance-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
-        <input type="number" step="0.01" id="balance-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('modal-balance')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Balance</button>
+    <!-- Edit Balance Modal -->
+    <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-balance')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Update Current Balance</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Enter your account's current available balance.</p>
+            <form onsubmit="handleSaveBalance(event)" class="space-y-3">
+                <label for="balance-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
+                <input type="number" step="0.01" id="balance-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-balance')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Balance</button>
+                </div>
+            </form>
         </div>
-      </form>
     </div>
-  </div>
 
-  <!-- Savings Goal Modal -->
-  <div id="modal-goal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-      <button onclick="closeModal('modal-goal')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-      <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Monthly Savings Goal</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Set a monthly amount to include in your weekly income target.</p>
-      <form onsubmit="handleSaveGoal(event)" class="space-y-3">
-        <label for="goal-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Savings goal ($ / month)</label>
-        <input type="number" min="0" step="0.01" id="goal-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
-        <div class="flex justify-end gap-2 pt-2">
-          <button type="button" onclick="closeModal('modal-goal')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
-          <button type="submit" class="px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 font-semibold">Save Goal</button>
+    <!-- Savings Goal Modal -->
+    <div id="modal-goal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-goal')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Monthly Savings Goal</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Set a monthly amount to include in your weekly income target.</p>
+            <form onsubmit="handleSaveGoal(event)" class="space-y-3">
+                <label for="goal-input" class="block text-xs font-medium text-slate-700 dark:text-slate-300">Savings goal ($ / month)</label>
+                <input type="number" min="0" step="0.01" id="goal-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-emerald-500 text-sm">
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeModal('modal-goal')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 font-semibold">Save Goal</button>
+                </div>
+            </form>
         </div>
-      </form>
     </div>
-  </div>
 
-  <!-- Bank Connection Modal -->
-  <div id="modal-bank" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
-    <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-      <button onclick="closeModal('modal-bank')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-      <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Bank Sync</h3>
-      <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">This standalone demo stores data only in your browser and does not connect to a bank. Update your balance manually to keep your dashboard current.</p>
-      <button onclick="openEditBalanceModal(); closeModal('modal-bank')" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Enter Balance Manually</button>
+    <!-- Bank Connection Modal -->
+    <div id="modal-bank" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <button onclick="closeModal('modal-bank')" aria-label="Close" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-2">Bank Sync</h3>
+            <p class="text-sm text-slate-600 dark:text-slate-300 mb-4">This standalone demo stores data only in your browser and does not connect to a bank. Update your balance manually to keep your dashboard current.</p>
+            <button onclick="openEditBalanceModal(); closeModal('modal-bank')" class="w-full px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Enter Balance Manually</button>
+        </div>
     </div>
-  </div>
 
-  <script>
-    const STORAGE_KEY = 'flowpay-data-v1';
-    const DEFAULT_DATA = { balance: 0, savingsGoal: 0, bills: [], transactions: [] };
-    let state = loadState();
-    let cashFlowChart = null;
-
-    function loadState() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (!saved || typeof saved !== 'object') return structuredClone(DEFAULT_DATA);
-        return {
-          balance: Number.isFinite(Number(saved.balance)) ? Number(saved.balance) : 0,
-          savingsGoal: Number.isFinite(Number(saved.savingsGoal)) ? Math.max(0, Number(saved.savingsGoal)) : 0,
-          bills: Array.isArray(saved.bills) ? saved.bills.filter(isValidBill) : [],
-          transactions: Array.isArray(saved.transactions) ? saved.transactions.filter(isValidTransaction) : []
+    <!-- SCRIPT LOGIC -->
+    <script>
+        const STORAGE_KEY = 'flowpay-data-v2';
+        const DEFAULT_DATA = { 
+            balance: 1450.00, 
+            savingsGoal: 400.00, 
+            bills: [
+                { id: '1', name: 'Apartment Rent', amount: 850.00, frequency: 'monthly', category: 'Housing', dueDate: getRelativeDate(3) },
+                { id: '2', name: 'Electric Bill', amount: 110.00, frequency: 'monthly', category: 'Utilities', dueDate: getRelativeDate(6) }
+            ], 
+            transactions: [],
+            paychecks: [
+                { id: 'p1', label: 'Primary Job', rate: 22.50, regHours: 40, otHours: 0, taxRate: 22 }
+            ]
         };
-      } catch (error) {
-        console.error('Could not load saved FlowPay data:', error);
-        return structuredClone(DEFAULT_DATA);
-      }
-    }
+        let state = loadState();
+        let cashFlowChart = null;
 
-    function isValidBill(bill) {
-      return bill && typeof bill.id === 'string' && typeof bill.name === 'string' &&
-        Number.isFinite(Number(bill.amount)) && Number(bill.amount) > 0 &&
-        ['weekly', 'monthly'].includes(bill.frequency) && isValidDateString(bill.dueDate);
-    }
-
-    function isValidTransaction(transaction) {
-      return transaction && typeof transaction.id === 'string' &&
-        Number.isFinite(Number(transaction.amount)) &&
-        typeof transaction.description === 'string';
-    }
-
-    function isValidDateString(value) {
-      if (typeof value !== 'string') return false;
-      const date = new Date(`${value}T00:00:00`);
-      return !Number.isNaN(date.getTime());
-    }
-
-    function saveState() {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (error) {
-        console.error('Could not save FlowPay data:', error);
-        showToast('Could not save data. Check your browser storage settings.', 'error');
-      }
-    }
-
-    function money(value) {
-      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
-    }
-
-    function dateOnly(date) {
-      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    }
-
-    function parseLocalDate(value) {
-      const [year, month, day] = value.split('-').map(Number);
-      return new Date(year, month - 1, day);
-    }
-
-    function formatDate(value) {
-      return parseLocalDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    }
-
-    function daysUntil(value) {
-      return Math.round((dateOnly(parseLocalDate(value)) - dateOnly(new Date())) / 86400000);
-    }
-
-    function escapeHTML(value) {
-      return String(value).replace(/[&<>"']/g, char => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      })[char]);
-    }
-
-    function showToast(message, type = 'success') {
-      const container = document.getElementById('toast-container');
-      const toast = document.createElement('div');
-      toast.className = `pointer-events-auto rounded-xl px-4 py-3 shadow-lg text-sm text-white ${type === 'error' ? 'bg-rose-600' : 'bg-slate-800'}`;
-      toast.textContent = message;
-      container.appendChild(toast);
-      window.setTimeout(() => toast.remove(), 3200);
-    }
-
-    function openModal(id) {
-      const modal = document.getElementById(id);
-      if (!modal) return;
-      modal.classList.remove('hidden');
-      modal.classList.add('flex');
-    }
-
-    function closeModal(id) {
-      const modal = document.getElementById(id);
-      if (!modal) return;
-      modal.classList.add('hidden');
-      modal.classList.remove('flex');
-    }
-
-    function openAddBillModal() {
-      document.getElementById('form-bill').reset();
-      document.getElementById('bill-id').value = '';
-      document.getElementById('bill-frequency').value = 'monthly';
-      document.getElementById('bill-due-date').value = localDateInputValue(new Date());
-      document.getElementById('modal-bill-title').textContent = 'Add Recurring Bill';
-      openModal('modal-bill');
-    }
-
-    function openEditBillModal(id) {
-      const bill = state.bills.find(item => item.id === id);
-      if (!bill) return;
-      document.getElementById('bill-id').value = bill.id;
-      document.getElementById('bill-name').value = bill.name;
-      document.getElementById('bill-amount').value = bill.amount;
-      document.getElementById('bill-frequency').value = bill.frequency;
-      document.getElementById('bill-due-date').value = bill.dueDate;
-      document.getElementById('modal-bill-title').textContent = 'Edit Recurring Bill';
-      openModal('modal-bill');
-    }
-
-    function localDateInputValue(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function handleSaveBill(event) {
-      event.preventDefault();
-      const id = document.getElementById('bill-id').value;
-      const name = document.getElementById('bill-name').value.trim();
-      const amount = Number(document.getElementById('bill-amount').value);
-      const frequency = document.getElementById('bill-frequency').value;
-      const dueDate = document.getElementById('bill-due-date').value;
-
-      if (!name || !Number.isFinite(amount) || amount <= 0 || !isValidDateString(dueDate)) {
-        showToast('Enter a valid name, amount, and due date.', 'error');
-        return;
-      }
-
-      const bill = { id: id || crypto.randomUUID(), name, amount, frequency, dueDate };
-      if (id) {
-        state.bills = state.bills.map(item => item.id === id ? bill : item);
-      } else {
-        state.bills.push(bill);
-      }
-      saveState();
-      closeModal('modal-bill');
-      render();
-      showToast(id ? 'Bill updated.' : 'Bill added.');
-    }
-
-    function deleteBill(id) {
-      const bill = state.bills.find(item => item.id === id);
-      if (!bill || !window.confirm(`Delete "${bill.name}"?`)) return;
-      state.bills = state.bills.filter(item => item.id !== id);
-      saveState();
-      render();
-      showToast('Bill deleted.');
-    }
-
-    function openEditBalanceModal() {
-      document.getElementById('balance-input').value = state.balance.toFixed(2);
-      openModal('modal-balance');
-    }
-
-    function handleSaveBalance(event) {
-      event.preventDefault();
-      const amount = Number(document.getElementById('balance-input').value);
-      if (!Number.isFinite(amount)) {
-        showToast('Enter a valid balance.', 'error');
-        return;
-      }
-      state.balance = amount;
-      saveState();
-      closeModal('modal-balance');
-      render();
-      showToast('Balance updated.');
-    }
-
-    function openSavingsGoalModal() {
-      document.getElementById('goal-input').value = state.savingsGoal.toFixed(2);
-      openModal('modal-goal');
-    }
-
-    function handleSaveGoal(event) {
-      event.preventDefault();
-      const amount = Number(document.getElementById('goal-input').value);
-      if (!Number.isFinite(amount) || amount < 0) {
-        showToast('Enter a valid savings goal.', 'error');
-        return;
-      }
-      state.savingsGoal = amount;
-      saveState();
-      closeModal('modal-goal');
-      render();
-      showToast('Savings goal updated.');
-    }
-
-    function openBankModal() {
-      openModal('modal-bank');
-    }
-
-    function getUpcomingOccurrences(days = 365) {
-      const today = dateOnly(new Date());
-      const endDate = new Date(today);
-      endDate.setDate(endDate.getDate() + days);
-      const occurrences = [];
-
-      for (const bill of state.bills) {
-        let due = dateOnly(parseLocalDate(bill.dueDate));
-        while (due < today) {
-          if (bill.frequency === 'weekly') {
-            due.setDate(due.getDate() + 7);
-          } else {
-            due = addMonthsSafely(due, 1);
-          }
+        function getRelativeDate(daysFromNow) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysFromNow);
+            return d.toISOString().split('T')[0];
         }
 
-        while (due <= endDate) {
-          occurrences.push({
-            ...bill,
-            occurrenceDate: new Date(due),
-            occurrenceKey: `${bill.id}-${localDateInputValue(due)}`
-          });
-          if (bill.frequency === 'weekly') {
-            due = new Date(due);
-            due.setDate(due.getDate() + 7);
-          } else {
-            due = addMonthsSafely(due, 1);
-          }
-        }
-      }
-      return occurrences.sort((a, b) => a.occurrenceDate - b.occurrenceDate);
-    }
-
-    function addMonthsSafely(date, months) {
-      const day = date.getDate();
-      const result = new Date(date.getFullYear(), date.getMonth() + months, 1);
-      const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
-      result.setDate(Math.min(day, lastDay));
-      return result;
-    }
-
-    function getNextOccurrence(bill) {
-      const today = dateOnly(new Date());
-      let due = dateOnly(parseLocalDate(bill.dueDate));
-      while (due < today) {
-        due = bill.frequency === 'weekly'
-          ? new Date(due.getFullYear(), due.getMonth(), due.getDate() + 7)
-          : addMonthsSafely(due, 1);
-      }
-      return due;
-    }
-
-    function renderBills() {
-      const tbody = document.getElementById('bills-table-body');
-      const bills = [...state.bills].sort((a, b) => getNextOccurrence(a) - getNextOccurrence(b));
-
-      if (!bills.length) {
-        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">No bills added yet. Select “Add Bill” to get started.</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = bills.map(bill => {
-        const due = getNextOccurrence(bill);
-        const days = Math.round((due - dateOnly(new Date())) / 86400000);
-        let status = 'Upcoming';
-        let statusClass = 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/50 dark:text-indigo-300';
-        if (days === 0) {
-          status = 'Due today';
-          statusClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
-        } else if (days <= 3) {
-          status = `Due in ${days}d`;
-          statusClass = 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300';
+        function loadState() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+                if (!saved || typeof saved !== 'object') return structuredClone(DEFAULT_DATA);
+                return {
+                    balance: Number.isFinite(Number(saved.balance)) ? Number(saved.balance) : 1450.00,
+                    savingsGoal: Number.isFinite(Number(saved.savingsGoal)) ? Math.max(0, Number(saved.savingsGoal)) : 400.00,
+                    bills: Array.isArray(saved.bills) ? saved.bills : structuredClone(DEFAULT_DATA.bills),
+                    transactions: Array.isArray(saved.transactions) ? saved.transactions : [],
+                    paychecks: Array.isArray(saved.paychecks) && saved.paychecks.length > 0 ? saved.paychecks : structuredClone(DEFAULT_DATA.paychecks)
+                };
+            } catch (error) {
+                console.error('Could not load saved data:', error);
+                return structuredClone(DEFAULT_DATA);
+            }
         }
 
-        return `<tr>
-          <td class="py-3 pl-2 font-semibold text-slate-700 dark:text-slate-200">${escapeHTML(bill.name)}</td>
-          <td class="py-3 capitalize text-slate-500">${escapeHTML(bill.frequency)}</td>
-          <td class="py-3 text-slate-500">${formatDate(localDateInputValue(due))}</td>
-          <td class="py-3 font-semibold">${money(bill.amount)}</td>
-          <td class="py-3"><span class="px-2 py-1 rounded-md text-[10px] font-semibold ${statusClass}">${status}</span></td>
-          <td class="py-3 text-right pr-2 whitespace-nowrap">
-            <button onclick="openEditBillModal('${bill.id}')" aria-label="Edit ${escapeHTML(bill.name)}" class="text-indigo-500 hover:text-indigo-700 px-1"><i class="fa-solid fa-pen"></i></button>
-            <button onclick="deleteBill('${bill.id}')" aria-label="Delete ${escapeHTML(bill.name)}" class="text-rose-500 hover:text-rose-700 px-1"><i class="fa-solid fa-trash"></i></button>
-          </td>
-        </tr>`;
-      }).join('');
-    }
-
-    function renderActivity() {
-      const container = document.getElementById('activity-log');
-      const transactions = [...state.transactions].sort((a, b) => b.createdAt - a.createdAt);
-
-      if (!transactions.length) {
-        container.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center">No activity yet.</p>';
-        return;
-      }
-
-      container.innerHTML = transactions.slice(0, 30).map(transaction => {
-        const date = new Date(transaction.createdAt);
-        return `<div class="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-100/70 dark:bg-slate-800/60">
-          <div class="flex items-center gap-2 min-w-0">
-            <span class="w-8 h-8 rounded-full flex items-center justify-center bg-rose-100 dark:bg-rose-900/40 text-rose-500 shrink-0"><i class="fa-solid fa-arrow-down text-xs"></i></span>
-            <div class="min-w-0">
-              <p class="text-xs font-semibold truncate text-slate-700 dark:text-slate-200">${escapeHTML(transaction.description)}</p>
-              <p class="text-[10px] text-slate-400">${escapeHTML(transaction.category || 'Expense')} · ${date.toLocaleDateString()}</p>
-            </div>
-          </div>
-          <span class="text-xs font-bold text-rose-500 shrink-0">-${money(transaction.amount)}</span>
-        </div>`;
-      }).join('');
-    }
-
-    function clearSpendHistory() {
-      if (!state.transactions.length) return;
-      if (!window.confirm('Clear all recent activity? This will not change your balance.')) return;
-      state.transactions = [];
-      saveState();
-      renderActivity();
-      showToast('Activity history cleared.');
-    }
-
-    function handleLogSpend(event) {
-      event.preventDefault();
-      const amount = Number(document.getElementById('spend-amount').value);
-      const category = document.getElementById('spend-category').value;
-      const note = document.getElementById('spend-note').value.trim();
-      if (!Number.isFinite(amount) || amount <= 0) {
-        showToast('Enter a spend amount greater than zero.', 'error');
-        return;
-      }
-
-      const description = note || category;
-      state.balance -= amount;
-      state.transactions.push({
-        id: crypto.randomUUID(),
-        amount,
-        category,
-        description,
-        createdAt: Date.now()
-      });
-      saveState();
-      document.getElementById('spend-form').reset();
-      updateSpendPreview();
-      render();
-      showToast(`${money(amount)} deducted from your balance.`);
-    }
-
-    function updateSpendPreview() {
-      const amount = Number(document.getElementById('spend-amount').value);
-      const nextBill = getUpcomingOccurrences(365)[0];
-      const text = document.getElementById('spend-impact-text');
-
-      if (!Number.isFinite(amount) || amount <= 0) {
-        text.textContent = 'Enter an amount above to preview impact on your next bill.';
-        return;
-      }
-      const projected = state.balance - amount;
-      if (!nextBill) {
-        text.textContent = `After this spend, your estimated balance would be ${money(projected)}.`;
-      } else {
-        const remaining = projected - nextBill.amount;
-        text.textContent = `After spending ${money(amount)}, ${money(projected)} would remain. After ${nextBill.name}, the estimated balance would be ${money(remaining)}.`;
-      }
-    }
-
-    function updateDashboard() {
-      const timeframe = document.getElementById('timeframe-select').value;
-      const rangeDays = timeframe === 'week' ? 7 : daysLeftInMonth();
-      const occurrences = getUpcomingOccurrences(rangeDays);
-      const total = occurrences.reduce((sum, bill) => sum + bill.amount, 0);
-      const surplus = state.balance - total;
-
-      document.getElementById('display-balance').textContent = money(state.balance);
-      document.getElementById('display-bills-total').textContent = money(total);
-
-      const coverage = document.getElementById('coverage-status-badge');
-      if (surplus >= 0) {
-        coverage.textContent = 'Bills covered';
-        coverage.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300';
-      } else {
-        coverage.textContent = 'Shortfall';
-        coverage.className = 'px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300';
-      }
-
-      const surplusElement = document.getElementById('net-surplus-amount');
-      surplusElement.textContent = money(surplus);
-      surplusElement.className = `font-bold ${surplus >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`;
-
-      const nextBill = getUpcomingOccurrences(365)[0];
-      if (nextBill) {
-        const needed = nextBill.amount;
-        const progress = needed > 0 ? Math.min(100, Math.max(0, state.balance / needed * 100)) : 100;
-        const days = Math.round((nextBill.occurrenceDate - dateOnly(new Date())) / 86400000);
-        document.getElementById('next-bill-name').textContent = nextBill.name;
-        document.getElementById('next-bill-amount').textContent = money(needed);
-        document.getElementById('next-bill-needed').textContent = money(Math.max(0, needed - state.balance));
-        document.getElementById('next-bill-days').textContent = days === 0 ? 'Due today' : `In ${days} day${days === 1 ? '' : 's'}`;
-        document.getElementById('next-bill-progress').style.width = `${progress}%`;
-        document.getElementById('next-bill-status-text').textContent = state.balance >= needed
-          ? 'Your current balance can cover this bill.'
-          : `You need ${money(needed - state.balance)} more to cover it.`;
-      } else {
-        document.getElementById('next-bill-name').textContent = '--';
-        document.getElementById('next-bill-amount').textContent = money(0);
-        document.getElementById('next-bill-needed').textContent = money(0);
-        document.getElementById('next-bill-days').textContent = 'No bills';
-        document.getElementById('next-bill-progress').style.width = '0%';
-        document.getElementById('next-bill-status-text').textContent = 'Add a bill to see coverage.';
-      }
-
-      const nextMonthBills = getUpcomingOccurrences(365)
-        .filter(item => item.occurrenceDate.getMonth() === new Date().getMonth() &&
-                        item.occurrenceDate.getFullYear() === new Date().getFullYear())
-        .reduce((sum, item) => sum + item.amount, 0);
-      const estimatedWeekly = (nextMonthBills + state.savingsGoal) / 4.33;
-      document.getElementById('required-weekly-income').textContent = money(estimatedWeekly);
-      document.getElementById('display-savings-goal').textContent = `${money(state.savingsGoal)}/mo`;
-
-      renderChart();
-    }
-
-    function daysLeftInMonth() {
-      const now = new Date();
-      return new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate() - now.getDate() + 1;
-    }
-
-    function renderChart() {
-      const occurrences = getUpcomingOccurrences(30);
-      const grouped = new Map();
-      for (const bill of occurrences) {
-        const key = localDateInputValue(bill.occurrenceDate);
-        grouped.set(key, (grouped.get(key) || 0) + bill.amount);
-      }
-
-      const today = dateOnly(new Date());
-      const labels = ['Today'];
-      const values = [state.balance];
-      let balance = state.balance;
-
-      for (let day = 1; day <= 30; day++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + day);
-        const key = localDateInputValue(date);
-        balance -= grouped.get(key) || 0;
-        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-        values.push(Number(balance.toFixed(2)));
-      }
-
-      document.getElementById('chart-start-bal').textContent = money(state.balance);
-      document.getElementById('chart-total-out').textContent = money([...grouped.values()].reduce((sum, amount) => sum + amount, 0));
-      document.getElementById('chart-lowest-bal').textContent = money(Math.min(...values));
-
-      const dark = document.documentElement.classList.contains('dark');
-      const textColor = dark ? '#cbd5e1' : '#64748b';
-      const gridColor = dark ? 'rgba(148,163,184,.15)' : 'rgba(148,163,184,.2)';
-      const canvas = document.getElementById('cashFlowChart');
-      if (cashFlowChart) cashFlowChart.destroy();
-
-      cashFlowChart = new Chart(canvas, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [{
-            label: 'Projected balance',
-            data: values,
-            borderColor: '#6366f1',
-            backgroundColor: 'rgba(99,102,241,.12)',
-            fill: true,
-            tension: 0.3,
-            pointRadius: 2,
-            pointHoverRadius: 5
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: textColor, maxTicksLimit: 7 }, grid: { color: gridColor } },
-            y: { ticks: { color: textColor, callback: value => money(value) }, grid: { color: gridColor } }
-          }
+        function saveState() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            } catch (error) {
+                console.error('Could not save data:', error);
+            }
         }
-      });
-    }
 
-    function calculatePaycheck() {
-      const rate = Math.max(0, Number(document.getElementById('calc-pay-rate').value) || 0);
-      const regularHours = Math.min(40, Math.max(0, Number(document.getElementById('calc-reg-hours').value) || 0));
-      const overtimeHours = Math.max(0, Number(document.getElementById('calc-ot-hours').value) || 0);
-      const taxRate = Math.min(100, Math.max(0, Number(document.getElementById('calc-tax-rate').value) || 0));
-      const gross = rate * regularHours + rate * 1.5 * overtimeHours;
-      const taxes = gross * taxRate / 100;
-      const net = gross - taxes;
+        function money(value) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value) || 0);
+        }
 
-      document.getElementById('res-gross-pay').textContent = money(gross);
-      document.getElementById('res-total-tax').textContent = `-${money(taxes)}`;
-      document.getElementById('res-net-pay').textContent = money(net);
+        function parseLocalDate(value) {
+            const [year, month, day] = value.split('-').map(Number);
+            return new Date(year, month - 1, day);
+        }
 
-      const box = document.getElementById('paycheck-verdict-box');
-      const text = document.getElementById('paycheck-verdict-text');
-      const nextBill = getUpcomingOccurrences(365)[0];
-      if (rate <= 0) {
-        box.classList.add('hidden');
-      } else {
-        box.classList.remove('hidden');
-        text.textContent = nextBill
-          ? (state.balance + net >= nextBill.amount
-              ? `With this estimated paycheck, your balance would be enough to cover ${nextBill.name}.`
-              : `After this estimated paycheck, you would still be ${money(nextBill.amount - state.balance - net)} short of ${nextBill.name}.`)
-          : `Estimated take-home pay: ${money(net)}. Add a bill to check affordability.`;
-      }
-    }
+        function formatDate(value) {
+            return parseLocalDate(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
 
-    function toggleTheme() {
-      document.documentElement.classList.toggle('dark');
-      localStorage.setItem('flowpay-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-      renderChart();
-    }
+        window.onload = function() {
+            initChart();
+            renderPaycheckRows();
+            updateDashboard();
+        };
 
-    function render() {
-      renderBills();
-      renderActivity();
-      updateDashboard();
-      calculatePaycheck();
-      updateSpendPreview();
-    }
+        function updateDashboard() {
+            state.bills.sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate));
 
-    document.getElementById('spend-amount').addEventListener('input', updateSpendPreview);
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') {
-        ['modal-bill', 'modal-balance', 'modal-goal', 'modal-bank'].forEach(closeModal);
-      }
-    });
+            const timeframe = document.getElementById('timeframe-select').value;
+            const now = new Date();
+            now.setHours(0,0,0,0);
 
-    if (localStorage.getItem('flowpay-theme') === 'dark') {
-      document.documentElement.classList.add('dark');
-    }
-    render();
-  </script>
+            let periodBills = state.bills.filter(bill => {
+                const due = new Date(bill.dueDate);
+                const diffDays = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+                return timeframe === 'week' ? (diffDays >= 0 && diffDays <= 7) : (diffDays >= 0 && diffDays <= 30);
+            });
+
+            const totalPeriodBills = periodBills.reduce((acc, b) => acc + parseFloat(b.amount), 0);
+            const netSurplus = state.balance - totalPeriodBills;
+
+            document.getElementById('display-balance').innerText = money(state.balance);
+            document.getElementById('display-bills-total').innerText = money(totalPeriodBills);
+
+            const statusBadge = document.getElementById('coverage-status-badge');
+            const surplusElem = document.getElementById('net-surplus-amount');
+
+            if (netSurplus >= 0) {
+                statusBadge.innerText = "Fully Covered";
+                statusBadge.className = "px-2 py-0.5 rounded-md text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300";
+                surplusElem.innerText = `+${money(netSurplus)}`;
+                surplusElem.className = "font-bold text-emerald-600 dark:text-emerald-400";
+            } else {
+                statusBadge.innerText = `Short by ${money(Math.abs(netSurplus))}`;
+                statusBadge.className = "px-2 py-0.5 rounded-md text-xs font-semibold bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-300";
+                surplusElem.innerText = `-${money(Math.abs(netSurplus))}`;
+                surplusElem.className = "font-bold text-rose-600 dark:text-rose-400";
+            }
+
+            updateNextBillSpotlight(now);
+            updateSavingsCalculations();
+            renderBillsTable();
+            renderActivityLog();
+            updateCashFlowChart();
+            calculateAllPaychecks();
+            saveState();
+        }
+
+        function updateNextBillSpotlight(todayDate) {
+            const upcoming = state.bills.filter(b => new Date(b.dueDate) >= todayDate);
+            if (upcoming.length === 0) {
+                document.getElementById('next-bill-name').innerText = "None Upcoming";
+                document.getElementById('next-bill-amount').innerText = "$0.00";
+                document.getElementById('next-bill-days').innerText = "N/A";
+                document.getElementById('next-bill-needed').innerText = "$0.00";
+                document.getElementById('next-bill-progress').style.width = "100%";
+                document.getElementById('next-bill-status-text').innerText = "All active bills paid!";
+                return;
+            }
+
+            const next = upcoming[0];
+            const diffDays = Math.ceil((new Date(next.dueDate) - todayDate) / (1000 * 60 * 60 * 24));
+            
+            document.getElementById('next-bill-name').innerText = next.name;
+            document.getElementById('next-bill-amount').innerText = money(next.amount);
+            document.getElementById('next-bill-days').innerText = diffDays === 0 ? 'Due Today!' : `In ${diffDays} day${diffDays > 1 ? 's' : ''}`;
+
+            let percent = Math.min(100, Math.max(0, (state.balance / next.amount) * 100));
+            document.getElementById('next-bill-progress').style.width = `${percent}%`;
+
+            if (state.balance >= next.amount) {
+                document.getElementById('next-bill-needed').innerText = "$0.00 (Covered)";
+                document.getElementById('next-bill-needed').className = "font-semibold text-emerald-600 dark:text-emerald-400";
+                document.getElementById('next-bill-status-text').innerHTML = `<i class="fa-solid fa-circle-check text-emerald-500"></i> Sufficient funds available right now.`;
+            } else {
+                const needed = next.amount - state.balance;
+                document.getElementById('next-bill-needed').innerText = money(needed);
+                document.getElementById('next-bill-needed').className = "font-semibold text-rose-600 dark:text-rose-400";
+                document.getElementById('next-bill-status-text').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-500"></i> You need <span class="font-bold text-rose-500">${money(needed)}</span> more to cover this bill!`;
+            }
+        }
+
+        function updateSavingsCalculations() {
+            const monthlyBills = state.bills.reduce((acc, b) => acc + (b.frequency === 'weekly' ? b.amount * 4.33 : b.amount), 0);
+            const totalMonthlyRequirement = monthlyBills + state.savingsGoal;
+            document.getElementById('display-savings-goal').innerText = `${money(state.savingsGoal)}/mo`;
+            document.getElementById('required-weekly-income').innerText = money(totalMonthlyRequirement / 4.33);
+        }
+
+        /* --- MULTI-PAYCHECK & STATE TAX RENDER LOGIC --- */
+        function renderPaycheckRows() {
+            const container = document.getElementById('paycheck-container');
+            container.innerHTML = '';
+
+            state.paychecks.forEach((pc, index) => {
+                const row = document.createElement('div');
+                row.className = "grid grid-cols-1 md:grid-cols-12 gap-3 p-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 items-center text-xs";
+                row.innerHTML = `
+                    <div class="md:col-span-3">
+                        <label class="block font-medium text-slate-500 mb-1">Paycheck Label</label>
+                        <input type="text" value="${pc.label}" oninput="updatePaycheckField('${pc.id}', 'label', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-slate-500 mb-1">Rate ($/hr)</label>
+                        <input type="number" min="0" step="0.5" value="${pc.rate}" oninput="updatePaycheckField('${pc.id}', 'rate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-slate-500 mb-1">Reg. Hours</label>
+                        <input type="number" min="0" max="80" value="${pc.regHours}" oninput="updatePaycheckField('${pc.id}', 'regHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-slate-500 mb-1">Overtime (1.5x)</label>
+                        <input type="number" min="0" value="${pc.otHours}" oninput="updatePaycheckField('${pc.id}', 'otHours', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block font-medium text-slate-500 mb-1">Fed/FICA Tax (%)</label>
+                        <input type="number" min="0" max="60" value="${pc.taxRate}" oninput="updatePaycheckField('${pc.id}', 'taxRate', this.value)" class="w-full px-2.5 py-1.5 bg-white dark:bg-slate-700 border-none rounded-lg font-semibold">
+                    </div>
+                    <div class="md:col-span-1 flex justify-end items-end pt-4">
+                        ${state.paychecks.length > 1 ? `<button onclick="removePaycheckRow('${pc.id}')" class="text-rose-500 hover:text-rose-700 p-2"><i class="fa-solid fa-trash text-sm"></i></button>` : ''}
+                    </div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        function addPaycheckRow() {
+            state.paychecks.push({
+                id: 'p_' + Date.now(),
+                label: `Job #${state.paychecks.length + 1}`,
+                rate: 20.00,
+                regHours: 40,
+                otHours: 0,
+                taxRate: 22
+            });
+            renderPaycheckRows();
+            calculateAllPaychecks();
+        }
+
+        function removePaycheckRow(id) {
+            state.paychecks = state.paychecks.filter(p => p.id !== id);
+            renderPaycheckRows();
+            calculateAllPaychecks();
+        }
+
+        function updatePaycheckField(id, field, val) {
+            const pc = state.paychecks.find(p => p.id === id);
+            if (pc) {
+                pc[field] = field === 'label' ? val : (parseFloat(val) || 0);
+                calculateAllPaychecks();
+            }
+        }
+
+        function calculateAllPaychecks() {
+            const stateTaxRate = parseFloat(document.getElementById('state-select').value) || 0;
+            let totalGross = 0;
+            let totalTaxes = 0;
+            let totalNet = 0;
+
+            state.paychecks.forEach(pc => {
+                const regPay = pc.regHours * pc.rate;
+                const otPay = pc.otHours * (pc.rate * 1.5);
+                const gross = regPay + otPay;
+                
+                const fedFicaTax = gross * (pc.taxRate / 100);
+                const stateTax = gross * (stateTaxRate / 100);
+                const taxes = fedFicaTax + stateTax;
+                const net = gross - taxes;
+
+                totalGross += gross;
+                totalTaxes += taxes;
+                totalNet += net;
+            });
+
+            document.getElementById('stacked-gross').innerText = money(totalGross);
+            document.getElementById('stacked-taxes').innerText = `-${money(totalTaxes)}`;
+            document.getElementById('stacked-net').innerText = money(totalNet);
+
+            renderSequentialTimeline(totalNet);
+        }
+
+        /* --- SEQUENTIAL BILL AFFORDABILITY TIMELINE --- */
+        function renderSequentialTimeline(totalNetPaycheck) {
+            const container = document.getElementById('sequential-timeline');
+            container.innerHTML = '';
+
+            if (state.bills.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3">No bills scheduled.</p>";`;
+                return;
+            }
+
+            let runningPool = state.balance + totalNetPaycheck;
+
+            state.bills.forEach((bill, idx) => {
+                const canAfford = runningPool >= bill.amount;
+                const leftover = runningPool - bill.amount;
+                const deficit = bill.amount - runningPool;
+
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-xl border text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 ${canAfford ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200' : 'bg-rose-500/10 border-rose-500/30 text-rose-900 dark:text-rose-200'}`;
+                
+                let statusHtml = '';
+                if (canAfford) {
+                    statusHtml = `<span class="font-bold text-emerald-600 dark:text-emerald-400">✓ Fully Affordable (${money(leftover)} remaining buffer)</span>`;
+                    runningPool = leftover; // deduct for next bill in sequence
+                } else {
+                    statusHtml = `<span class="font-bold text-rose-600 dark:text-rose-400">⚠ Short by ${money(deficit)} (Need ${money(deficit)} more)</span>`;
+                    runningPool = 0; // depleted
+                }
+
+                item.innerHTML = `
+                    <div>
+                        <div class="font-bold text-slate-800 dark:text-slate-100">#${idx + 1}. ${bill.name} (${money(bill.amount)})</div>
+                        <div class="text-[11px] text-slate-500">Due: ${formatDate(bill.dueDate)}</div>
+                    </div>
+                    <div>${statusHtml}</div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        /* --- CHART & UTILITIES --- */
+        function initChart() {
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+            cashFlowChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Projected Balance ($)',
+                        data: [],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        borderWidth: 2,
+                        pointBackgroundColor: '#4f46e5',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                        y: { grid: { color: 'rgba(226, 232, 240, 0.5)' }, ticks: { font: { size: 10 }, callback: v => '$' + v } }
+                    }
+                }
+            });
+        }
+
+        function updateCashFlowChart() {
+            if (!cashFlowChart) return;
+            const labels = ['Today'];
+            const points = [state.balance];
+            let runningBal = state.balance;
+            let lowest = runningBal;
+            let totalOut = 0;
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            state.bills.forEach(bill => {
+                runningBal -= parseFloat(bill.amount);
+                totalOut += parseFloat(bill.amount);
+                if (runningBal < lowest) lowest = runningBal;
+                labels.push(`${bill.name}`);
+                points.push(runningBal);
+            });
+
+            cashFlowChart.data.labels = labels;
+            cashFlowChart.data.datasets[0].data = points;
+            cashFlowChart.update();
+
+            document.getElementById('chart-start-bal').innerText = money(state.balance);
+            document.getElementById('chart-total-out').innerText = money(totalOut);
+            document.getElementById('chart-lowest-bal').innerText = money(lowest);
+            document.getElementById('chart-lowest-bal').className = `text-sm font-bold ${lowest < 0 ? 'text-rose-500' : 'text-emerald-500'}`;
+        }
+
+        function openAddBillModal() {
+            document.getElementById('form-bill').reset();
+            document.getElementById('bill-id').value = '';
+            document.getElementById('bill-due-date').value = getRelativeDate(7);
+            document.getElementById('modal-bill-title').innerText = 'Add Recurring Bill';
+            openModal('modal-bill');
+        }
+
+        function handleSaveBill(e) {
+            e.preventDefault();
+            const id = document.getElementById('bill-id').value;
+            const name = document.getElementById('bill-name').value;
+            const amount = parseFloat(document.getElementById('bill-amount').value);
+            const frequency = document.getElementById('bill-frequency').value;
+            const dueDate = document.getElementById('bill-due-date').value;
+
+            if (id) {
+                const idx = state.bills.findIndex(b => b.id === id);
+                if (idx !== -1) state.bills[idx] = { id, name, amount, frequency, dueDate, category: 'General' };
+            } else {
+                state.bills.push({ id: 'b_' + Date.now(), name, amount, frequency, dueDate, category: 'General' });
+            }
+            closeModal('modal-bill');
+            updateDashboard();
+        }
+
+        function deleteBill(id) {
+            state.bills = state.bills.filter(b => b.id !== id);
+            updateDashboard();
+        }
+
+        function renderBillsTable() {
+            const tbody = document.getElementById('bills-table-body');
+            tbody.innerHTML = '';
+            if (state.bills.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400">No recurring bills added yet.</td></tr>`;
+                return;
+            }
+            state.bills.forEach(bill => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors";
+                tr.innerHTML = `
+                    <td class="py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200">${bill.name}</td>
+                    <td class="py-3 capitalize text-slate-500">${bill.frequency}</td>
+                    <td class="py-3 font-medium text-slate-700 dark:text-slate-300">${formatDate(bill.dueDate)}</td>
+                    <td class="py-3 font-bold text-slate-900 dark:text-white">${money(bill.amount)}</td>
+                    <td class="py-3"><span class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 font-medium">Active</span></td>
+                    <td class="py-3 text-right pr-2 space-x-2">
+                        <button onclick="deleteBill('${bill.id}')" class="text-slate-400 hover:text-rose-600 transition"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderActivityLog() {
+            const container = document.getElementById('activity-log');
+            container.innerHTML = '';
+            if (state.transactions.length === 0) {
+                container.innerHTML = `<p class="text-center text-slate-400 text-xs py-4">No recent activity recorded.</p>`;
+                return;
+            }
+            state.transactions.forEach(tx => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-700/50 text-xs";
+                item.innerHTML = `<div><div class="font-semibold text-slate-800 dark:text-slate-200">${tx.title}</div><div class="text-[10px] text-slate-400">${tx.category}</div></div><span class="font-bold text-rose-500">-${money(tx.amount)}</span>`;
+                container.appendChild(item);
+            });
+        }
+
+        function handleLogSpend(e) {
+            e.preventDefault();
+            const amount = parseFloat(document.getElementById('spend-amount').value);
+            const category = document.getElementById('spend-category').value;
+            const note = document.getElementById('spend-note').value || category;
+            if (isNaN(amount) || amount <= 0) return;
+
+            state.balance -= amount;
+            state.transactions.unshift({ id: Date.now(), title: note, amount, category, date: getRelativeDate(0) });
+            document.getElementById('spend-form').reset();
+            updateDashboard();
+        }
+
+        function clearSpendHistory() { state.transactions = []; updateDashboard(); }
+        function openEditBalanceModal() { document.getElementById('balance-input').value = state.balance; openModal('modal-balance'); }
+        function handleSaveBalance(e) { e.preventDefault(); state.balance = parseFloat(document.getElementById('balance-input').value) || 0; closeModal('modal-balance'); updateDashboard(); }
+        function openSavingsGoalModal() { document.getElementById('goal-input').value = state.savingsGoal; openModal('modal-goal'); }
+        function handleSaveGoal(e) { e.preventDefault(); state.savingsGoal = parseFloat(document.getElementById('goal-input').value) || 0; closeModal('modal-goal'); updateDashboard(); }
+        function openBankModal() { openModal('modal-bank'); }
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.getElementById(id).classList.add('flex'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('flex'); document.getElementById(id).classList.add('hidden'); }
+        function toggleTheme() { document.documentElement.classList.toggle('dark'); }
+    </script>
 </body>
 </html>
