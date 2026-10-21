@@ -228,48 +228,113 @@
                 </div>
             </div>
 
-            <!-- FUTURE PAYCHECK CALCULATOR WIDGET -->
+            <!-- FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
-                            <i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Bill Coverage Calculator
+                            <i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Tax Calculator
                         </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Simulate incoming pay over a custom timeframe to review surplus or deficits.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Calculate gross pay via hourly/overtime or flat rate, estimate taxes, and add to your active calendar.</p>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end bg-slate-100/60 dark:bg-slate-800/60 p-4 rounded-xl">
-                    <div>
-                        <label for="calc-income-amount" class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1">Expected Paycheck Amount ($)</label>
-                        <input type="number" id="calc-income-amount" min="0.01" step="0.01" placeholder="e.g. 1500.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+
+                <form id="form-paycheck-calc" class="space-y-4 bg-slate-100/60 dark:bg-slate-800/60 p-4 rounded-xl text-xs">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label for="calc-source-name" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Paycheck Source / Name</label>
+                            <input type="text" id="calc-source-name" required placeholder="e.g. Weekly Salary, Side Gig" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
+                        </div>
+                        <div>
+                            <label for="calc-pay-date" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Date / Horizon</label>
+                            <input type="date" id="calc-pay-date" required class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
+                        </div>
+                        <div>
+                            <label for="calc-state-select" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">State of Residence</label>
+                            <select id="calc-state-select" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
+                                <option value="NO_STATE">No State Income Tax (TX, FL, NV, etc.)</option>
+                                <option value="CA">California (CA - ~6% avg)</option>
+                                <option value="NY">New York (NY - ~5.5% avg)</option>
+                                <option value="NC" selected>North Carolina (NC - 4.25% flat)</option>
+                                <option value="OTHER">Other State (~5% avg)</option>
+                            </select>
+                        </div>
                     </div>
-                    <div>
-                        <label for="calc-target-date" class="block font-medium text-slate-600 dark:text-slate-300 text-xs mb-1">Target Pay Date / Horizon</label>
-                        <input type="date" id="calc-target-date" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-semibold focus:ring-2 focus:ring-emerald-500">
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+                        <div>
+                            <label for="calc-pay-mode" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Calculation Type</label>
+                            <select id="calc-pay-mode" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
+                                <option value="hourly">Hourly + Overtime</option>
+                                <option value="flat">Flat Rate Amount</option>
+                            </select>
+                        </div>
+
+                        <div id="mode-hourly-inputs" class="md:col-span-2 grid grid-cols-3 gap-2">
+                            <div>
+                                <label for="calc-hourly-rate" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Hourly Rate ($)</label>
+                                <input type="number" id="calc-hourly-rate" min="0" step="0.01" placeholder="25.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold text-xs">
+                            </div>
+                            <div>
+                                <label for="calc-standard-hours" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Standard Hrs</label>
+                                <input type="number" id="calc-standard-hours" min="0" step="0.5" value="40" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold text-xs">
+                            </div>
+                            <div>
+                                <label for="calc-overtime-hours" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Overtime Hrs (1.5x)</label>
+                                <input type="number" id="calc-overtime-hours" min="0" step="0.5" value="0" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold text-xs">
+                            </div>
+                        </div>
+
+                        <div id="mode-flat-inputs" class="md:col-span-2 hidden">
+                            <label for="calc-flat-amount" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Flat Gross Pay Amount ($)</label>
+                            <input type="number" id="calc-flat-amount" min="0.01" step="0.01" placeholder="1500.00" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold text-xs">
+                        </div>
                     </div>
-                    <div>
-                        <button id="calc-run-btn" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow transition flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-wand-magic-sparkles"></i> Run Simulation
+
+                    <!-- TAX BREAKDOWN PREVIEW BOX -->
+                    <div id="calc-preview-box" class="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase font-bold">Estimated Gross</span>
+                            <span id="preview-gross" class="font-bold text-slate-900 dark:text-white">$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase font-bold">Fed Tax / FICA (~22%)</span>
+                            <span id="preview-fed-tax" class="font-bold text-rose-500">-$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase font-bold">State Tax</span>
+                            <span id="preview-state-tax" class="font-bold text-rose-500">-$0.00</span>
+                        </div>
+                        <div>
+                            <span class="block text-[10px] text-slate-400 uppercase font-bold text-emerald-600">Net Take-Home Pay</span>
+                            <span id="preview-net" class="font-extrabold text-emerald-600 text-sm">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="submit" class="py-2.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus-circle"></i> Add Paycheck & Update Balance
                         </button>
                     </div>
-                </div>
-                <div id="calc-result-box" class="hidden p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50 text-xs space-y-2">
-                    <div class="font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                        <i class="fa-solid fa-circle-check"></i> Simulation Results
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-slate-700 dark:text-slate-300 pt-1">
-                        <div>
-                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Total Bills Due in Window</span>
-                            <span id="calc-res-bills" class="font-bold text-rose-500">$0.00</span>
-                        </div>
-                        <div>
-                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Projected Net Income Added</span>
-                            <span id="calc-res-income" class="font-bold text-emerald-600">$0.00</span>
-                        </div>
-                        <div>
-                            <span class="block text-[11px] text-slate-400 uppercase font-semibold">Projected Balance at Horizon</span>
-                            <span id="calc-res-balance" class="font-bold text-indigo-600">$0.00</span>
-                        </div>
+                </form>
+
+                <!-- PAYCHECK LOG & CREATED LIST -->
+                <div class="space-y-2 pt-2">
+                    <h3 class="font-bold text-slate-800 dark:text-slate-200 text-xs uppercase tracking-wider">Scheduled Paychecks Log</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs">
+                            <thead>
+                                <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase font-semibold">
+                                    <th class="pb-2 pl-2">Source</th>
+                                    <th class="pb-2">Pay Date</th>
+                                    <th class="pb-2">Gross Pay</th>
+                                    <th class="pb-2">Estimated Net</th>
+                                    <th class="pb-2">New Balance Preview</th>
+                                    <th class="pb-2 text-right pr-2">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paychecks-table-body" class="divide-y divide-slate-100 dark:divide-slate-800"></tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -295,9 +360,6 @@
                     <div class="flex items-center justify-between gap-2">
                         <div class="text-xs text-slate-500">Select month view:</div>
                         <div class="flex items-center gap-2">
-                            <button id="open-paycheck-btn" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                                <i class="fa-solid fa-plus-circle"></i> Add Paycheck
-                            </button>
                             <select id="calendar-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
                                 <!-- Populated dynamically -->
                             </select>
@@ -442,30 +504,30 @@
     </div>
 
     <!-- MODALS -->
-    <!-- Add Paycheck Modal -->
-    <div id="modal-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-paycheck-title">
+    <!-- Edit Paycheck Modal -->
+    <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <button class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            <h3 id="modal-paycheck-title" class="font-bold text-lg text-slate-900 dark:text-white mb-1">Add Paycheck / Income</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Schedule incoming pay to increase your projected daily balances.</p>
-            <form id="form-paycheck" class="space-y-3 text-xs">
+            <h3 class="font-bold text-lg text-slate-900 dark:text-white mb-1">Edit Paycheck</h3>
+            <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
+                <input type="hidden" id="edit-paycheck-id">
                 <div>
-                    <label for="paycheck-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Source / Name</label>
-                    <input type="text" id="paycheck-name" required placeholder="e.g. Salary, Client Payment" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <label for="edit-paycheck-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Source / Name</label>
+                    <input type="text" id="edit-paycheck-name" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label for="paycheck-amount" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Amount ($)</label>
-                        <input type="number" min="0.01" step="0.01" id="paycheck-amount" required placeholder="300.00" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <label for="edit-paycheck-amount" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Net Amount ($)</label>
+                        <input type="number" min="0.01" step="0.01" id="edit-paycheck-amount" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
                     </div>
                     <div>
-                        <label for="paycheck-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Pay Date</label>
-                        <input type="date" id="paycheck-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                        <label for="edit-paycheck-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Pay Date</label>
+                        <input type="date" id="edit-paycheck-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
                     </div>
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
                     <button type="button" class="close-modal-btn px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
-                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 font-semibold">Add Income</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Save Changes</button>
                 </div>
             </form>
         </div>
@@ -481,10 +543,10 @@
                 <input type="hidden" id="bill-id">
                 <div>
                     <label for="bill-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Bill Name</label>
-                    <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Rent, Netflix, Electricity" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
+                    <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Electric Bill, Rent, Netflix" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
                 <div>
-                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
+                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category (Auto-detected from name)</label>
                     <select id="bill-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                         <option value="Housing">Housing</option>
                         <option value="Utilities">Utilities</option>
@@ -503,7 +565,7 @@
                         <label for="bill-frequency" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Frequency</label>
                         <select id="bill-frequency" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                             <option value="weekly">Weekly</option>
-                            <option value="monthly" selected>Monthly</option>
+                            <option value="monthly" selected>Monthly (30 Days)</option>
                         </select>
                     </div>
                 </div>
@@ -725,6 +787,79 @@
                     }
                 });
             }
+
+            // Bill name auto-categorization
+            const billNameInput = document.getElementById('bill-name');
+            const billCategorySelect = document.getElementById('bill-category');
+            if (billNameInput && billCategorySelect) {
+                billNameInput.addEventListener('input', () => {
+                    const val = billNameInput.value.toLowerCase();
+                    if (val.includes('insurance')) {
+                        billCategorySelect.value = 'Insurance';
+                    } else if (val.includes('credit card') || val.includes('loan')) {
+                        billCategorySelect.value = 'Credit / Loan';
+                    } else if (val.includes('internet') || val.includes('subscription')) {
+                        billCategorySelect.value = 'Subscriptions';
+                    } else if (val.includes('electric') || val.includes('electricity')) {
+                        billCategorySelect.value = 'Utilities';
+                    }
+                });
+            }
+
+            // Paycheck calculation mode toggle
+            const payModeSelect = document.getElementById('calc-pay-mode');
+            const hourlyBox = document.getElementById('mode-hourly-inputs');
+            const flatBox = document.getElementById('mode-flat-inputs');
+            if (payModeSelect) {
+                payModeSelect.addEventListener('change', () => {
+                    if (payModeSelect.value === 'flat') {
+                        hourlyBox.classList.add('hidden');
+                        flatBox.classList.remove('hidden');
+                    } else {
+                        flatBox.classList.add('hidden');
+                        hourlyBox.classList.remove('hidden');
+                    }
+                    calculatePaycheckPreview();
+                });
+            }
+
+            ['calc-hourly-rate', 'calc-standard-hours', 'calc-overtime-hours', 'calc-flat-amount', 'calc-state-select', 'calc-pay-mode'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', calculatePaycheckPreview);
+            });
+        }
+
+        function calculatePaycheckPreview() {
+            const mode = document.getElementById('calc-pay-mode').value;
+            let gross = 0;
+
+            if (mode === 'hourly') {
+                const rate = parseFloat(document.getElementById('calc-hourly-rate').value) || 0;
+                const stdHrs = parseFloat(document.getElementById('calc-standard-hours').value) || 0;
+                const otHrs = parseFloat(document.getElementById('calc-overtime-hours').value) || 0;
+                gross = (rate * stdHrs) + (rate * 1.5 * otHrs);
+            } else {
+                gross = parseFloat(document.getElementById('calc-flat-amount').value) || 0;
+            }
+
+            const state = document.getElementById('calc-state-select').value;
+            let stateTaxRate = 0;
+            if (state === 'CA') stateTaxRate = 0.06;
+            else if (state === 'NY') stateTaxRate = 0.055;
+            else if (state === 'NC') stateTaxRate = 0.0425;
+            else if (state === 'OTHER') stateTaxRate = 0.05;
+
+            const fedTaxRate = 0.22; // Fed + FICA composite estimate
+            const fedTax = gross * fedTaxRate;
+            const stateTax = gross * stateTaxRate;
+            const net = Math.max(0, gross - fedTax - stateTax);
+
+            document.getElementById('preview-gross').textContent = formatCurrency(gross);
+            document.getElementById('preview-fed-tax').textContent = `-${formatCurrency(fedTax)}`;
+            document.getElementById('preview-state-tax').textContent = `-${formatCurrency(stateTax)}`;
+            document.getElementById('preview-net').textContent = formatCurrency(net);
+
+            return { gross, fedTax, stateTax, net };
         }
 
         function populateMonthDropdown(selectElem) {
@@ -819,6 +954,7 @@
 
                 count++;
                 if (bill.frequency === 'monthly') {
+                    // Automatically set 30 days or calendar month alignment
                     currentDueDate = addMonthsToDateString(bill.dueDate, count);
                 } else if (bill.frequency === 'weekly') {
                     currentDueDate = addDaysToDateString(bill.dueDate, count * 7);
@@ -1019,6 +1155,7 @@
 
             updateNextUpcomingBillCard();
             renderBillsTable();
+            renderPaychecksLogTable();
             renderActivityLog();
             renderFinancialCalendar();
             renderChart();
@@ -1047,6 +1184,9 @@
             currentMonthBills.forEach(bill => {
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
+                if (bill.paid) {
+                    tr.className += ' line-through opacity-60 text-slate-400 dark:text-slate-500';
+                }
 
                 tr.appendChild(createTextCell(bill.name, 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200'));
                 
@@ -1058,10 +1198,7 @@
                 catTd.appendChild(catSpan);
                 tr.appendChild(catTd);
 
-                const freqText = bill.repeatType === 'until' && bill.endDate 
-                    ? `${bill.frequency} (until ${bill.endDate})` 
-                    : bill.frequency;
-                tr.appendChild(createTextCell(freqText, 'py-3 capitalize text-slate-500'));
+                tr.appendChild(createTextCell(bill.frequency, 'py-3 capitalize text-slate-500'));
                 tr.appendChild(createTextCell(bill.dueDate, 'py-3 font-medium text-indigo-600 dark:text-indigo-400'));
                 tr.appendChild(createTextCell(formatCurrency(bill.amount), 'py-3 font-bold text-slate-800 dark:text-slate-100'));
 
@@ -1094,6 +1231,56 @@
                 delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
                 delBtn.title = 'Delete Bill';
                 delBtn.addEventListener('click', () => deleteBill(bill.id));
+                actionsTd.appendChild(delBtn);
+
+                tr.appendChild(actionsTd);
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPaychecksLogTable() {
+            const tbody = document.getElementById('paychecks-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (appState.paychecks.length === 0) {
+                const tr = document.createElement('tr');
+                const td = document.createElement('td');
+                td.colSpan = 6;
+                td.className = 'text-center py-4 text-slate-400 italic';
+                td.textContent = 'No paychecks added yet.';
+                tr.appendChild(td);
+                tbody.appendChild(tr);
+                return;
+            }
+
+            let runningPreviewBal = appState.balance;
+            appState.paychecks.forEach(p => {
+                runningPreviewBal += p.amount;
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
+
+                tr.appendChild(createTextCell(p.name, 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200'));
+                tr.appendChild(createTextCell(p.date, 'py-3 text-slate-500'));
+                tr.appendChild(createTextCell(formatCurrency(p.gross || p.amount), 'py-3 text-slate-600 dark:text-slate-300'));
+                tr.appendChild(createTextCell(formatCurrency(p.amount), 'py-3 font-bold text-emerald-600'));
+                tr.appendChild(createTextCell(formatCurrency(runningPreviewBal), 'py-3 font-bold text-indigo-600'));
+
+                const actionsTd = document.createElement('td');
+                actionsTd.className = 'py-3 text-right pr-2 space-x-2';
+
+                const editBtn = document.createElement('button');
+                editBtn.className = 'text-indigo-600 hover:text-indigo-800';
+                editBtn.innerHTML = '<i class="fa-solid fa-pen"></i>';
+                editBtn.title = 'Edit Paycheck';
+                editBtn.addEventListener('click', () => openEditPaycheckModal(p.id));
+                actionsTd.appendChild(editBtn);
+
+                const delBtn = document.createElement('button');
+                delBtn.className = 'text-rose-500 hover:text-rose-700';
+                delBtn.innerHTML = '<i class="fa-solid fa-trash"></i>';
+                delBtn.title = 'Delete Paycheck';
+                delBtn.addEventListener('click', () => deletePaycheck(p.id));
                 actionsTd.appendChild(delBtn);
 
                 tr.appendChild(actionsTd);
@@ -1187,9 +1374,12 @@
                     hasEvents = true;
                     const billBox = document.createElement('div');
                     billBox.className = 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1.5 rounded-lg text-rose-700 dark:text-rose-300';
+                    if (b.paid) {
+                        billBox.className += ' line-through opacity-60';
+                    }
                     const nameP = document.createElement('p');
                     nameP.className = 'font-semibold truncate';
-                    nameP.textContent = b.name;
+                    nameP.textContent = `${b.name} ${b.paid ? '(Paid)' : ''}`;
                     const amtP = document.createElement('p');
                     amtP.className = 'text-[10px] text-rose-600 dark:text-rose-400';
                     amtP.textContent = `-${formatCurrency(b.amount)}`;
@@ -1279,33 +1469,6 @@
             });
         }
 
-        function handleRunCalculator() {
-            const incomeAmt = parseFloat(document.getElementById('calc-income-amount').value) || 0;
-            const targetDate = document.getElementById('calc-target-date').value;
-
-            if (!targetDate) {
-                showToast('Please select a target date for the calculator.', 'error');
-                return;
-            }
-
-            const todayStr = new Date().toISOString().split('T')[0];
-            if (targetDate < todayStr) {
-                showToast('Target date must be today or in the future.', 'error');
-                return;
-            }
-
-            const expandedBills = getExpandedBillsList();
-            const billsInWindow = expandedBills.filter(b => !b.paid && b.dueDate >= todayStr && b.dueDate <= targetDate);
-            const totalBillsWindow = billsInWindow.reduce((acc, b) => acc + b.amount, 0);
-
-            const projectedEndBal = appState.balance + incomeAmt - totalBillsWindow;
-
-            document.getElementById('calc-res-bills').textContent = formatCurrency(totalBillsWindow);
-            document.getElementById('calc-res-income').textContent = formatCurrency(incomeAmt);
-            document.getElementById('calc-res-balance').textContent = formatCurrency(projectedEndBal);
-            document.getElementById('calc-result-box').classList.remove('hidden');
-        }
-
         function handleSaveBalance(e) {
             e.preventDefault();
             const val = parseFloat(document.getElementById('balance-input').value);
@@ -1342,23 +1505,63 @@
             }
         }
 
-        function handleSavePaycheck(e) {
+        function handleSavePaycheckCalc(e) {
             e.preventDefault();
-            const name = document.getElementById('paycheck-name').value.trim();
-            const amount = parseFloat(document.getElementById('paycheck-amount').value);
-            const date = document.getElementById('paycheck-date').value;
+            const name = document.getElementById('calc-source-name').value.trim();
+            const date = document.getElementById('calc-pay-date').value;
+            const res = calculatePaycheckPreview();
 
-            if (name && Number.isFinite(amount) && amount > 0 && date) {
+            if (name && date && res.net > 0) {
                 appState.paychecks.push({
                     id: Date.now(),
                     name,
-                    amount,
+                    amount: res.net,
+                    gross: res.gross,
                     date
                 });
-                logActivity('Scheduled Paycheck', `Added ${formatCurrency(amount)} deposit for ${date}`, 'income');
+                logActivity('Added Paycheck', `Added ${formatCurrency(res.net)} net deposit from ${name} for ${date}`, 'income');
                 saveData();
                 updateDashboard();
-                closeModal('modal-paycheck');
+                document.getElementById('form-paycheck-calc').reset();
+                document.getElementById('calc-standard-hours').value = '40';
+                document.getElementById('calc-overtime-hours').value = '0';
+                calculatePaycheckPreview();
+                showToast('Paycheck successfully added to log and calendar!');
+            } else {
+                showToast('Please check all input fields and ensure net pay is greater than zero.', 'error');
+            }
+        }
+
+        function openEditPaycheckModal(id) {
+            const p = appState.paychecks.find(x => x.id === id);
+            if (p) {
+                document.getElementById('edit-paycheck-id').value = p.id;
+                document.getElementById('edit-paycheck-name').value = p.name;
+                document.getElementById('edit-paycheck-amount').value = p.amount;
+                document.getElementById('edit-paycheck-date').value = p.date;
+                openModal('modal-edit-paycheck', document.activeElement);
+            }
+        }
+
+        function handleSaveEditPaycheck(e) {
+            e.preventDefault();
+            const id = document.getElementById('edit-paycheck-id').value;
+            const name = document.getElementById('edit-paycheck-name').value.trim();
+            const amount = parseFloat(document.getElementById('edit-paycheck-amount').value);
+            const date = document.getElementById('edit-paycheck-date').value;
+
+            if (id && name && Number.isFinite(amount) && date) {
+                const p = appState.paychecks.find(x => x.id == id);
+                if (p) {
+                    p.name = name;
+                    p.amount = amount;
+                    p.date = date;
+                }
+                logActivity('Updated Paycheck', `Modified paycheck ${name} (${formatCurrency(amount)})`, 'info');
+                saveData();
+                updateDashboard();
+                closeModal('modal-edit-paycheck');
+                showToast('Paycheck updated successfully!');
             }
         }
 
@@ -1367,6 +1570,7 @@
             saveData();
             updateDashboard();
             logActivity('Deleted Paycheck', 'Removed income from calendar schedule', 'warn');
+            showToast('Paycheck removed.');
         }
 
         function openEditBillModal(id) {
@@ -1515,6 +1719,7 @@
             initModals();
             initMonthSelectors();
             applyTheme();
+            calculatePaycheckPreview();
 
             const calendarToggleBtn = document.getElementById('calendar-toggle-btn');
             const calendarContent = document.getElementById('calendar-collapsible-content');
@@ -1547,10 +1752,6 @@
                 document.getElementById('savings-goal-input').value = appState.savingsGoal;
                 openModal('modal-savings', e.currentTarget);
             });
-            document.getElementById('open-paycheck-btn').addEventListener('click', (e) => {
-                document.getElementById('form-paycheck').reset();
-                openModal('modal-paycheck', e.currentTarget);
-            });
             document.getElementById('open-add-bill-btn').addEventListener('click', (e) => {
                 document.getElementById('modal-bill-title').textContent = 'Add Recurring Bill';
                 document.getElementById('form-bill').reset();
@@ -1565,12 +1766,11 @@
                 updateDashboard();
             });
 
-            document.getElementById('calc-run-btn').addEventListener('click', handleRunCalculator);
-
+            document.getElementById('form-paycheck-calc').addEventListener('submit', handleSavePaycheckCalc);
+            document.getElementById('form-edit-paycheck').addEventListener('submit', handleSaveEditPaycheck);
             document.getElementById('form-balance').addEventListener('submit', handleSaveBalance);
             document.getElementById('form-buffer').addEventListener('submit', handleSaveBuffer);
             document.getElementById('form-savings').addEventListener('submit', handleSaveSavingsGoal);
-            document.getElementById('form-paycheck').addEventListener('submit', handleSavePaycheck);
             document.getElementById('form-bill').addEventListener('submit', handleSaveBill);
             document.getElementById('spend-form').addEventListener('submit', handleLogSpend);
             
