@@ -339,35 +339,43 @@
                 </div>
             </div>
 
-            <!-- INTERACTIVE FINANCIAL CALENDAR WITH DYNAMIC MONTHS (COLLAPSIBLE) -->
+            <!-- INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
-                            <i class="fa-solid fa-calendar-days text-indigo-500"></i> Interactive Financial Calendar & Dynamic Cash Flow
+                            <i class="fa-solid fa-calendar-days text-indigo-500"></i> Wall Calendar & Dynamic Cash Flow
                         </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Balances dynamically drop for bill due dates and rise when income/paychecks hit.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Traditional wall calendar layout starting Sunday. Past days are greyed out with current week focus.</p>
                     </div>
                     <div class="flex items-center gap-2">
+                        <button id="toggle-past-weeks-btn" class="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
+                            <i class="fa-solid fa-clock-rotate-left"></i> <span id="toggle-past-weeks-text">Show Previous Weeks</span>
+                        </button>
+                        <select id="calendar-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
+                            <!-- Populated dynamically -->
+                        </select>
                         <button id="calendar-toggle-btn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
-                            <i id="calendar-toggle-icon" class="fa-solid fa-chevron-down"></i> <span id="calendar-toggle-text">Expand Calendar</span>
+                            <i id="calendar-toggle-icon" class="fa-solid fa-chevron-up"></i> <span id="calendar-toggle-text">Collapse Calendar</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Collapsible Content Wrapper -->
-                <div id="calendar-collapsible-content" class="hidden space-y-4 pt-2">
-                    <div class="flex items-center justify-between gap-2">
-                        <div class="text-xs text-slate-500">Select month view:</div>
-                        <div class="flex items-center gap-2">
-                            <select id="calendar-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-1.5 font-medium focus:ring-2 focus:ring-indigo-500">
-                                <!-- Populated dynamically -->
-                            </select>
-                        </div>
+                <div id="calendar-collapsible-content" class="space-y-4 pt-2">
+                    <!-- Day of Week Headers -->
+                    <div class="grid grid-cols-7 gap-2 text-center text-xs font-bold text-slate-400 uppercase tracking-wider py-1 border-b border-slate-200 dark:border-slate-800">
+                        <div>Sun</div>
+                        <div>Mon</div>
+                        <div>Tue</div>
+                        <div>Wed</div>
+                        <div>Thu</div>
+                        <div>Fri</div>
+                        <div>Sat</div>
                     </div>
 
                     <!-- Calendar Grid Container -->
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-7 gap-2 pt-2" id="financial-calendar-grid">
+                    <div class="grid grid-cols-7 gap-2 pt-1" id="financial-calendar-grid">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
@@ -666,6 +674,7 @@
         let appState = { ...DEFAULT_STATE };
         let lastFocusedElement = null;
         let cashFlowChartInstance = null;
+        let showAllPastWeeks = false;
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -788,7 +797,6 @@
                 });
             }
 
-            // Bill name auto-categorization
             const billNameInput = document.getElementById('bill-name');
             const billCategorySelect = document.getElementById('bill-category');
             if (billNameInput && billCategorySelect) {
@@ -806,7 +814,6 @@
                 });
             }
 
-            // Paycheck calculation mode toggle
             const payModeSelect = document.getElementById('calc-pay-mode');
             const hourlyBox = document.getElementById('mode-hourly-inputs');
             const flatBox = document.getElementById('mode-flat-inputs');
@@ -849,7 +856,7 @@
             else if (state === 'NC') stateTaxRate = 0.0425;
             else if (state === 'OTHER') stateTaxRate = 0.05;
 
-            const fedTaxRate = 0.22; // Fed + FICA composite estimate
+            const fedTaxRate = 0.22;
             const fedTax = gross * fedTaxRate;
             const stateTax = gross * stateTaxRate;
             const net = Math.max(0, gross - fedTax - stateTax);
@@ -954,7 +961,6 @@
 
                 count++;
                 if (bill.frequency === 'monthly') {
-                    // Automatically set 30 days or calendar month alignment
                     currentDueDate = addMonthsToDateString(bill.dueDate, count);
                 } else if (bill.frequency === 'weekly') {
                     currentDueDate = addDaysToDateString(bill.dueDate, count * 7);
@@ -1333,34 +1339,103 @@
             const year = parseInt(yearStr, 10);
             const monthIndex = parseInt(monthStr, 10) - 1;
 
+            const firstDayOfMonth = new Date(year, monthIndex, 1);
+            const startingDayOfWeek = firstDayOfMonth.getDay(); // 0 (Sun) to 6 (Sat)
             const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+
             const projection = generateUnifiedProjection();
             const projectionMap = {};
             projection.forEach(p => { projectionMap[p.date] = p; });
 
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayStr = today.toISOString().split('T')[0];
+
+            // Calculate start of current week (Sunday) for default view filtering
+            const currentDayOfWeek = today.getDay();
+            const currentWeekStart = new Date(today);
+            currentWeekStart.setDate(today.getDate() - currentDayOfWeek);
+            const currentWeekEnd = new Date(currentWeekStart);
+            currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+
+            // Build grid cells
+            const cells = [];
+            
+            // Previous month trailing days
+            const prevMonthDays = new Date(year, monthIndex, 0).getDate();
+            for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                const dayNum = prevMonthDays - i;
+                const prevMonth = monthIndex === 0 ? 11 : monthIndex - 1;
+                const prevYear = monthIndex === 0 ? year - 1 : year;
+                const dateObj = new Date(prevYear, prevMonth, dayNum);
+                cells.push({ dateObj, isCurrentMonth: false });
+            }
+
+            // Current month days
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateObj = new Date(year, monthIndex, day);
+                cells.push({ dateObj, isCurrentMonth: true });
+            }
+
+            // Next month leading days to complete full week rows
+            const totalCellsSoFar = cells.length;
+            const remainder = totalCellsSoFar % 7;
+            if (remainder > 0) {
+                const daysToAdd = 7 - remainder;
+                for (let day = 1; day <= daysToAdd; day++) {
+                    const nextMonth = monthIndex === 11 ? 0 : monthIndex + 1;
+                    const nextYear = monthIndex === 11 ? year + 1 : year;
+                    const dateObj = new Date(nextYear, nextMonth, day);
+                    cells.push({ dateObj, isCurrentMonth: false });
+                }
+            }
+
+            cells.forEach(item => {
+                const dateObj = item.dateObj;
                 const dateStr = dateObj.toISOString().split('T')[0];
+                const isToday = dateStr === todayStr;
+                const isPast = dateStr < todayStr;
+
+                // Check if this cell belongs to a past week
+                const isPastWeek = dateObj < currentWeekStart && !isToday;
+                if (!showAllPastWeeks && isPastWeek) {
+                    return; // Skip rendering past weeks unless toggled
+                }
+
                 const dayProj = projectionMap[dateStr] || { startBalance: appState.balance, endBalance: appState.balance, bills: [], incomeItems: [] };
 
                 const cell = document.createElement('div');
-                cell.className = 'bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl p-3 flex flex-col justify-between space-y-2 text-xs min-h-[120px]';
+                cell.className = 'border rounded-xl p-2.5 flex flex-col justify-between space-y-2 text-xs min-h-[110px] transition ';
+
+                if (isToday) {
+                    cell.className += ' bg-indigo-50/80 dark:bg-indigo-950/40 border-indigo-500 shadow-sm ring-2 ring-indigo-500/50';
+                } else if (isPast || !item.isCurrentMonth) {
+                    cell.className += ' bg-slate-100/70 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800 opacity-60';
+                } else {
+                    cell.className += ' bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80';
+                }
 
                 const headerDiv = document.createElement('div');
                 const topRow = document.createElement('div');
                 topRow.className = 'flex justify-between items-center';
+
                 const daySpan = document.createElement('span');
-                daySpan.className = 'font-bold text-slate-700 dark:text-slate-300 text-xs';
-                daySpan.textContent = `${dateObj.toLocaleDateString('en-US', { month: 'short' })} ${day}`;
-                const yrSpan = document.createElement('span');
-                yrSpan.className = 'text-[10px] text-slate-400';
-                yrSpan.textContent = year;
+                daySpan.className = isToday 
+                    ? 'font-extrabold text-white bg-indigo-600 px-2 py-0.5 rounded-full text-xs shadow-sm'
+                    : (isPast || !item.isCurrentMonth ? 'font-bold text-slate-400 dark:text-slate-500 text-xs' : 'font-bold text-slate-700 dark:text-slate-300 text-xs');
+                daySpan.textContent = dateObj.getDate();
+
+                const monthLabelSpan = document.createElement('span');
+                monthLabelSpan.className = 'text-[10px] text-slate-400';
+                monthLabelSpan.textContent = dateObj.toLocaleDateString('en-US', { month: 'short' });
+
                 topRow.appendChild(daySpan);
-                topRow.appendChild(yrSpan);
+                topRow.appendChild(monthLabelSpan);
 
                 const balDiv = document.createElement('div');
-                balDiv.className = 'mt-1 text-sm font-extrabold text-slate-900 dark:text-white';
+                balDiv.className = isPast || !item.isCurrentMonth ? 'mt-1 text-xs font-bold text-slate-400 dark:text-slate-500' : 'mt-1 text-xs font-extrabold text-slate-900 dark:text-white';
                 balDiv.textContent = formatCurrency(dayProj.endBalance);
+
                 headerDiv.appendChild(topRow);
                 headerDiv.appendChild(balDiv);
                 cell.appendChild(headerDiv);
@@ -1373,15 +1448,15 @@
                 dayProj.bills.forEach(b => {
                     hasEvents = true;
                     const billBox = document.createElement('div');
-                    billBox.className = 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1.5 rounded-lg text-rose-700 dark:text-rose-300';
-                    if (b.paid) {
-                        billBox.className += ' line-through opacity-60';
-                    }
+                    billBox.className = isPast || b.paid 
+                        ? 'bg-slate-200/60 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 line-through opacity-75 text-[10px]'
+                        : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1 rounded-lg text-rose-700 dark:text-rose-300 text-[10px]';
+                    
                     const nameP = document.createElement('p');
                     nameP.className = 'font-semibold truncate';
                     nameP.textContent = `${b.name} ${b.paid ? '(Paid)' : ''}`;
                     const amtP = document.createElement('p');
-                    amtP.className = 'text-[10px] text-rose-600 dark:text-rose-400';
+                    amtP.className = 'text-[9px] opacity-80';
                     amtP.textContent = `-${formatCurrency(b.amount)}`;
                     billBox.appendChild(nameP);
                     billBox.appendChild(amtP);
@@ -1391,7 +1466,9 @@
                 dayProj.incomeItems.forEach(p => {
                     hasEvents = true;
                     const incBox = document.createElement('div');
-                    incBox.className = 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-1.5 rounded-lg text-emerald-700 dark:text-emerald-300 flex items-center justify-between';
+                    incBox.className = isPast
+                        ? 'bg-slate-200/60 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[10px] flex items-center justify-between'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-1 rounded-lg text-emerald-700 dark:text-emerald-300 text-[10px] flex items-center justify-between';
                     
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'truncate pr-1';
@@ -1399,15 +1476,15 @@
                     nameP.className = 'font-semibold truncate';
                     nameP.textContent = p.name;
                     const amtP = document.createElement('p');
-                    amtP.className = 'text-[10px] text-emerald-600 dark:text-emerald-400';
+                    amtP.className = 'text-[9px] opacity-80';
                     amtP.textContent = `+${formatCurrency(p.amount)}`;
                     infoDiv.appendChild(nameP);
                     infoDiv.appendChild(amtP);
 
                     const delBtn = document.createElement('button');
-                    delBtn.className = 'text-emerald-500 hover:text-rose-500 transition p-1';
+                    delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5';
                     delBtn.title = 'Delete Paycheck';
-                    delBtn.innerHTML = '<i class="fa-solid fa-trash text-[10px]"></i>';
+                    delBtn.innerHTML = '<i class="fa-solid fa-trash text-[9px]"></i>';
                     delBtn.addEventListener('click', () => deletePaycheck(p.id));
 
                     incBox.appendChild(infoDiv);
@@ -1417,14 +1494,14 @@
 
                 if (!hasEvents) {
                     const noEventDiv = document.createElement('div');
-                    noEventDiv.className = 'text-[10px] text-slate-400 italic text-center py-2';
+                    noEventDiv.className = 'text-[9px] text-slate-400 italic text-center py-1';
                     noEventDiv.textContent = 'No activity';
                     itemsContainer.appendChild(noEventDiv);
                 }
 
                 cell.appendChild(itemsContainer);
                 grid.appendChild(cell);
-            }
+            });
         }
 
         function renderChart() {
@@ -1737,6 +1814,14 @@
                     calendarToggleIcon.className = 'fa-solid fa-chevron-down';
                     calendarToggleText.textContent = 'Expand Calendar';
                 }
+            });
+
+            const togglePastWeeksBtn = document.getElementById('toggle-past-weeks-btn');
+            const togglePastWeeksText = document.getElementById('toggle-past-weeks-text');
+            togglePastWeeksBtn.addEventListener('click', () => {
+                showAllPastWeeks = !showAllPastWeeks;
+                togglePastWeeksText.textContent = showAllPastWeeks ? 'Hide Previous Weeks' : 'Show Previous Weeks';
+                renderFinancialCalendar();
             });
 
             document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
