@@ -66,13 +66,18 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .modal-drag-handle, .widget-drag-handle, .metric-drag-handle {
+        .modal-drag-handle {
             cursor: grab;
             user-select: none;
-            touch-action: none;
+            touch-action: none; /* Crucial: prevents mobile browser from hijacking touch gestures */
         }
         .modal-drag-handle:active, .widget-drag-handle:active, .metric-drag-handle:active {
             cursor: grabbing;
+        }
+
+        .widget-drag-handle, .metric-drag-handle {
+            cursor: grab;
+            user-select: none;
         }
         
         .dragging-widget {
@@ -1399,11 +1404,12 @@
                 let isDragging = false;
                 let startX, startY, origLeft, origTop;
 
-                const startDrag = (clientX, clientY) => {
+                const onPointerDown = (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
                     isDragging = true;
                     const rect = card.getBoundingClientRect();
-                    startX = clientX;
-                    startY = clientY;
+                    startX = e.clientX;
+                    startY = e.clientY;
 
                     card.style.position = 'absolute';
                     card.style.left = `${rect.left}px`;
@@ -1414,13 +1420,21 @@
 
                     origLeft = rect.left;
                     origTop = rect.top;
-                    handle.setPointerCapture ? handle.setPointerCapture(event.pointerId) : null;
+
+                    try {
+                        handle.setPointerCapture(e.pointerId);
+                    } catch (err) {}
+
+                    window.addEventListener('pointermove', onPointerMove);
+                    window.addEventListener('pointerup', onPointerUp);
+                    window.addEventListener('pointercancel', onPointerUp);
+                    e.preventDefault();
                 };
 
-                const onDrag = (clientX, clientY) => {
+                const onPointerMove = (e) => {
                     if (!isDragging) return;
-                    const dx = clientX - startX;
-                    const dy = clientY - startY;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
 
                     const newLeft = Math.max(10, Math.min(window.innerWidth - card.offsetWidth - 10, origLeft + dx));
                     const newTop = Math.max(10, Math.min(window.innerHeight - card.offsetHeight - 10, origTop + dy));
@@ -1431,23 +1445,21 @@
                     if (saveBtn) saveBtn.classList.remove('hidden');
                 };
 
-                const endDrag = () => {
+                const onPointerUp = (e) => {
                     if (!isDragging) return;
                     isDragging = false;
                     card.style.transition = 'all 0.2s ease';
+
+                    try {
+                        handle.releasePointerCapture(e.pointerId);
+                    } catch (err) {}
+
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerUp);
+                    window.removeEventListener('pointercancel', onPointerUp);
                 };
 
-                handle.addEventListener('pointerdown', (e) => {
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
-                    startDrag(e.clientX, e.clientY);
-                });
-
-                handle.addEventListener('pointermove', (e) => {
-                    onDrag(e.clientX, e.clientY);
-                });
-
-                handle.addEventListener('pointerup', endDrag);
-                handle.addEventListener('pointercancel', endDrag);
+                handle.addEventListener('pointerdown', onPointerDown);
 
                 if (saveBtn) {
                     saveBtn.addEventListener('click', () => {
