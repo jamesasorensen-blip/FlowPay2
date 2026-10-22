@@ -26,6 +26,8 @@
         };
     </script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Lucide Icons Browser Distribution -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -306,6 +308,37 @@
             <div class="space-y-3 pt-1">
                 <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">Scheduled Events & Obligations</h4>
                 <div id="modal-date-events-list" class="space-y-2"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEARCHABLE ICON PICKER MODAL -->
+    <div id="modal-icon-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="icon-picker-title">
+        <div id="modal-card-icon-picker" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
+                    <i class="fa-solid fa-icons" aria-hidden="true"></i>
+                    <span id="icon-picker-title">Customize Bill Icon</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-icon-picker" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
+                    </button>
+                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                </div>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <div class="relative">
+                    <span class="absolute left-3 top-3 text-slate-400"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span>
+                    <input type="text" id="icon-search-input" placeholder="Search icons (e.g. rent, car, zap)..." class="w-full pl-9 pr-8 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 font-medium">
+                    <button type="button" id="clear-icon-search" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hidden"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+                </div>
+
+                <div id="icon-picker-categories" class="space-y-4 max-h-[50vh] overflow-y-auto pr-1">
+                    <!-- Populated dynamically -->
+                </div>
             </div>
         </div>
     </div>
@@ -947,15 +980,15 @@
                     <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Electric Bill, Rent, Netflix" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
                 <div>
-                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category (Auto-detected with preset icon)</label>
+                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category</label>
                     <select id="bill-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-                        <option value="Housing">Housing 🏠</option>
-                        <option value="Utilities">Utilities ⚡</option>
-                        <option value="Subscriptions">Subscriptions 📶</option>
-                        <option value="Insurance">Insurance 🛡️</option>
-                        <option value="Credit / Loan">Credit / Loan 💳</option>
-                        <option value="Gas / Transport">Gas / Transport ⛽</option>
-                        <option value="Other">Other 📌</option>
+                        <option value="Housing">Housing</option>
+                        <option value="Utilities">Utilities</option>
+                        <option value="Subscriptions">Subscriptions</option>
+                        <option value="Insurance">Insurance</option>
+                        <option value="Credit / Loan">Credit / Loan</option>
+                        <option value="Gas / Transport">Gas / Transport</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1083,7 +1116,7 @@
 
     <!-- APPLICATION JAVASCRIPT ARCHITECTURE -->
     <script>
-        // Component-Oriented UI Model Architecture (Mapping Java Architectural Blueprint)
+        // Component-Oriented UI Model Architecture
         class FlowPayUI {
             constructor() {
                 this.widgets = [];
@@ -1091,8 +1124,8 @@
             }
 
             initializeWidgets() {
-                this.widgets.push({ render: () => {} }); // DashboardHeader
-                this.widgets.push({ render: () => {} }); // AuthStatusBanner
+                this.widgets.push({ render: () => {} });
+                this.widgets.push({ render: () => {} });
             }
 
             render() {
@@ -1163,16 +1196,47 @@
         let isRegisterMode = false;
         let hidePaidBills = false;
         let selectedCalendarDate = null;
+        let activeEditingBillId = null;
 
-        const CATEGORY_ICONS = {
-            'Housing': 'fa-house text-indigo-500',
-            'Utilities': 'fa-bolt text-amber-500',
-            'Subscriptions': 'fa-wifi text-sky-500',
-            'Insurance': 'fa-shield-heart text-emerald-500',
-            'Credit / Loan': 'fa-credit-card text-rose-500',
-            'Gas / Transport': 'fa-gas-pump text-orange-500',
-            'Other': 'fa-tag text-slate-400'
+        const LUCIDE_ICON_CATEGORIES = {
+            'Housing': ['house', 'building', 'home', 'door-open', 'key', 'warehouse'],
+            'Utilities': ['zap', 'droplet', 'flame', 'lightbulb', 'thermometer', 'wind'],
+            'Transportation': ['car-front', 'bus', 'train', 'plane', 'bike', 'fuel', 'parking-square'],
+            'Finance': ['credit-card', 'wallet', 'piggy-bank', 'badge-dollar-sign', 'coins', 'receipt', 'landmark'],
+            'Shopping': ['shopping-cart', 'shopping-bag', 'tag', 'gift', 'store', 'package'],
+            'Food': ['utensils', 'coffee', 'pizza', 'apple', 'wine', 'beer'],
+            'Health': ['heart-pulse', 'pill', 'activity', 'stethoscope', 'cross', 'band-aid'],
+            'Pets': ['paw-print', 'dog', 'cat', 'bird', 'fish'],
+            'Entertainment': ['tv', 'gamepad-2', 'film', 'music', 'headphones', 'ticket'],
+            'Subscriptions': ['wifi', 'smartphone', 'globe', 'cloud', 'rss', 'monitor'],
+            'Education': ['graduation-cap', 'book-open', 'school', 'bookmark', 'pen-tool'],
+            'Personal': ['user', 'heart', 'smile', 'shirt', 'scissors'],
+            'Work': ['briefcase', 'laptop', 'folder', 'printer', 'calculator'],
+            'Travel': ['compass', 'map-pin', 'luggage', 'camera', 'sun'],
+            'Other': ['calendar', 'clock', 'bell', 'star', 'check', 'info', 'settings']
         };
+
+        function getDefaultBillIcon(bill) {
+            if (bill && bill.customIcon) return bill.customIcon;
+            const name = (bill && bill.name ? bill.name : '').toLowerCase();
+            const cat = (bill && bill.category ? bill.category : '').toLowerCase();
+            
+            if (name.includes('rent') || name.includes('mortgage') || cat.includes('housing')) return 'house';
+            if (name.includes('electric') || name.includes('power') || name.includes('electricity') || cat.includes('utilities')) return 'zap';
+            if (name.includes('water')) return 'droplet';
+            if (name.includes('gas') && !name.includes('car')) return 'flame';
+            if (name.includes('internet') || name.includes('wifi') || name.includes('broadband')) return 'wifi';
+            if (name.includes('phone') || name.includes('mobile') || name.includes('cell')) return 'smartphone';
+            if (name.includes('car') || name.includes('auto') || cat.includes('transport')) return 'car-front';
+            if (name.includes('insurance')) return 'shield-check';
+            if (name.includes('credit') || name.includes('card') || name.includes('loan') || cat.includes('credit')) return 'credit-card';
+            if (name.includes('grocery') || name.includes('groceries')) return 'shopping-cart';
+            if (name.includes('pet') || name.includes('vet')) return 'paw-print';
+            if (name.includes('netflix') || name.includes('spotify') || name.includes('stream') || name.includes('tv') || cat.includes('subscription')) return 'tv';
+            if (name.includes('health') || name.includes('doctor') || name.includes('medical')) return 'heart-pulse';
+            if (name.includes('school') || name.includes('tuition') || name.includes('education')) return 'graduation-cap';
+            return 'receipt';
+        }
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -1232,7 +1296,8 @@
                         frequency: ['weekly', 'monthly'].includes(b.frequency) ? b.frequency : 'monthly',
                         dueDate: String(b.dueDate || getLocalDateStr()),
                         repeatType: ['forever', 'until'].includes(b.repeatType) ? b.repeatType : 'forever',
-                        endDate: b.endDate ? String(b.endDate) : null
+                        endDate: b.endDate ? String(b.endDate) : null,
+                        customIcon: b.customIcon ? String(b.customIcon) : null
                     })) : [],
                     paychecks: Array.isArray(saved.paychecks) ? saved.paychecks.map(p => ({
                         id: Number(p.id) || Date.now(),
@@ -1396,7 +1461,6 @@
             });
         }
 
-        // Pointer-Event based smooth widget reordering with placeholder highlight box and snap-back animation
         function initDashboardWidgetReordering() {
             const container = document.getElementById('dashboard-container');
             if (!container) return;
@@ -1415,9 +1479,7 @@
 
                 let isDragging = false;
                 let startX, startY;
-                let originalIndex = 0;
                 let placeholder = null;
-                let clone = null;
                 let initialRect = null;
 
                 const onPointerDown = (e) => {
@@ -1427,17 +1489,11 @@
                     startY = e.clientY;
                     initialRect = widget.getBoundingClientRect();
 
-                    // Find original index
-                    const allWidgets = Array.from(container.querySelectorAll('[data-widget-id]'));
-                    originalIndex = allWidgets.indexOf(widget);
-
-                    // Create placeholder highlight box
                     placeholder = document.createElement('div');
                     placeholder.className = 'drop-placeholder';
                     placeholder.style.height = `${initialRect.height}px`;
                     container.insertBefore(placeholder, widget);
 
-                    // Style widget as transparent clone floating
                     widget.classList.add('dragging-widget');
                     widget.style.position = 'fixed';
                     widget.style.left = `${initialRect.left}px`;
@@ -1457,7 +1513,6 @@
                     widget.style.left = `${initialRect.left + dx}px`;
                     widget.style.top = `${initialRect.top + dy}px`;
 
-                    // Detect potential drop target positions among other widgets
                     const otherWidgets = Array.from(container.querySelectorAll('[data-widget-id]')).filter(w => w !== widget && w !== placeholder);
                     let inserted = false;
 
@@ -1486,7 +1541,6 @@
                     widget.style.width = '';
                     widget.style.margin = '';
 
-                    // Check if dropped inside container valid area, else smooth snap back
                     const containerRect = container.getBoundingClientRect();
                     const droppedInside = e.clientX >= containerRect.left - 50 && e.clientX <= containerRect.right + 50 &&
                                           e.clientY >= containerRect.top - 100 && e.clientY <= containerRect.bottom + 100;
@@ -1495,7 +1549,6 @@
                         container.insertBefore(widget, placeholder);
                         placeholder.remove();
                         
-                        // Update order state
                         const newOrder = [];
                         container.querySelectorAll('[data-widget-id]').forEach(w => {
                             newOrder.push(w.dataset.widgetId);
@@ -1504,7 +1557,6 @@
                         saveData();
                         showToast('Dashboard layout updated!');
                     } else {
-                        // Smooth snap back animation to original position
                         if (placeholder && placeholder.parentNode) {
                             placeholder.remove();
                         }
@@ -1523,7 +1575,6 @@
                 window.addEventListener('pointerup', onPointerUp);
             });
 
-            // Metrics grid reordering
             const metricsGrid = document.getElementById('metrics-grid');
             if (metricsGrid) {
                 if (Array.isArray(appState.metricOrder)) {
@@ -1873,14 +1924,14 @@
             document.querySelectorAll('.close-modal-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const modal = btn.closest('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings');
+                    const modal = btn.closest('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings, #modal-icon-picker');
                     if (modal) closeModal(modal.id);
                 });
             });
 
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    document.querySelectorAll('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings').forEach(modal => {
+                    document.querySelectorAll('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings, #modal-icon-picker').forEach(modal => {
                         if (!modal.classList.contains('hidden')) {
                             closeModal(modal.id);
                         }
@@ -1896,23 +1947,6 @@
                         endDateBox.classList.remove('hidden');
                     } else {
                         endDateBox.classList.add('hidden');
-                    }
-                });
-            }
-
-            const billNameInput = document.getElementById('bill-name');
-            const billCategorySelect = document.getElementById('bill-category');
-            if (billNameInput && billCategorySelect) {
-                billNameInput.addEventListener('input', () => {
-                    const val = billNameInput.value.toLowerCase();
-                    if (val.includes('insurance')) {
-                        billCategorySelect.value = 'Insurance';
-                    } else if (val.includes('credit card') || val.includes('loan')) {
-                        billCategorySelect.value = 'Credit / Loan';
-                    } else if (val.includes('internet') || val.includes('subscription')) {
-                        billCategorySelect.value = 'Subscriptions';
-                    } else if (val.includes('electric') || val.includes('electricity')) {
-                        billCategorySelect.value = 'Utilities';
                     }
                 });
             }
@@ -1977,6 +2011,122 @@
                     showToast('Please enter a valid paycheck amount greater than zero.', 'error');
                 }
             });
+        }
+
+        function initIconPickerHandlers() {
+            const searchInput = document.getElementById('icon-search-input');
+            const clearBtn = document.getElementById('clear-icon-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    const val = e.target.value;
+                    renderIconPickerGrid(val);
+                    if (val) {
+                        clearBtn.classList.remove('hidden');
+                    } else {
+                        clearBtn.classList.add('hidden');
+                    }
+                });
+            }
+            if (clearBtn) {
+                clearBtn.addEventListener('click', () => {
+                    if (searchInput) {
+                        searchInput.value = '';
+                        renderIconPickerGrid('');
+                        clearBtn.classList.add('hidden');
+                        searchInput.focus();
+                    }
+                });
+            }
+        }
+
+        function openIconPickerModal(billId) {
+            activeEditingBillId = billId;
+            renderIconPickerGrid('');
+            openModal('modal-icon-picker');
+            const searchInput = document.getElementById('icon-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            const clearBtn = document.getElementById('clear-icon-search');
+            if (clearBtn) clearBtn.classList.add('hidden');
+        }
+
+        function renderIconPickerGrid(filterQuery = '') {
+            const container = document.getElementById('icon-picker-categories');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const query = filterQuery.toLowerCase().trim();
+            const currentBill = appState.bills.find(b => b.id === activeEditingBillId);
+            const selectedIcon = getDefaultBillIcon(currentBill);
+
+            let totalMatches = 0;
+
+            Object.entries(LUCIDE_ICON_CATEGORIES).forEach(([categoryName, iconsList]) => {
+                const filteredIcons = iconsList.filter(icon => {
+                    if (!query) return true;
+                    return icon.toLowerCase().includes(query) || categoryName.toLowerCase().includes(query);
+                });
+
+                if (filteredIcons.length === 0) return;
+                totalMatches += filteredIcons.length;
+
+                const categoryDiv = document.createElement('div');
+                categoryDiv.className = 'space-y-1.5';
+
+                const title = document.createElement('h5');
+                title.className = 'text-[11px] font-bold uppercase tracking-wider text-slate-400';
+                title.textContent = categoryName;
+                categoryDiv.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid grid-cols-6 sm:grid-cols-8 gap-2';
+
+                filteredIcons.forEach(iconName => {
+                    const btn = document.createElement('button');
+                    const isSelected = iconName === selectedIcon;
+                    btn.type = 'button';
+                    btn.className = `p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition relative group border ${isSelected ? 'bg-indigo-500/25 border-indigo-500 text-indigo-600 dark:text-indigo-300 ring-2 ring-indigo-500/50' : 'bg-slate-100 dark:bg-slate-700/60 border-transparent hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200'}`;
+                    btn.title = iconName;
+                    btn.setAttribute('aria-label', `Select icon ${iconName}`);
+                    
+                    btn.innerHTML = `
+                        <i data-lucide="${iconName}" class="w-5 h-5"></i>
+                        <span class="text-[9px] truncate w-full text-center opacity-75">${iconName}</span>
+                    `;
+
+                    btn.addEventListener('click', () => {
+                        selectBillIcon(iconName);
+                    });
+
+                    grid.appendChild(btn);
+                });
+
+                categoryDiv.appendChild(grid);
+                container.appendChild(categoryDiv);
+            });
+
+            if (totalMatches === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic text-center py-8">No icons found matching "${query}".</p>`;
+            }
+
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
+        }
+
+        function selectBillIcon(iconName) {
+            if (!activeEditingBillId) return;
+            const bill = appState.bills.find(b => b.id === activeEditingBillId);
+            if (bill) {
+                bill.customIcon = iconName;
+                logActivity('Customized Bill Icon', `Changed icon for ${bill.name} to ${iconName}`, 'info');
+                saveData();
+                updateDashboard();
+                closeModal('modal-icon-picker');
+                showToast(`Bill icon updated to ${iconName}!`);
+            }
         }
 
         function calculatePaycheckPreview() {
@@ -2335,14 +2485,17 @@
                     const label = document.createElement('label');
                     label.className = 'flex items-center justify-between p-3 rounded-xl bg-slate-100 dark:bg-slate-700/60 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-700 transition';
                     
-                    const iconClass = CATEGORY_ICONS[b.category] || 'fa-tag text-slate-400';
+                    const iconName = getDefaultBillIcon(b);
 
                     label.innerHTML = `
                         <div class="flex items-center gap-3">
                             <input type="checkbox" aria-label="Include ${b.name}" class="next-month-bill-cb w-4 h-4 text-indigo-600 rounded" data-id="${b.id}" ${isChecked ? 'checked' : ''}>
-                            <div>
-                                <span class="font-bold text-slate-800 dark:text-slate-100 block"><i class="fa-solid ${iconClass} mr-1" aria-hidden="true"></i> ${b.name}</span>
-                                <span class="text-[10px] text-slate-500">Due: ${b.dueDate}</span>
+                            <div class="flex items-center gap-2">
+                                <span class="inline-flex items-center justify-center text-indigo-600 dark:text-indigo-400"><i data-lucide="${iconName}" class="w-4 h-4"></i></span>
+                                <div>
+                                    <span class="font-bold text-slate-800 dark:text-slate-100 block">${b.name}</span>
+                                    <span class="text-[10px] text-slate-500">Due: ${b.dueDate}</span>
+                                </div>
                             </div>
                         </div>
                         <span class="font-bold text-slate-800 dark:text-slate-100">${formatCurrency(b.amount)}</span>
@@ -2368,6 +2521,9 @@
             }
 
             openModal('modal-safe-spend');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
 
         function openActiveMonthBillsModal() {
@@ -2381,7 +2537,6 @@
             document.getElementById('modal-curr-bal-display').textContent = formatCurrency(appState.balance);
 
             const expandedBills = getExpandedBillsList();
-            // Automatically remove/filter out paid bills from the Active Month Bills section
             const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal) && !b.paid).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
             const listContainer = document.getElementById('month-bills-coverage-list');
@@ -2401,7 +2556,7 @@
                     const card = document.createElement('div');
                     card.className = `p-3.5 rounded-xl border flex items-center justify-between transition ${isCovered ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50'}`;
 
-                    const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
+                    const iconName = getDefaultBillIcon(bill);
 
                     let statusBadgeHTML = '';
                     if (isCovered) {
@@ -2412,8 +2567,8 @@
 
                     card.innerHTML = `
                         <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-sm shadow-sm">
-                                <i class="fa-solid ${iconClass}" aria-hidden="true"></i>
+                            <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shadow-sm">
+                                <i data-lucide="${iconName}" class="w-4 h-4"></i>
                             </div>
                             <div>
                                 <span class="font-bold text-slate-900 dark:text-white block text-sm">${bill.name}</span>
@@ -2431,6 +2586,9 @@
             }
 
             openModal('modal-active-month-bills');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
 
         function updateDashboard() {
@@ -2478,7 +2636,6 @@
             const billsMonthSelect = document.getElementById('bills-month-select');
             const selectedBillsMonth = billsMonthSelect ? billsMonthSelect.value : getLocalDateStr().slice(0, 7);
             
-            // Active Month Bills total excludes paid bills (they are removed from active section)
             const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedBillsMonth) && !b.paid);
             const monthBillsTotal = monthBills.reduce((acc, b) => acc + b.amount, 0);
             document.getElementById('display-bills-total').textContent = formatCurrency(monthBillsTotal);
@@ -2538,8 +2695,30 @@
 
                 const nameTd = document.createElement('td');
                 nameTd.className = 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2';
-                const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
-                nameTd.innerHTML = `<i class="fa-solid ${iconClass}" aria-hidden="true"></i> <span>${bill.name}</span>`;
+                
+                const iconName = getDefaultBillIcon(bill);
+
+                const iconWrapper = document.createElement('span');
+                iconWrapper.className = 'inline-flex items-center justify-center w-4 h-4 text-indigo-600 dark:text-indigo-400 flex-shrink-0';
+                iconWrapper.innerHTML = `<i data-lucide="${iconName}" class="w-4 h-4"></i>`;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = bill.name;
+
+                const editIconButton = document.createElement('button');
+                editIconButton.type = 'button';
+                editIconButton.className = 'ml-1 p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-300 transition text-[11px]';
+                editIconButton.title = 'Customize bill icon';
+                editIconButton.setAttribute('aria-label', `Customize bill icon for ${bill.name}`);
+                editIconButton.innerHTML = `<i data-lucide="pencil" class="w-3.5 h-3.5"></i>`;
+                editIconButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    openIconPickerModal(bill.id);
+                });
+
+                nameTd.appendChild(iconWrapper);
+                nameTd.appendChild(nameSpan);
+                nameTd.appendChild(editIconButton);
                 tr.appendChild(nameTd);
                 
                 const catTd = document.createElement('td');
@@ -2566,6 +2745,7 @@
                 actionsTd.className = 'py-3 text-right pr-2 space-x-2';
 
                 const editBtn = document.createElement('button');
+                editBtn.type = 'button';
                 editBtn.className = 'text-indigo-600 hover:text-indigo-800 font-medium';
                 editBtn.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i>';
                 editBtn.setAttribute('aria-label', `Edit bill ${bill.name}`);
@@ -2573,6 +2753,7 @@
                 actionsTd.appendChild(editBtn);
 
                 const payBtn = document.createElement('button');
+                payBtn.type = 'button';
                 payBtn.className = 'text-indigo-600 hover:text-indigo-800 font-medium text-xs';
                 payBtn.textContent = bill.paid ? 'Unpaid' : 'Pay';
                 payBtn.setAttribute('aria-label', `${bill.paid ? 'Mark unpaid' : 'Mark paid'} bill ${bill.name}`);
@@ -2580,6 +2761,7 @@
                 actionsTd.appendChild(payBtn);
 
                 const delBtn = document.createElement('button');
+                delBtn.type = 'button';
                 delBtn.className = 'text-rose-500 hover:text-rose-700';
                 delBtn.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
                 delBtn.setAttribute('aria-label', `Delete bill ${bill.name}`);
@@ -2589,6 +2771,10 @@
                 tr.appendChild(actionsTd);
                 tbody.appendChild(tr);
             });
+
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
 
         function renderPaychecksLogTable() {
@@ -2625,6 +2811,7 @@
                 actionsTd.className = 'py-3 text-right pr-2 space-x-2';
 
                 const editBtn = document.createElement('button');
+                editBtn.type = 'button';
                 editBtn.className = 'text-indigo-600 hover:text-indigo-800';
                 editBtn.innerHTML = '<i class="fa-solid fa-pen" aria-hidden="true"></i>';
                 editBtn.setAttribute('aria-label', `Edit paycheck ${p.name}`);
@@ -2632,6 +2819,7 @@
                 actionsTd.appendChild(editBtn);
 
                 const delBtn = document.createElement('button');
+                delBtn.type = 'button';
                 delBtn.className = 'text-rose-500 hover:text-rose-700';
                 delBtn.innerHTML = '<i class="fa-solid fa-trash" aria-hidden="true"></i>';
                 delBtn.setAttribute('aria-label', `Delete paycheck ${p.name}`);
@@ -2678,6 +2866,7 @@
 
                 if (act.undone && act.redoSnapshot) {
                     const redoBtn = document.createElement('button');
+                    redoBtn.type = 'button';
                     redoBtn.className = 'px-2 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 font-semibold transition';
                     redoBtn.textContent = 'Redo';
                     redoBtn.setAttribute('aria-label', `Redo action ${act.title}`);
@@ -2685,6 +2874,7 @@
                     rightBox.appendChild(redoBtn);
                 } else if (!act.undone && act.stateSnapshot) {
                     const undoBtn = document.createElement('button');
+                    undoBtn.type = 'button';
                     undoBtn.className = 'px-2 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 font-semibold transition';
                     undoBtn.textContent = 'Undo';
                     undoBtn.setAttribute('aria-label', `Undo action ${act.title}`);
@@ -2716,10 +2906,16 @@
                 dayProj.bills.forEach(b => {
                     const card = document.createElement('div');
                     card.className = `p-3 rounded-xl border flex justify-between items-center ${b.paid ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-400 line-through' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 text-rose-700 dark:text-rose-300'}`;
+                    
+                    const iconName = getDefaultBillIcon(b);
+
                     card.innerHTML = `
-                        <div>
-                            <span class="font-bold text-sm block">${b.name}</span>
-                            <span class="text-[10px] uppercase font-semibold opacity-75">${b.category || 'Bill'} • ${b.paid ? 'Paid' : 'Pending'}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center text-rose-600 dark:text-rose-400"><i data-lucide="${iconName}" class="w-4 h-4"></i></span>
+                            <div>
+                                <span class="font-bold text-sm block">${b.name}</span>
+                                <span class="text-[10px] uppercase font-semibold opacity-75">${b.category || 'Bill'} • ${b.paid ? 'Paid' : 'Pending'}</span>
+                            </div>
                         </div>
                         <span class="font-extrabold text-sm">-${formatCurrency(b.amount)}</span>
                     `;
@@ -2730,9 +2926,12 @@
                     const card = document.createElement('div');
                     card.className = 'p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 text-emerald-700 dark:text-emerald-300 flex justify-between items-center';
                     card.innerHTML = `
-                        <div>
-                            <span class="font-bold text-sm block">${p.name}</span>
-                            <span class="text-[10px] uppercase font-semibold opacity-75">Paycheck / Deposit</span>
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center justify-center text-emerald-600 dark:text-emerald-400"><i data-lucide="badge-dollar-sign" class="w-4 h-4"></i></span>
+                            <div>
+                                <span class="font-bold text-sm block">${p.name}</span>
+                                <span class="text-[10px] uppercase font-semibold opacity-75">Paycheck / Deposit</span>
+                            </div>
                         </div>
                         <span class="font-extrabold text-sm">+${formatCurrency(p.amount)}</span>
                     `;
@@ -2741,6 +2940,9 @@
             }
 
             openModal('modal-expanded-date');
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
 
         function renderFinancialCalendar() {
@@ -2890,6 +3092,7 @@
                     infoDiv.appendChild(amtP);
 
                     const delBtn = document.createElement('button');
+                    delBtn.type = 'button';
                     delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5';
                     delBtn.setAttribute('aria-label', `Delete paycheck ${p.name}`);
                     delBtn.innerHTML = '<i class="fa-solid fa-trash text-[8px]" aria-hidden="true"></i>';
@@ -2913,6 +3116,10 @@
                 cell.appendChild(itemsContainer);
                 grid.appendChild(cell);
             });
+
+            if (window.lucide && typeof window.lucide.createIcons === 'function') {
+                window.lucide.createIcons();
+            }
         }
 
         function renderChart() {
@@ -3155,7 +3362,8 @@
                         frequency,
                         dueDate,
                         repeatType,
-                        endDate
+                        endDate,
+                        customIcon: null
                     });
                 }
 
@@ -3238,6 +3446,7 @@
             initDraggableModals();
             initDashboardWidgetReordering();
             initMonthSelectors();
+            initIconPickerHandlers();
             applyTheme();
             calculatePaycheckPreview();
 
