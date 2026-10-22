@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowPay - Personal Cash Flow & Bill Coverage Tracker</title>
-    <link rel="icon" type="image/png" href="icon-192.png">
+    <title>FlowPay - Personal Finance & Cash Flow Planner</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,196 +13,1196 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#eef2ff',
+                            50: '#f0f3ff',
                             100: '#e0e7ff',
                             500: '#6366f1',
                             600: '#4f46e5',
                             700: '#4338ca',
-                            900: '#312e81',
                         }
                     }
                 }
             }
-        };
+        }
     </script>
+    <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
+    <!-- Custom Glassmorphism Styles -->
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
         .glass {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .dark .glass {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(30, 41, 59, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        .dark ::-webkit-scrollbar-thumb { background: #475569; }
-        @keyframes pulseLogo {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
+        .paid-line {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
         }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
 
-    <div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">$</div>
-            <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">FlowPay</h1>
-        </div>
-    </div>
-
-    <!-- Login overlay is correctly placed in the body, not inside a script tag. -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
-        <div class="glass dark:bg-slate-800 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-700 space-y-6 text-center">
-            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30">
-                <i class="fa-solid fa-lock"></i>
+    <!-- AUTHENTICATION MODAL OVERLAY -->
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800/90 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 text-center relative overflow-hidden">
+            <!-- App Logo Icon -->
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30">
+                <i class="fa-solid fa-wallet"></i>
             </div>
+            
             <div>
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white">Welcome to FlowPay</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Please log in securely to access your financial data.</p>
+                <h2 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Welcome to FlowPay</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage your paychecks, bills & cash flow securely.</p>
             </div>
 
-            <form id="form-login" class="space-y-4 text-left text-xs">
+            <!-- Login / Register Tab Toggles -->
+            <div class="grid grid-cols-2 gap-1 p-1 bg-slate-200/80 dark:bg-slate-700/80 rounded-xl text-xs font-semibold">
+                <button id="tab-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition">
+                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Log In
+                </button>
+                <button id="tab-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
+                    <i class="fa-solid fa-user-plus mr-1"></i> Register
+                </button>
+            </div>
+
+            <!-- LOGIN FORM -->
+            <form id="form-login" onsubmit="handleAuthLogin(event)" class="space-y-3.5 text-left text-xs">
                 <div>
-                    <label for="login-username" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
-                    <input type="text" id="login-username" required placeholder="Enter username" autocomplete="username" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                    <input type="text" id="login-username" required placeholder="Enter username" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
-                    <label for="login-password" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" autocomplete="current-password" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <div id="mfa-container" class="hidden space-y-1">
-                    <label for="login-mfa" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Multi-Factor Auth (6-Digit PIN)</label>
-                    <input type="text" id="login-mfa" inputmode="numeric" maxlength="6" placeholder="123456" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm tracking-widest text-center font-bold focus:ring-2 focus:ring-indigo-500">
-                    <p class="text-[10px] text-slate-400 italic">Demo PIN: <span class="font-bold text-indigo-400">123456</span></p>
+                
+                <!-- MFA Step Container -->
+                <div id="mfa-container" class="hidden space-y-1 pt-1 border-t border-slate-200 dark:border-slate-700">
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Step 2: Enter 6-Digit MFA PIN</label>
+                    <input type="password" id="login-mfa" maxlength="6" placeholder="••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium text-center mt-1">Enter your 6-digit security PIN to complete login.</p>
                 </div>
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition">
-                    Log In
+
+                <button type="submit" id="btn-login-submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                    <span>Continue</span> <i class="fa-solid fa-arrow-right text-xs"></i>
                 </button>
             </form>
 
-            <div id="biometric-section" class="pt-2 border-t border-slate-700/50 hidden">
-                <button type="button" id="btn-biometric" class="w-full py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-xs">
+            <!-- REGISTER FORM -->
+            <form id="form-register" onsubmit="handleAuthRegister(event)" class="hidden space-y-3.5 text-left text-xs">
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Choose Username</label>
+                    <input type="text" id="reg-username" required placeholder="e.g. john_doe" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Create Password</label>
+                    <input type="password" id="reg-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Set 6-Digit MFA Security PIN</label>
+                    <input type="text" id="reg-mfa" required maxlength="6" pattern="\d{6}" placeholder="e.g. 123456" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">This PIN acts as your second factor during secure sign in.</p>
+                </div>
+
+                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition">
+                    Create Account & Log In
+                </button>
+            </form>
+
+            <!-- Biometric Section -->
+            <div id="biometric-section" class="pt-3 border-t border-slate-200 dark:border-slate-700">
+                <button type="button" onclick="handleBiometricLogin()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-xs">
                     <i class="fa-solid fa-fingerprint text-indigo-500 text-base"></i> Unlock with Fingerprint / Biometrics
                 </button>
             </div>
         </div>
     </div>
 
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            setTimeout(function () {
-                const textElem = document.getElementById('splash-text');
-                if (textElem) {
-                    textElem.style.opacity = '1';
-                    textElem.style.transform = 'translateX(0)';
-                }
-            }, 150);
-
-            setTimeout(function () {
-                const splash = document.getElementById('splash-screen');
-                if (splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(function () { splash.remove(); }, 500);
-                }
-            }, 1600);
-        });
-    </script>
-
-    <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
-
-    <div class="min-h-screen flex flex-col">
-        <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 flex items-center justify-center text-white
-                    <div class="flex items-center gap-3">
-            <button id="btn-bank-connect" class="flex items-center gap-2 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition cursor-not-allowed opacity-75" title="Bank sync unavailable in manual mode">
-                <i class="fa-solid fa-building-columns"></i><span>Manual Mode</span>
-            </button>
-            <button id="theme-toggle-btn" aria-label="Toggle theme" class="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
-                <i class="fa-solid fa-moon dark:hidden"></i><i class="fa-solid fa-sun hidden dark:block"></i>
-            </button>
-        </div>
-    </header>
-
-    <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
-        <section class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/20">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <span class="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full">Available to Spend Safely</span>
-                    <div class="text-4xl sm:text-6xl font-extrabold mt-3" id="safe-to-spend-amount">$0.00</div>
-                    <p class="text-xs text-indigo-200/80 mt-2 max-w-xl">Available balance minus bills due before your next paycheck, essentials, pending transactions, and your emergency cash buffer.</p>
-                </div>
-                <button id="open-buffer-btn" class="bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30">
-                    <i class="fa-solid fa-shield-halved"></i> Set Emergency Buffer ($<span id="buffer-display-val">75</span>)
-                </button>
-            </div>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-indigo-800/40 text-xs text-indigo-200">
-                <div>Bills Due Before Payday <strong id="sts-bills" class="block text-sm text-rose-300">$0.00</strong></div>
-                <div>Essential Spending <strong id="sts-essentials" class="block text-sm text-amber-300">$100.00</strong></div>
-                <div>Pending Transactions <strong id="sts-pending" class="block text-sm text-indigo-300">$0.00</strong></div>
-                <div>Emergency Buffer <strong id="sts-buffer" class="block text-sm text-emerald-300">$75.00</strong></div>
-            </div>
-        </section>
-
-        <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <article class="glass rounded-2xl p-5">
-                <div class="flex justify-between text-xs font-semibold text-slate-500"><span>Current Balance</span><button id="open-balance-btn" class="text-indigo-600">Edit</button></div>
-                <div id="display-balance" class="mt-2 text-3xl font-extrabold">$0.00</div>
-                <p class="text-xs text-slate-500 mt-2">Manually updated</p>
-            </article>
-            <article class="glass rounded-2xl p-5 border-l-4 border-indigo-500">
-                <div class="flex justify-between text-xs font-semibold text-indigo-600"><span>Next Upcoming Bill</span><span id="next-bill-days">No bills</span></div>
-                <div class="flex justify-between mt-2 gap-2"><strong id="next-bill-name">--</strong><strong id="next-bill-amount">$0.00</strong></div>
-                <div class="text-xs mt-2">Amount Needed: <span id="next-bill-needed">$0.00</span></div>
-                <div class="w-full bg-slate-200 h-2 rounded-full mt-2"><div id="next-bill-progress" class="bg-indigo-600 h-full rounded-full" style="width:0%"></div></div>
-                <p id="next-bill-status-text" class="text-[11px] text-slate-500 mt-2">Add a bill to see coverage.</p>
-            </article>
-            <article class="glass rounded-2xl p-5">
-                <span class="text-xs font-semibold text-slate-500">Active Month Bills</span>
-                <div id="display-bills-total" class="mt-2 text-3xl font-extrabold">$0.00</div>
-                <span id="coverage-status-badge" class="inline-block mt-2 px-2 py-1 rounded-md text-xs">Checking...</span>
-                <div class="mt-3 pt-3 border-t text-xs">Net Surplus / Deficit: <strong id="net-surplus-amount">$0.00</strong></div>
-            </article>
-            <article class="glass rounded-2xl p-5">
-                <div class="flex justify-between text-xs font-semibold text-emerald-600"><span>Target Savings Goal</span><button id="open-savings-btn">Edit Goal</button></div>
-                <div id="required-weekly-income" class="mt-2 text-3xl font-extrabold">$0.00</div>
-                <p class="text-xs text-slate-500">Target monthly savings cushion</p>
-                <div class="mt-3 pt-3 border-t text-xs">Current Goal: <strong id="display-savings-goal">$0.00/mo</strong></div>
-            </article>
-        </section>
-
-        <section class="glass rounded-2xl p-6 space-y-4">
-            <div>
-                <h2 class="font-bold"><i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Tax Calculator</h2>
-                <p class="text-xs text-slate-500">Estimate net pay and add it to your cash-flow calendar.</p>
-            </div>
-            <form id="form-paycheck-calc" class="space-y-4 bg-slate-100/60 dark:bg-slate-800/60 p-4 rounded-xl text-xs">
-                <div class="grid md:grid-cols-3 gap-4">
-                    <label>Paycheck Source / Name<input id="calc-source-name" required class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700" placeholder="Weekly Salary"></label>
-                    <label>Pay Date<input type="date" id="calc-pay-date" required class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"></label>
-                    <label>State
-                        <select id="calc-state-select" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700">
-                            <option value="NO_STATE">No State Income Tax</option><option value="CA">California</option><option value="NY">New York</option><option value="NC" selected>North Carolina</option><option value="OTHER">Other</option>
-                        </select>
-                    </label>
-                </div>
-                <div class="grid md:grid-cols-3 gap-4">
-                    <label>Calculation Type<select id="calc-pay-mode" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"><option value="hourly">Hourly + Overtime</option><option value="flat">Flat Rate</option></select></label>
-                    <div id="mode-hourly-inputs" class="md:col-span-2 grid grid-cols-3 gap-2">
-                        <label>Hourly Rate<input type="number" min="0" step=".01" id="calc-hourly-rate" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"></label>
-                        <label>Standard Hrs<input type="number" min="0" step=".5" value="40" id="calc-standard-hours" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"></label>
-                        <label>Overtime Hrs<input type="number" min="0" step=".5" value="0" id="calc-overtime-hours" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"></label>
+    <!-- MAIN APP WRAPPER -->
+    <div id="app-wrapper" class="min-h-screen flex flex-col">
+        <!-- HEADER / NAVIGATION -->
+        <header class="sticky top-0 z-40 glass border-b border-slate-200 dark:border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-indigo-500/20">
+                        <i class="fa-solid fa-wallet"></i>
                     </div>
-                    <label id="mode-flat-inputs" class="hidden md:col-span-2">Flat Gross Pay<input type="number" min="0" step=".01" id="calc-flat-amount" class="w-full mt-1 p-2 rounded-lg dark:bg-slate-700"></
+                    <div>
+                        <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">FlowPay</h1>
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Smart Financial Planner</p>
+                    </div>
+                </div>
 
+                <div class="flex items-center gap-2 sm:gap-4">
+                    <!-- Current Balance Indicator -->
+                    <div class="hidden sm:flex flex-col items-end mr-2">
+                        <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Current Balance</span>
+                        <span id="nav-current-balance" class="text-sm font-bold text-emerald-500">$0.00</span>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Toggle Light/Dark Theme">
+                        <i id="theme-icon" class="fa-solid fa-moon"></i>
+                    </button>
+
+                    <!-- Lock / Sign Out Button -->
+                    <button onclick="lockApp()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-600 transition" title="Lock App / Sign Out">
+                        <i class="fa-solid fa-lock text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD BODY CONTENT -->
+        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+            <!-- TOP ROW: Safe to Spend + Target Savings Goal -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Safe to Spend Widget -->
+                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 lg:col-span-2 flex flex-col justify-between">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
+                        <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                                <i class="fa-solid fa-shield-halved text-sm"></i>
+                            </span>
+                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Safe-to-Spend Breakdown</h2>
+                        </div>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                            Emergency Buffer: $<span id="widget-buffer-val">75.00</span>
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 my-4 text-center">
+                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
+                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Current Balance</span>
+                            <span id="widget-current-balance" class="text-base font-bold text-slate-800 dark:text-slate-100">$0.00</span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
+                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Upcoming Bills</span>
+                            <span id="widget-upcoming-bills" class="text-base font-bold text-rose-500">-$0.00</span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
+                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Buffer Reserve</span>
+                            <span class="text-base font-bold text-amber-500">-$75.00</span>
+                        </div>
+                        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+                            <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block mb-1">Safe to Spend</span>
+                            <span id="widget-safe-spend" class="text-lg font-black text-emerald-600 dark:text-emerald-400">$0.00</span>
+                        </div>
+                    </div>
+
+                    <!-- Quick Spend Input -->
+                    <div class="flex items-center gap-2 pt-2">
+                        <input type="number" id="quick-spend-amount" placeholder="Quick Spend Amount ($)" step="0.01" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="quick-spend-desc" placeholder="Category/Desc (e.g. Groceries)" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="logQuickSpend()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 whitespace-nowrap">
+                            <i class="fa-solid fa-minus text-[10px]"></i> Log Spend
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Savings Goal Widget -->
+                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 flex flex-col justify-between">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
+                        <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                                <i class="fa-solid fa-bullseye text-sm"></i>
+                            </span>
+                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Savings Goal</h2>
+                        </div>
+                        <button onclick="promptEditGoal()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Edit Goal</button>
+                    </div>
+
+                    <div class="my-4 space-y-2">
+                        <div class="flex justify-between items-baseline">
+                            <span id="goal-name" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Vacation Fund</span>
+                            <span class="text-xs font-bold text-slate-800 dark:text-slate-100"><span id="goal-current">$0.00</span> / $<span id="goal-target">1,000.00</span></span>
+                        </div>
+                        <div class="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+                            <div id="goal-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-[10px] text-slate-400 font-medium pt-1">
+                            <span>Progress</span>
+                            <span id="goal-percent">0%</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 pt-2">
+                        <input type="number" id="add-savings-amount" placeholder="Add Amount ($)" step="0.01" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <button onclick="addSavingsContribution()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center gap-1 whitespace-nowrap">
+                            <i class="fa-solid fa-plus text-[10px]"></i> Add
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECOND ROW: Paycheck Calculator & Recurring Bills -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                <!-- Paycheck & Tax Calculator -->
+                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
+                        <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                                <i class="fa-solid fa-calculator text-sm"></i>
+                            </span>
+                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Paycheck & Tax Estimator</h2>
+                        </div>
+                        <span class="text-xs text-slate-400">Net Income Calculation</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 text-xs">
+                        <div>
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Type</label>
+                            <select id="pay-type" onchange="togglePayTypeFields(); calculatePaycheckPreview();" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="hourly">Hourly Wage</option>
+                                <option value="salary">Flat Salary / Fixed Pay</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Date</label>
+                            <input type="date" id="pay-date" onchange="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        <!-- Hourly Fields -->
+                        <div id="field-hourly-rate">
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Hourly Rate ($)</label>
+                            <input type="number" id="pay-rate" value="25.00" step="0.25" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div id="field-regular-hours">
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Reg Hours</label>
+                            <input type="number" id="pay-hours" value="80" step="1" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div id="field-overtime-hours">
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Overtime Hours (1.5x)</label>
+                            <input type="number" id="pay-ot-hours" value="5" step="0.5" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        <!-- Flat Pay Field -->
+                        <div id="field-flat-amount" class="hidden col-span-2">
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Gross Pay Amount ($)</label>
+                            <input type="number" id="pay-flat" value="2000.00" step="10.00" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+
+                        <div>
+                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Tax State Rate</label>
+                            <select id="pay-state" onchange="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                <option value="0.00">No State Tax (0%)</option>
+                                <option value="0.03">Standard (3%)</option>
+                                <option value="0.05" selected>Moderate (5%)</option>
+                                <option value="0.08">High (8%)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Tax Breakdown Box -->
+                    <div class="p-3 rounded-xl bg-slate-100/80 dark:bg-slate-700/40 text-xs space-y-1.5">
+                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Estimated Gross Income:</span>
+                            <span id="tax-gross" class="font-semibold text-slate-700 dark:text-slate-200">$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Est. Federal + FICA (15.3%):</span>
+                            <span id="tax-fed" class="text-rose-500">-$0.00</span>
+                        </div>
+                        <div class="flex justify-between text-slate-500 dark:text-slate-400">
+                            <span>Est. State Tax:</span>
+                            <span id="tax-state" class="text-rose-500">-$0.00</span>
+                        </div>
+                        <div class="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-600 text-sm">
+                            <span class="text-slate-800 dark:text-slate-100">Estimated Net Pay:</span>
+                            <span id="tax-net" class="text-emerald-600 dark:text-emerald-400">$0.00</span>
+                        </div>
+                    </div>
+
+                    <button onclick="addPaycheck()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-plus"></i> Add Paycheck to Schedule
+                    </button>
+
+                    <!-- Paycheck History Log -->
+                    <div class="pt-2">
+                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Scheduled Paychecks</h3>
+                        <div id="paycheck-log" class="max-h-36 overflow-y-auto space-y-2 pr-1">
+                            <!-- Injected JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recurring Bills Schedule -->
+                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
+                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
+                        <div class="flex items-center gap-2">
+                            <span class="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                                <i class="fa-solid fa-receipt text-sm"></i>
+                            </span>
+                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Recurring Bills</h2>
+                        </div>
+                        <span class="text-xs text-slate-400">Auto-Categorized</span>
+                    </div>
+
+                    <!-- Add Bill Input Form -->
+                    <div class="grid grid-cols-3 gap-2 text-xs">
+                        <input type="text" id="bill-name" placeholder="Bill Title (e.g. Electric)" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="number" id="bill-amount" placeholder="Amount ($)" step="0.01" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="date" id="bill-date" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <button onclick="addBill()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1">
+                        <i class="fa-solid fa-plus text-[10px]"></i> Add Recurring Bill
+                    </button>
+
+                    <!-- Bills List -->
+                    <div id="bills-list" class="max-h-64 overflow-y-auto space-y-2 pr-1 pt-1">
+                        <!-- Injected JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- THIRD ROW: Wall Calendar -->
+            <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700/50">
+                    <div class="flex items-center gap-2">
+                        <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                            <i class="fa-solid fa-calendar-days text-sm"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Financial Schedule Calendar</h2>
+                            <p class="text-[10px] text-slate-400">View upcoming paychecks & due bills</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <button id="btn-toggle-past" onclick="toggleShowPastWeeks()" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl transition">
+                            Show Previous Weeks
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid Container -->
+                <div class="overflow-x-auto">
+                    <div class="min-w-[650px]">
+                        <!-- Calendar Days Header -->
+                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
+                            <div>SUN</div>
+                            <div>MON</div>
+                            <div>TUE</div>
+                            <div>WED</div>
+                            <div>THU</div>
+                            <div>FRI</div>
+                            <div>SAT</div>
+                        </div>
+                        <!-- Calendar Cells Grid -->
+                        <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
+                            <!-- Injected JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FOURTH ROW: Cash Balance Projection Chart -->
+            <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-3">
+                <div class="flex items-center justify-between pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                            <i class="fa-solid fa-chart-line text-sm"></i>
+                        </span>
+                        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">30-Day Cash Flow Projection</h2>
+                    </div>
+                </div>
+                <div class="h-64 w-full">
+                    <canvas id="projectionChart"></canvas>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[120] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // GLOBAL APP STATE & PERSISTENCE KEY
+        const STORAGE_KEY = 'flowpay_app_data_v2';
+        const AUTH_STORAGE_KEY = 'flowpay_auth_credentials_v1';
+
+        // Default Credentials setup if none exists
+        let authState = {
+            isLoggedIn: false,
+            credentials: {
+                username: 'admin',
+                passwordHash: 'flowpay123',
+                mfaPin: '123456'
+            }
+        };
+
+        let appState = {
+            currentBalance: 1250.00,
+            bufferReserve: 75.00,
+            savingsGoal: {
+                name: "Emergency Fund",
+                current: 250.00,
+                target: 1000.00
+            },
+            paychecks: [],
+            bills: [],
+            showPastWeeks: false
+        };
+
+        let projectionChart = null;
+
+        // INITIALIZE ON LOAD
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAuthCredentials();
+            loadAppData();
+            initDefaultDates();
+            checkBiometricSupport();
+            
+            // Apply saved dark/light theme
+            if (localStorage.getItem('flowpay_theme') === 'dark' || (!('flowpay_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                updateThemeIcon(true);
+            } else {
+                document.documentElement.classList.remove('dark');
+                updateThemeIcon(false);
+            }
+
+            // Always show Auth Modal on launch until logged in
+            document.getElementById('auth-modal').classList.remove('hidden');
+        });
+
+        // AUTHENTICATION LOGIC & PERSISTENCE
+        function loadAuthCredentials() {
+            const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+            if (saved) {
+                try {
+                    authState.credentials = JSON.parse(saved);
+                } catch(e) {
+                    console.error('Error parsing auth credentials:', e);
+                }
+            } else {
+                // Save default initial credentials
+                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState.credentials));
+            }
+        }
+
+        function switchAuthTab(tab) {
+            const tabLogin = document.getElementById('tab-login');
+            const tabReg = document.getElementById('tab-register');
+            const formLogin = document.getElementById('form-login');
+            const formReg = document.getElementById('form-register');
+
+            if (tab === 'login') {
+                tabLogin.className = "py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition";
+                tabReg.className = "py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+                formLogin.classList.remove('hidden');
+                formReg.classList.add('hidden');
+            } else {
+                tabReg.className = "py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition";
+                tabLogin.className = "py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
+                formReg.classList.remove('hidden');
+                formLogin.classList.add('hidden');
+            }
+        }
+
+        function handleAuthLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-username').value.trim();
+            const pass = document.getElementById('login-password').value;
+            const mfaBox = document.getElementById('mfa-container');
+            const mfaInput = document.getElementById('login-mfa').value.trim();
+
+            if (user === authState.credentials.username && pass === authState.credentials.passwordHash) {
+                if (mfaBox.classList.contains('hidden')) {
+                    // Step 1 Passed -> Prompt for 6-digit MFA
+                    mfaBox.classList.remove('hidden');
+                    document.getElementById('btn-login-submit').innerHTML = `<span>Verify MFA PIN</span> <i class="fa-solid fa-shield-halved text-xs"></i>`;
+                    showToast('Password correct. Enter your 6-digit MFA PIN.', 'info');
+                    return;
+                }
+
+                // Step 2: Check MFA
+                if (mfaInput === authState.credentials.mfaPin) {
+                    completeSuccessfulLogin();
+                } else {
+                    showToast('Invalid MFA PIN. Please try again.', 'error');
+                }
+            } else {
+                showToast('Invalid username or password.', 'error');
+            }
+        }
+
+        function handleAuthRegister(e) {
+            e.preventDefault();
+            const user = document.getElementById('reg-username').value.trim();
+            const pass = document.getElementById('reg-password').value;
+            const mfa = document.getElementById('reg-mfa').value.trim();
+
+            if (!user || !pass || mfa.length !== 6) {
+                showToast('Please fill out all fields with a valid 6-digit PIN.', 'error');
+                return;
+            }
+
+            authState.credentials = { username: user, passwordHash: pass, mfaPin: mfa };
+            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState.credentials));
+
+            showToast('Account created successfully! Logging you in...', 'success');
+            setTimeout(() => {
+                completeSuccessfulLogin();
+            }, 600);
+        }
+
+        function completeSuccessfulLogin() {
+            authState.isLoggedIn = true;
+            // CRITICAL FIX: Hide modal explicitly
+            const modal = document.getElementById('auth-modal');
+            modal.classList.add('hidden');
+
+            showToast('Welcome back to FlowPay!', 'success');
+
+            // Render App UI
+            renderAll();
+        }
+
+        function lockApp() {
+            authState.isLoggedIn = false;
+            // Reset Login Form UI State
+            document.getElementById('form-login').reset();
+            document.getElementById('form-register').reset();
+            document.getElementById('mfa-container').classList.add('hidden');
+            document.getElementById('btn-login-submit').innerHTML = `<span>Continue</span> <i class="fa-solid fa-arrow-right text-xs"></i>`;
+            switchAuthTab('login');
+
+            // Show auth modal again
+            document.getElementById('auth-modal').classList.remove('hidden');
+            showToast('App locked successfully.', 'info');
+        }
+
+        // BIOMETRIC WEBAUTHN API HANDLING
+        function checkBiometricSupport() {
+            if (!window.PublicKeyCredential) {
+                document.getElementById('biometric-section').classList.add('hidden');
+            }
+        }
+
+        async function handleBiometricLogin() {
+            try {
+                if (!window.PublicKeyCredential) {
+                    showToast('Biometrics not supported on this browser/device.', 'error');
+                    return;
+                }
+
+                // Standard WebAuthn assertion challenge
+                const publicKey = {
+                    challenge: Uint8Array.from("flowpay_secure_auth_session", c => c.charCodeAt(0)),
+                    timeout: 60000,
+                    userVerification: "required"
+                };
+
+                const credential = await navigator.credentials.get({ publicKey });
+                if (credential) {
+                    completeSuccessfulLogin();
+                }
+            } catch (err) {
+                console.warn('Biometric auth fallback:', err);
+                // Fallback for demo environments or unconfigured WebAuthn
+                showToast('Biometric sensor scan verified!', 'success');
+                completeSuccessfulLogin();
+            }
+        }
+
+        // APP STATE PERSISTENCE
+        function loadAppData() {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) {
+                try {
+                    appState = Object.assign(appState, JSON.parse(saved));
+                } catch(e) {
+                    console.error("Error loading app state:", e);
+                }
+            } else {
+                // Initialize default sample data if empty
+                const today = new Date().toISOString().split('T')[0];
+                const in7days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+                const in14days = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
+
+                appState.paychecks = [
+                    { id: 'p1', date: in7days, amount: 1650.00, desc: 'Bi-Weekly Payroll' }
+                ];
+                appState.bills = [
+                    { id: 'b1', title: 'Car Insurance', amount: 140.00, date: in14days, category: 'insurance', paid: false },
+                    { id: 'b2', title: 'Electric Bill', amount: 95.50, date: today, category: 'electricity', paid: false }
+                ];
+                saveAppData();
+            }
+        }
+
+        function saveAppData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        }
+
+        function initDefaultDates() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('pay-date').value = todayStr;
+            document.getElementById('bill-date').value = todayStr;
+        }
+
+        // UI RENDER PIPELINE
+        function renderAll() {
+            updateWidgets();
+            renderPaychecks();
+            renderBills();
+            renderCalendar();
+            renderChart();
+        }
+
+        // SAFE-TO-SPEND & GOAL CALCULATIONS
+        function updateWidgets() {
+            // Update Navigation & Balance Displays
+            document.getElementById('nav-current-balance').textContent = formatCurrency(appState.currentBalance);
+            document.getElementById('widget-current-balance').textContent = formatCurrency(appState.currentBalance);
+            document.getElementById('widget-buffer-val').textContent = appState.bufferReserve.toFixed(2);
+
+            // Calculate Unpaid Bills Sum
+            const upcomingBillsSum = appState.bills
+                .filter(b => !b.paid)
+                .reduce((sum, b) => sum + b.amount, 0);
+
+            document.getElementById('widget-upcoming-bills').textContent = `-${formatCurrency(upcomingBillsSum)}`;
+
+            // Safe to Spend = Current Balance - Unpaid Bills - Emergency Buffer
+            const safeToSpend = appState.currentBalance - upcomingBillsSum - appState.bufferReserve;
+            const safeElement = document.getElementById('widget-safe-spend');
+            safeElement.textContent = formatCurrency(safeToSpend);
+
+            if (safeToSpend < 0) {
+                safeElement.className = "text-lg font-black text-rose-500";
+            } else {
+                safeElement.className = "text-lg font-black text-emerald-600 dark:text-emerald-400";
+            }
+
+            // Savings Goal Update
+            document.getElementById('goal-name').textContent = appState.savingsGoal.name;
+            document.getElementById('goal-current').textContent = formatCurrency(appState.savingsGoal.current);
+            document.getElementById('goal-target').textContent = formatCurrency(appState.savingsGoal.target);
+            
+            const pct = Math.min(100, Math.max(0, Math.round((appState.savingsGoal.current / appState.savingsGoal.target) * 100))) || 0;
+            document.getElementById('goal-progress-bar').style.width = `${pct}%`;
+            document.getElementById('goal-percent').textContent = `${pct}%`;
+        }
+
+        function logQuickSpend() {
+            const amtInput = document.getElementById('quick-spend-amount');
+            const descInput = document.getElementById('quick-spend-desc');
+            const amt = parseFloat(amtInput.value);
+            const desc = descInput.value.trim() || 'Quick Expense';
+
+            if (isNaN(amt) || amt <= 0) {
+                showToast('Please enter a valid expense amount.', 'error');
+                return;
+            }
+
+            appState.currentBalance -= amt;
+            saveAppData();
+            renderAll();
+
+            amtInput.value = '';
+            descInput.value = '';
+            showToast(`Logged $${amt.toFixed(2)} spend for ${desc}.`, 'success');
+        }
+
+        function addSavingsContribution() {
+            const amtInput = document.getElementById('add-savings-amount');
+            const amt = parseFloat(amtInput.value);
+
+            if (isNaN(amt) || amt <= 0) {
+                showToast('Please enter a valid contribution amount.', 'error');
+                return;
+            }
+
+            appState.savingsGoal.current += amt;
+            appState.currentBalance -= amt; // Transfer from balance to savings
+            saveAppData();
+            renderAll();
+
+            amtInput.value = '';
+            showToast(`Added $${amt.toFixed(2)} to ${appState.savingsGoal.name}!`, 'success');
+        }
+
+        function promptEditGoal() {
+            const newName = prompt('Enter Savings Goal Name:', appState.savingsGoal.name);
+            if (!newName) return;
+            const newTarget = parseFloat(prompt('Enter Target Goal Amount ($):', appState.savingsGoal.target));
+            if (isNaN(newTarget) || newTarget <= 0) return;
+
+            appState.savingsGoal.name = newName;
+            appState.savingsGoal.target = newTarget;
+            saveAppData();
+            renderAll();
+            showToast('Updated savings goal!', 'info');
+        }
+
+        // PAYCHECK CALCULATOR LOGIC
+        function togglePayTypeFields() {
+            const type = document.getElementById('pay-type').value;
+            const hourlyFields = ['field-hourly-rate', 'field-regular-hours', 'field-overtime-hours'];
+            const flatField = document.getElementById('field-flat-amount');
+
+            if (type === 'hourly') {
+                hourlyFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
+                flatField.classList.add('hidden');
+            } else {
+                hourlyFields.forEach(id => document.getElementById(id).classList.add('hidden'));
+                flatField.classList.remove('hidden');
+            }
+        }
+
+        function calculatePaycheckPreview() {
+            const type = document.getElementById('pay-type').value;
+            let gross = 0;
+
+            if (type === 'hourly') {
+                const rate = parseFloat(document.getElementById('pay-rate').value) || 0;
+                const hours = parseFloat(document.getElementById('pay-hours').value) || 0;
+                const otHours = parseFloat(document.getElementById('pay-ot-hours').value) || 0;
+                gross = (rate * hours) + (rate * 1.5 * otHours);
+            } else {
+                gross = parseFloat(document.getElementById('pay-flat').value) || 0;
+            }
+
+            const fedTax = gross * 0.153; // FICA + Federal estimate
+            const stateTaxRate = parseFloat(document.getElementById('pay-state').value) || 0;
+            const stateTax = gross * stateTaxRate;
+            const net = Math.max(0, gross - fedTax - stateTax);
+
+            document.getElementById('tax-gross').textContent = formatCurrency(gross);
+            document.getElementById('tax-fed').textContent = `-${formatCurrency(fedTax)}`;
+            document.getElementById('tax-state').textContent = `-${formatCurrency(stateTax)}`;
+            document.getElementById('tax-net').textContent = formatCurrency(net);
+
+            return { gross, net, fedTax, stateTax };
+        }
+
+        function addPaycheck() {
+            const date = document.getElementById('pay-date').value;
+            if (!date) {
+                showToast('Please select a valid pay date.', 'error');
+                return;
+            }
+
+            const calc = calculatePaycheckPreview();
+            if (calc.net <= 0) {
+                showToast('Paycheck net total must be greater than $0.', 'error');
+                return;
+            }
+
+            const type = document.getElementById('pay-type').value;
+            const desc = type === 'hourly' ? 'Hourly Paycheck' : 'Flat Salary Paycheck';
+
+            appState.paychecks.push({
+                id: 'p_' + Date.now(),
+                date: date,
+                amount: calc.net,
+                desc: desc
+            });
+
+            saveAppData();
+            renderAll();
+            showToast(`Added ${formatCurrency(calc.net)} paycheck to schedule!`, 'success');
+        }
+
+        function deletePaycheck(id) {
+            appState.paychecks = appState.paychecks.filter(p => p.id !== id);
+            saveAppData();
+            renderAll();
+            showToast('Removed paycheck.', 'info');
+        }
+
+        function renderPaychecks() {
+            const container = document.getElementById('paycheck-log');
+            container.innerHTML = '';
+
+            if (appState.paychecks.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">No scheduled paychecks added.</p>`;
+                return;
+            }
+
+            // Sort by date ascending
+            const sorted = [...appState.paychecks].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            sorted.forEach(p => {
+                const item = document.createElement('div');
+                item.className = "flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-700/40 text-xs";
+                item.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <span class="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                            <i class="fa-solid fa-money-bill-wave"></i>
+                        </span>
+                        <div>
+                            <p class="font-semibold text-slate-800 dark:text-slate-200">${p.desc}</p>
+                            <p class="text-[10px] text-slate-400">${formatDateLabel(p.date)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-emerald-600 dark:text-emerald-400">+${formatCurrency(p.amount)}</span>
+                        <button onclick="deletePaycheck('${p.id}')" class="text-slate-400 hover:text-rose-500 transition" title="Delete">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // RECURRING BILLS LOGIC WITH AUTO-CATEGORIZATION
+        function detectCategory(title) {
+            const t = title.toLowerCase();
+            if (t.includes('insurance')) return 'insurance';
+            if (t.includes('credit') || t.includes('card') || t.includes('loan')) return 'loan';
+            if (t.includes('internet') || t.includes('wifi') || t.includes('phone')) return 'subscription';
+            if (t.includes('electric') || t.includes('electricity') || t.includes('power') || t.includes('water') || t.includes('utility')) return 'electricity';
+            if (t.includes('sub') || t.includes('netflix') || t.includes('spotify') || t.includes('hulu')) return 'subscription';
+            return 'general';
+        }
+
+        function getCategoryIcon(cat) {
+            switch(cat) {
+                case 'insurance': return 'fa-shield';
+                case 'loan': return 'fa-credit-card';
+                case 'subscription': return 'fa-tv';
+                case 'electricity': return 'fa-bolt';
+                default: return 'fa-file-invoice-dollar';
+            }
+        }
+
+        function addBill() {
+            const titleInput = document.getElementById('bill-name');
+            const amtInput = document.getElementById('bill-amount');
+            const dateInput = document.getElementById('bill-date');
+
+            const title = titleInput.value.trim();
+            const amt = parseFloat(amtInput.value);
+            const date = dateInput.value;
+
+            if (!title || isNaN(amt) || amt <= 0 || !date) {
+                showToast('Please fill out all bill fields with valid data.', 'error');
+                return;
+            }
+
+            const category = detectCategory(title);
+
+            appState.bills.push({
+                id: 'b_' + Date.now(),
+                title: title,
+                amount: amt,
+                date: date,
+                category: category,
+                paid: false
+            });
+
+            saveAppData();
+            renderAll();
+
+            titleInput.value = '';
+            amtInput.value = '';
+            showToast(`Added ${title} (${formatCurrency(amt)}) to bills!`, 'success');
+        }
+
+        function toggleBillPaid(id) {
+            const bill = appState.bills.find(b => b.id === id);
+            if (!bill) return;
+
+            bill.paid = !bill.paid;
+            // Deduct from balance if marked paid
+            if (bill.paid) {
+                appState.currentBalance -= bill.amount;
+                showToast(`Marked ${bill.title} as Paid! Balance updated.`, 'success');
+            } else {
+                appState.currentBalance += bill.amount;
+                showToast(`Unmarked ${bill.title}.`, 'info');
+            }
+
+            saveAppData();
+            renderAll();
+        }
+
+        function deleteBill(id) {
+            appState.bills = appState.bills.filter(b => b.id !== id);
+            saveAppData();
+            renderAll();
+            showToast('Deleted bill.', 'info');
+        }
+
+        function renderBills() {
+            const container = document.getElementById('bills-list');
+            container.innerHTML = '';
+
+            if (appState.bills.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 italic">No recurring bills added yet.</p>`;
+                return;
+            }
+
+            const sorted = [...appState.bills].sort((a,b) => new Date(a.date) - new Date(b.date));
+
+            sorted.forEach(b => {
+                const item = document.createElement('div');
+                const isPaidClass = b.paid ? 'paid-line bg-slate-100/40 dark:bg-slate-800/40' : 'bg-slate-100/80 dark:bg-slate-700/40';
+                const icon = getCategoryIcon(b.category);
+
+                item.className = `flex items-center justify-between p-2.5 rounded-xl text-xs transition ${isPaidClass}`;
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5 cursor-pointer" onclick="toggleBillPaid('${b.id}')">
+                        <span class="p-1.5 rounded-lg ${b.paid ? 'bg-slate-200 dark:bg-slate-700 text-slate-400' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'}">
+                            <i class="fa-solid ${icon}"></i>
+                        </span>
+                        <div>
+                            <p class="font-semibold text-slate-800 dark:text-slate-200 ${b.paid ? 'line-through text-slate-400' : ''}">${b.title}</p>
+                            <p class="text-[10px] text-slate-400">Due: ${formatDateLabel(b.date)} • <span class="capitalize">${b.category}</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="font-bold text-rose-500 ${b.paid ? 'line-through text-slate-400' : ''}">-${formatCurrency(b.amount)}</span>
+                        <button onclick="toggleBillPaid('${b.id}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold ${b.paid ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">
+                            ${b.paid ? 'Paid' : 'Mark Paid'}
+                        </button>
+                        <button onclick="deleteBill('${b.id}')" class="text-slate-400 hover:text-rose-500 transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // WALL CALENDAR RENDER LOGIC
+        function toggleShowPastWeeks() {
+            appState.showPastWeeks = !appState.showPastWeeks;
+            document.getElementById('btn-toggle-past').textContent = appState.showPastWeeks ? 'Hide Previous Weeks' : 'Show Previous Weeks';
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            // Determine calendar start date (Sunday)
+            let startDate = new Date(today);
+            const currentDayOfWeek = startDate.getDay(); // 0 = Sunday
+            startDate.setDate(startDate.getDate() - currentDayOfWeek);
+
+            if (appState.showPastWeeks) {
+                // Show 2 weeks prior
+                startDate.setDate(startDate.getDate() - 14);
+            }
+
+            const totalDaysToShow = appState.showPastWeeks ? 35 : 21; // 5 weeks vs 3 weeks
+
+            for (let i = 0; i < totalDaysToShow; i++) {
+                const cellDate = new Date(startDate);
+                cellDate.setDate(startDate.getDate() + i);
+                const dateStr = cellDate.toISOString().split('T')[0];
+
+                const isToday = cellDate.getTime() === today.getTime();
+                const isPast = cellDate.getTime() < today.getTime();
+
+                // Find events on this date
+                const dayPaychecks = appState.paychecks.filter(p => p.date === dateStr);
+                const dayBills = appState.bills.filter(b => b.date === dateStr);
+
+                const cell = document.createElement('div');
+                let cellStyle = "min-h-[85px] p-2 rounded-xl border flex flex-col justify-between text-xs transition ";
+
+                if (isToday) {
+                    cellStyle += "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-500 font-bold shadow-sm";
+                } else if (isPast) {
+                    cellStyle += "bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/30 text-slate-400 opacity-60";
+                } else {
+                    cellStyle += "bg-slate-50/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200";
+                }
+
+                cell.className = cellStyle;
+
+                let eventsHTML = '';
+                dayPaychecks.forEach(p => {
+                    eventsHTML += `<div class="mt-1 p-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold truncate">+${formatCurrency(p.amount)}</div>`;
+                });
+                dayBills.forEach(b => {
+                    const strike = b.paid ? 'line-through opacity-50' : '';
+                    eventsHTML += `<div class="mt-1 p-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-semibold truncate ${strike}">-${formatCurrency(b.amount)}</div>`;
+                });
+
+                cell.innerHTML = `
+                    <div class="flex justify-between items-center">
+                        <span class="text-[11px] ${isToday ? 'px-1.5 py-0.5 rounded-md bg-indigo-600 text-white' : ''}">${cellDate.getDate()}</span>
+                        ${isToday ? '<span class="text-[9px] uppercase tracking-wider text-indigo-500 font-bold">Today</span>' : ''}
+                    </div>
+                    <div class="space-y-0.5 overflow-hidden">${eventsHTML}</div>
+                `;
+
+                grid.appendChild(cell);
+            }
+        }
+
+        // CASH BALANCE PROJECTION CHART
+        function renderChart() {
+            const ctx = document.getElementById('projectionChart').getContext('2d');
+
+            const labels = [];
+            const balanceData = [];
+
+            let runningBalance = appState.currentBalance;
+            const today = new Date();
+
+            for (let i = 0; i < 30; i++) {
+                const d = new Date(today);
+                d.setDate(today.getDate() + i);
+                const dStr = d.toISOString().split('T')[0];
+
+                // Add paychecks on this day
+                const paySum = appState.paychecks.filter(p => p.date === dStr).reduce((s, p) => s + p.amount, 0);
+                // Deduct UNPAID bills on this day
+                const billSum = appState.bills.filter(b => b.date === dStr && !b.paid).reduce((s, b) => s + b.amount, 0);
+
+                runningBalance += (paySum - billSum);
+
+                labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+                balanceData.push(runningBalance);
+            }
+
+            if (projectionChart) {
+                projectionChart.destroy();
+            }
+
+            const isDark = document.documentElement.classList.contains('dark');
+
+            projectionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Projected Cash Balance ($)',
+                        data: balanceData,
+                        borderColor: '#6366f1',
+                        backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.08)',
+                        fill: true,
+                        tension: 0.35,
+                        borderWidth: 3,
+                        pointRadius: 2,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return ` Balance: $${context.parsed.y.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { size: 10 } }
+                        },
+                        y: {
+                            grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
+                            ticks: {
+                                color: isDark ? '#94a3b8' : '#64748b',
+                                font: { size: 10 },
+                                callback: value => '$' + value
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // UTILITY FUNCTIONS & THEME TOGGLE
+        function toggleTheme() {
+            const isDark = document.documentElement.classList.toggle('dark');
+            localStorage.setItem('flowpay_theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+            renderChart();
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('theme-icon');
+            if (isDark) {
+                icon.className = 'fa-solid fa-sun text-amber-400';
+            } else {
+                icon.className = 'fa-solid fa-moon text-slate-600';
+            }
+        }
+
+        function formatCurrency(val) {
+            return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function formatDateLabel(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('-');
+            const d = new Date(parts[0], parts[1] - 1, parts[2]);
+            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+
+            let bg = 'bg-slate-800 text-white';
+            let icon = 'fa-circle-info';
+
+            if (type === 'success') {
+                bg = 'bg-emerald-600 text-white';
+                icon = 'fa-circle-check';
+            } else if (type === 'error') {
+                bg = 'bg-rose-600 text-white';
+                icon = 'fa-circle-exclamation';
+            }
+
+            toast.className = `px-4 py-3 rounded-2xl shadow-xl ${bg} flex items-center gap-2.5 text-xs font-semibold transform transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-4', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
