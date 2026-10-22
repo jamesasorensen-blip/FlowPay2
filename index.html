@@ -64,17 +64,28 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .modal-drag-handle, .widget-drag-handle {
+        .modal-drag-handle, .widget-drag-handle, .metric-drag-handle {
             cursor: grab;
             user-select: none;
             touch-action: none;
         }
-        .modal-drag-handle:active, .widget-drag-handle:active {
+        .modal-drag-handle:active, .widget-drag-handle:active, .metric-drag-handle:active {
             cursor: grabbing;
         }
+        
         .dragging-widget {
             opacity: 0.4;
-            border: 2px dashed #6366f1 !important;
+            transform: scale(0.98);
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.3);
+            z-index: 50;
+            transition: none !important;
+        }
+
+        .drop-placeholder {
+            border: 2px dashed #6366f1;
+            background: rgba(99, 102, 241, 0.08);
+            border-radius: 1.5rem;
+            transition: all 0.2s ease;
         }
     </style>
 </head>
@@ -184,7 +195,7 @@
 
     <!-- SAFE TO SPEND INCLUDE NEXT MONTH BILLS MODAL -->
     <div id="modal-safe-spend" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="safespend-modal-title">
-        <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -211,7 +222,7 @@
 
     <!-- ACTIVE MONTH BILLS COVERAGE BREAKDOWN MODAL -->
     <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="month-bills-modal-title">
-        <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -226,7 +237,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>).</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Active unpaid bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>). Paid bills are automatically removed.</p>
 
             <div id="month-bills-coverage-list" class="space-y-2.5 text-xs"></div>
         </div>
@@ -234,7 +245,7 @@
 
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="logout-title">
-        <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
+        <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4 transition-transform">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 text-left">
                 <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
@@ -258,7 +269,7 @@
 
     <!-- MOBILE EXPANDED CALENDAR DATE MODAL WITH DIRECT PAYCHECK ENTRY -->
     <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
-        <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+        <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -333,8 +344,8 @@
         <main id="dashboard-container" class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             
             <!-- WIDGET 1: SAFE-TO-SPEND PROMINENT WIDGET -->
-            <div id="widget-safespend" draggable="true" data-widget-id="safespend" class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/25 relative overflow-hidden transition-all">
-                <div class="absolute top-3 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab p-2 flex items-center gap-1 text-xs text-indigo-300 bg-indigo-950/80 rounded-lg border border-indigo-500/30 z-20">
+            <div id="widget-safespend" data-widget-id="safespend" class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/25 relative overflow-hidden transition-all">
+                <div class="absolute top-3 right-4 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab p-2 flex items-center gap-1 text-xs text-indigo-300 bg-indigo-950/80 rounded-lg border border-indigo-500/30 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> <span class="hidden sm:inline">Drag Widget</span>
                 </div>
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -357,12 +368,29 @@
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2 md:flex-col md:items-end w-full md:w-auto">
-                        <button id="open-buffer-btn" class="bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
-                            <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Set Emergency Buffer ($<span id="buffer-display-val">75</span>)
-                        </button>
-                        <button id="open-safe-spend-modal-btn" class="bg-emerald-600/60 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-2 shadow">
-                            <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Include Next Month Bills (<span id="included-next-bills-count">0</span>)
-                        </button>
+                        <div class="flex items-center gap-1.5 w-full md:w-auto">
+                            <button id="open-buffer-btn" class="flex-1 md:flex-none bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
+                                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Set Emergency Buffer ($<span id="buffer-display-val">75</span>)
+                            </button>
+                            <button type="button" aria-label="More info about emergency buffer" class="info-btn text-indigo-300 hover:text-white transition text-xs p-1" data-info="buffer-btn">
+                                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            </button>
+                            <div id="info-pop-buffer-btn" class="info-popup hidden absolute top-12 right-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Emergency Buffer:</strong> Minimum cash safety cushion retained in your account that should never be spent on daily purchases.
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-1.5 w-full md:w-auto">
+                            <button id="open-safe-spend-modal-btn" class="flex-1 md:flex-none bg-emerald-600/60 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-2 shadow">
+                                <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Include Next Month Bills (<span id="included-next-bills-count">0</span>)
+                            </button>
+                            <button type="button" aria-label="More info about include next month bills" class="info-btn text-indigo-300 hover:text-white transition text-xs p-1" data-info="next-month-btn">
+                                <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                            </button>
+                            <div id="info-pop-next-month-btn" class="info-popup hidden absolute top-20 right-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Include Next Month Bills:</strong> Allows you to reserve funds early for bills due at the start of next month so your current safe-to-spend balance accounts for them.
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-indigo-800/40 text-xs text-indigo-200">
@@ -389,16 +417,16 @@
                 </div>
             </div>
 
-            <!-- WIDGET 2: 4 CORE METRIC CARDS CONTAINER (GRID FOR LEFT-TO-RIGHT & UP-AND-DOWN DRAGGING) -->
-            <div id="widget-metrics-container" draggable="true" data-widget-id="metrics" class="relative transition-all">
-                <div class="absolute top-2 right-3 z-25 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1">
+            <!-- WIDGET 2: 4 CORE METRIC CARDS CONTAINER -->
+            <div id="widget-metrics-container" data-widget-id="metrics" class="relative transition-all">
+                <div class="absolute top-2 right-3 z-25 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Metrics Row
                 </div>
                 <div id="metrics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 sm:pt-0">
                     
                     <!-- METRIC CARD 1 -->
-                    <div id="metric-card-balance" draggable="true" data-metric-id="balance" class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between transition-all">
-                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                    <div id="metric-card-balance" data-metric-id="balance" class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-40 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
                             <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
                         </div>
                         <div class="flex items-center justify-between relative pr-6">
@@ -428,8 +456,8 @@
                     </div>
 
                     <!-- METRIC CARD 2 -->
-                    <div id="metric-card-nextbill" draggable="true" data-metric-id="nextbill" class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent transition-all">
-                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                    <div id="metric-card-nextbill" data-metric-id="nextbill" class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-40 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
                             <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
                         </div>
                         <div class="flex items-center justify-between pr-6">
@@ -455,8 +483,8 @@
                     </div>
 
                     <!-- METRIC CARD 3 -->
-                    <div id="metric-card-activebills" draggable="true" data-metric-id="activebills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition relative transition-all">
-                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                    <div id="metric-card-activebills" data-metric-id="activebills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition relative transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-40 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
                             <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
                         </div>
                         <div class="flex items-center justify-between relative pr-6" id="btn-open-active-month-bills">
@@ -466,7 +494,7 @@
                                     <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                                 </button>
                                 <div id="info-pop-active-bills" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
-                                    <strong>Active Month Bills:</strong> Total sum of recurring obligations scheduled for the selected month. Click card to see full bill coverage breakdown.
+                                    <strong>Active Month Bills:</strong> Total sum of unpaid recurring obligations scheduled for the selected month. Paid bills are automatically removed. Click card to view breakdown.
                                 </div>
                             </div>
                             <span class="text-xs text-indigo-500 font-semibold">View <i class="fa-solid fa-chevron-right text-[10px]" aria-hidden="true"></i></span>
@@ -484,8 +512,8 @@
                     </div>
 
                     <!-- METRIC CARD 4 -->
-                    <div id="metric-card-savings" draggable="true" data-metric-id="savings" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent relative transition-all">
-                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                    <div id="metric-card-savings" data-metric-id="savings" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent relative transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-40 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
                             <i class="fa-solid fa-grip-vertical" aria-hidden="true"></i>
                         </div>
                         <div class="flex items-center justify-between pr-6">
@@ -508,8 +536,8 @@
             </div>
 
             <!-- WIDGET 3: FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
-            <div id="widget-calculator" draggable="true" data-widget-id="calculator" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
-                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
+            <div id="widget-calculator" data-widget-id="calculator" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
+                <div class="absolute top-4 right-4 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Calculator
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 sm:pt-0">
@@ -634,8 +662,8 @@
             </div>
 
             <!-- WIDGET 4: INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
-            <div id="widget-calendar" draggable="true" data-widget-id="calendar" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
-                <div class="absolute top-3 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
+            <div id="widget-calendar" data-widget-id="calendar" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
+                <div class="absolute top-3 right-3 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Calendar
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-6 sm:pt-0">
@@ -685,8 +713,8 @@
             </div>
 
             <!-- WIDGET 5: QUICK SPEND & CASH FLOW CHART SECTION -->
-            <div id="widget-charts" draggable="true" data-widget-id="charts" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
-                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
+            <div id="widget-charts" data-widget-id="charts" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Section
                 </div>
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between pt-8 lg:pt-6">
@@ -780,8 +808,8 @@
             </div>
 
             <!-- WIDGET 6: RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
-            <div id="widget-bills" draggable="true" data-widget-id="bills" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
-                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
+            <div id="widget-bills" data-widget-id="bills" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Section
                 </div>
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4 pt-8 lg:pt-6">
@@ -794,7 +822,7 @@
                                 <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                             </button>
                             <div id="info-pop-bills-schedule" class="info-popup hidden absolute top-6 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
-                                <strong>Bills Schedule:</strong> Manage recurring liabilities. Marking a bill paid updates your balance and marks it complete with a green badge.
+                                <strong>Bills Schedule:</strong> Manage recurring liabilities. Marking a bill paid updates your balance and automatically removes it from the Active Month Bills section.
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto">
@@ -858,7 +886,7 @@
     <!-- MODALS -->
     <!-- Edit Paycheck Modal -->
     <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-paycheck-title">
-        <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -898,7 +926,7 @@
 
     <!-- Bill Modal -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
-        <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+        <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -968,7 +996,7 @@
 
     <!-- Balance Modal -->
     <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-balance-title">
-        <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -997,7 +1025,7 @@
 
     <!-- Buffer Modal -->
     <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-buffer-title">
-        <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -1026,7 +1054,7 @@
 
     <!-- Savings Goal Modal -->
     <div id="modal-savings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
-        <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+        <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
@@ -1317,9 +1345,11 @@
                     card.style.top = `${rect.top}px`;
                     card.style.transform = 'none';
                     card.style.margin = '0';
+                    card.style.transition = 'none';
 
                     origLeft = rect.left;
                     origTop = rect.top;
+                    handle.setPointerCapture ? handle.setPointerCapture(event.pointerId) : null;
                 };
 
                 const onDrag = (clientX, clientY) => {
@@ -1337,34 +1367,22 @@
                 };
 
                 const endDrag = () => {
+                    if (!isDragging) return;
                     isDragging = false;
+                    card.style.transition = 'all 0.2s ease';
                 };
 
-                handle.addEventListener('mousedown', (e) => {
+                handle.addEventListener('pointerdown', (e) => {
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
                     startDrag(e.clientX, e.clientY);
                 });
 
-                window.addEventListener('mousemove', (e) => {
+                handle.addEventListener('pointermove', (e) => {
                     onDrag(e.clientX, e.clientY);
                 });
 
-                window.addEventListener('mouseup', endDrag);
-
-                handle.addEventListener('touchstart', (e) => {
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
-                    if (e.touches.length === 1) {
-                        startDrag(e.touches[0].clientX, e.touches[0].clientY);
-                    }
-                }, { passive: true });
-
-                window.addEventListener('touchmove', (e) => {
-                    if (isDragging && e.touches.length === 1) {
-                        onDrag(e.touches[0].clientX, e.touches[0].clientY);
-                    }
-                }, { passive: true });
-
-                window.addEventListener('touchend', endDrag);
+                handle.addEventListener('pointerup', endDrag);
+                handle.addEventListener('pointercancel', endDrag);
 
                 if (saveBtn) {
                     saveBtn.addEventListener('click', () => {
@@ -1378,6 +1396,7 @@
             });
         }
 
+        // Pointer-Event based smooth widget reordering with placeholder highlight box and snap-back animation
         function initDashboardWidgetReordering() {
             const container = document.getElementById('dashboard-container');
             if (!container) return;
@@ -1389,49 +1408,122 @@
                 });
             }
 
-            let draggedWidget = null;
-
-            const widgets = container.querySelectorAll('[draggable="true"]');
+            const widgets = container.querySelectorAll('[data-widget-id]');
             widgets.forEach(widget => {
-                widget.addEventListener('dragstart', (e) => {
-                    if (!e.target.closest('.widget-drag-handle') && e.target !== widget) {
-                        e.preventDefault();
-                        return;
-                    }
-                    draggedWidget = widget;
+                const handle = widget.querySelector('.widget-drag-handle');
+                if (!handle) return;
+
+                let isDragging = false;
+                let startX, startY;
+                let originalIndex = 0;
+                let placeholder = null;
+                let clone = null;
+                let initialRect = null;
+
+                const onPointerDown = (e) => {
+                    if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+                    initialRect = widget.getBoundingClientRect();
+
+                    // Find original index
+                    const allWidgets = Array.from(container.querySelectorAll('[data-widget-id]'));
+                    originalIndex = allWidgets.indexOf(widget);
+
+                    // Create placeholder highlight box
+                    placeholder = document.createElement('div');
+                    placeholder.className = 'drop-placeholder';
+                    placeholder.style.height = `${initialRect.height}px`;
+                    container.insertBefore(placeholder, widget);
+
+                    // Style widget as transparent clone floating
                     widget.classList.add('dragging-widget');
-                    e.dataTransfer.effectAllowed = 'move';
-                });
+                    widget.style.position = 'fixed';
+                    widget.style.left = `${initialRect.left}px`;
+                    widget.style.top = `${initialRect.top}px`;
+                    widget.style.width = `${initialRect.width}px`;
+                    widget.style.margin = '0';
 
-                widget.addEventListener('dragend', () => {
-                    widget.classList.remove('dragging-widget');
-                    draggedWidget = null;
-                    
-                    const newOrder = [];
-                    container.querySelectorAll('[data-widget-id]').forEach(w => {
-                        newOrder.push(w.dataset.widgetId);
-                    });
-                    appState.widgetOrder = newOrder;
-                    saveData();
-                    showToast('Dashboard layout updated!');
-                });
-
-                widget.addEventListener('dragover', (e) => {
+                    handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
                     e.preventDefault();
-                    e.dataTransfer.dropEffect = 'move';
-                    const targetWidget = e.target.closest('[draggable="true"]');
-                    if (targetWidget && targetWidget !== draggedWidget && draggedWidget && targetWidget.parentNode === container) {
-                        const rect = targetWidget.getBoundingClientRect();
-                        const midpoint = rect.top + rect.height / 2;
-                        if (e.clientY < midpoint) {
-                            container.insertBefore(draggedWidget, targetWidget);
-                        } else {
-                            container.insertBefore(draggedWidget, targetWidget.nextSibling);
+                };
+
+                const onPointerMove = (e) => {
+                    if (!isDragging) return;
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+
+                    widget.style.left = `${initialRect.left + dx}px`;
+                    widget.style.top = `${initialRect.top + dy}px`;
+
+                    // Detect potential drop target positions among other widgets
+                    const otherWidgets = Array.from(container.querySelectorAll('[data-widget-id]')).filter(w => w !== widget && w !== placeholder);
+                    let inserted = false;
+
+                    for (const other of otherWidgets) {
+                        const rect = other.getBoundingClientRect();
+                        const midY = rect.top + rect.height / 2;
+                        if (e.clientY < midY) {
+                            container.insertBefore(placeholder, other);
+                            inserted = true;
+                            break;
                         }
                     }
-                });
+                    if (!inserted && otherWidgets.length > 0) {
+                        container.appendChild(placeholder);
+                    }
+                };
+
+                const onPointerUp = (e) => {
+                    if (!isDragging) return;
+                    isDragging = false;
+
+                    widget.classList.remove('dragging-widget');
+                    widget.style.position = '';
+                    widget.style.left = '';
+                    widget.style.top = '';
+                    widget.style.width = '';
+                    widget.style.margin = '';
+
+                    // Check if dropped inside container valid area, else smooth snap back
+                    const containerRect = container.getBoundingClientRect();
+                    const droppedInside = e.clientX >= containerRect.left - 50 && e.clientX <= containerRect.right + 50 &&
+                                          e.clientY >= containerRect.top - 100 && e.clientY <= containerRect.bottom + 100;
+
+                    if (droppedInside && placeholder && placeholder.parentNode) {
+                        container.insertBefore(widget, placeholder);
+                        placeholder.remove();
+                        
+                        // Update order state
+                        const newOrder = [];
+                        container.querySelectorAll('[data-widget-id]').forEach(w => {
+                            newOrder.push(w.dataset.widgetId);
+                        });
+                        appState.widgetOrder = newOrder;
+                        saveData();
+                        showToast('Dashboard layout updated!');
+                    } else {
+                        // Smooth snap back animation to original position
+                        if (placeholder && placeholder.parentNode) {
+                            placeholder.remove();
+                        }
+                        widget.style.transition = 'transform 0.3s ease, left 0.3s ease, top 0.3s ease';
+                        widget.style.transform = 'translate(0px, 0px)';
+                        setTimeout(() => {
+                            widget.style.transition = '';
+                            widget.style.transform = '';
+                        }, 300);
+                        showToast('Moved outside valid bounds - snapped back.', 'error');
+                    }
+                };
+
+                handle.addEventListener('pointerdown', onPointerDown);
+                window.addEventListener('pointermove', onPointerMove);
+                window.addEventListener('pointerup', onPointerUp);
             });
 
+            // Metrics grid reordering
             const metricsGrid = document.getElementById('metrics-grid');
             if (metricsGrid) {
                 if (Array.isArray(appState.metricOrder)) {
@@ -1441,35 +1533,79 @@
                     });
                 }
 
-                let draggedMetric = null;
-                metricsGrid.querySelectorAll('[draggable="true"]').forEach(card => {
-                    card.addEventListener('dragstart', (e) => {
-                        draggedMetric = card;
+                metricsGrid.querySelectorAll('[data-metric-id]').forEach(card => {
+                    const handle = card.querySelector('.metric-drag-handle');
+                    if (!handle) return;
+
+                    let isDragging = false;
+                    let startX, startY, initialRect, placeholder;
+
+                    handle.addEventListener('pointerdown', (e) => {
+                        isDragging = true;
+                        startX = e.clientX;
+                        startY = e.clientY;
+                        initialRect = card.getBoundingClientRect();
+
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'drop-placeholder';
+                        placeholder.style.width = `${initialRect.width}px`;
+                        placeholder.style.height = `${initialRect.height}px`;
+                        metricsGrid.insertBefore(placeholder, card);
+
                         card.classList.add('dragging-widget');
-                        e.dataTransfer.effectAllowed = 'move';
-                    });
-                    card.addEventListener('dragend', () => {
-                        card.classList.remove('dragging-widget');
-                        draggedMetric = null;
-                        const newMetricOrder = [];
-                        metricsGrid.querySelectorAll('[data-metric-id]').forEach(m => {
-                            newMetricOrder.push(m.dataset.metricId);
-                        });
-                        appState.metricOrder = newMetricOrder;
-                        saveData();
-                    });
-                    card.addEventListener('dragover', (e) => {
+                        card.style.position = 'fixed';
+                        card.style.left = `${initialRect.left}px`;
+                        card.style.top = `${initialRect.top}px`;
+                        card.style.width = `${initialRect.width}px`;
+                        handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
                         e.preventDefault();
-                        const targetCard = e.target.closest('[data-metric-id]');
-                        if (targetCard && targetCard !== draggedMetric && draggedMetric && targetCard.parentNode === metricsGrid) {
-                            const rect = targetCard.getBoundingClientRect();
-                            const midpointX = rect.left + rect.width / 2;
-                            const midpointY = rect.top + rect.height / 2;
-                            if (e.clientX < midpointX || e.clientY < midpointY) {
-                                metricsGrid.insertBefore(draggedMetric, targetCard);
-                            } else {
-                                metricsGrid.insertBefore(draggedMetric, targetCard.nextSibling);
+                    });
+
+                    window.addEventListener('pointermove', (e) => {
+                        if (!isDragging) return;
+                        const dx = e.clientX - startX;
+                        const dy = e.clientY - startY;
+                        card.style.left = `${initialRect.left + dx}px`;
+                        card.style.top = `${initialRect.top + dy}px`;
+
+                        const otherCards = Array.from(metricsGrid.querySelectorAll('[data-metric-id]')).filter(c => c !== card && c !== placeholder);
+                        let inserted = false;
+                        for (const other of otherCards) {
+                            const rect = other.getBoundingClientRect();
+                            const midX = rect.left + rect.width / 2;
+                            if (e.clientX < midX) {
+                                metricsGrid.insertBefore(placeholder, other);
+                                inserted = true;
+                                break;
                             }
+                        }
+                        if (!inserted && otherCards.length > 0) {
+                            metricsGrid.appendChild(placeholder);
+                        }
+                    });
+
+                    window.addEventListener('pointerup', (e) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        card.classList.remove('dragging-widget');
+                        card.style.position = '';
+                        card.style.left = '';
+                        card.style.top = '';
+                        card.style.width = '';
+
+                        if (placeholder && placeholder.parentNode) {
+                            metricsGrid.insertBefore(card, placeholder);
+                            placeholder.remove();
+                            const newMetricOrder = [];
+                            metricsGrid.querySelectorAll('[data-metric-id]').forEach(m => {
+                                newMetricOrder.push(m.dataset.metricId);
+                            });
+                            appState.metricOrder = newMetricOrder;
+                            saveData();
+                        } else {
+                            if (placeholder) placeholder.remove();
+                            card.style.transition = 'transform 0.3s ease';
+                            setTimeout(() => { card.style.transition = ''; }, 300);
                         }
                     });
                 });
@@ -2245,33 +2381,30 @@
             document.getElementById('modal-curr-bal-display').textContent = formatCurrency(appState.balance);
 
             const expandedBills = getExpandedBillsList();
-            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal)).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+            // Automatically remove/filter out paid bills from the Active Month Bills section
+            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal) && !b.paid).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
 
             const listContainer = document.getElementById('month-bills-coverage-list');
             listContainer.innerHTML = '';
 
             if (monthBills.length === 0) {
-                listContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-6">No bills scheduled for this month.</p>';
+                listContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-6">No active unpaid bills scheduled for this month (paid bills are automatically removed).</p>';
             } else {
                 let runningRequiredCumulative = 0;
 
                 monthBills.forEach(bill => {
-                    if (!bill.paid) {
-                        runningRequiredCumulative += bill.amount;
-                    }
+                    runningRequiredCumulative += bill.amount;
 
                     const isCovered = appState.balance >= runningRequiredCumulative;
                     const shortfall = runningRequiredCumulative - appState.balance;
 
                     const card = document.createElement('div');
-                    card.className = `p-3.5 rounded-xl border flex items-center justify-between transition ${bill.paid ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-400 line-through opacity-70' : (isCovered ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50')}`;
+                    card.className = `p-3.5 rounded-xl border flex items-center justify-between transition ${isCovered ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50'}`;
 
                     const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
 
                     let statusBadgeHTML = '';
-                    if (bill.paid) {
-                        statusBadgeHTML = `<span class="text-[10px] font-bold text-slate-400">Paid</span>`;
-                    } else if (isCovered) {
+                    if (isCovered) {
                         statusBadgeHTML = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-200/60 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200">Covered</span>`;
                     } else {
                         statusBadgeHTML = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-200/60 dark:bg-rose-900/80 text-rose-800 dark:text-rose-200">Need ${formatCurrency(shortfall)} more</span>`;
@@ -2344,7 +2477,9 @@
 
             const billsMonthSelect = document.getElementById('bills-month-select');
             const selectedBillsMonth = billsMonthSelect ? billsMonthSelect.value : getLocalDateStr().slice(0, 7);
-            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedBillsMonth));
+            
+            // Active Month Bills total excludes paid bills (they are removed from active section)
+            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedBillsMonth) && !b.paid);
             const monthBillsTotal = monthBills.reduce((acc, b) => acc + b.amount, 0);
             document.getElementById('display-bills-total').textContent = formatCurrency(monthBillsTotal);
 
