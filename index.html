@@ -1053,8 +1053,25 @@
         </div>
     </div>
 
-    <!-- APPLICATION JAVASCRIPT -->
+    <!-- APPLICATION JAVASCRIPT ARCHITECTURE -->
     <script>
+        // Component-Oriented UI Model Architecture (Mapping Java Architectural Blueprint)
+        class FlowPayUI {
+            constructor() {
+                this.widgets = [];
+                this.initializeWidgets();
+            }
+
+            initializeWidgets() {
+                this.widgets.push({ render: () => {} }); // DashboardHeader
+                this.widgets.push({ render: () => {} }); // AuthStatusBanner
+            }
+
+            render() {
+                this.widgets.forEach(w => w.render());
+            }
+        }
+
         // HTML Escape / Sanitization utility to prevent XSS injection
         function escapeHtml(str) {
             if (typeof str !== 'string') return '';
@@ -1161,7 +1178,6 @@
             const sessionActive = sessionStorage.getItem('flowpay_session_active') === 'true';
             const savedAccountStr = localStorage.getItem('flowpay_user_account');
 
-            // If no account ever created, force register mode so user sets secure credentials & PIN
             if (!savedAccountStr) {
                 isRegisterMode = true;
                 document.getElementById('tab-register').click();
@@ -1285,7 +1301,7 @@
             const modals = document.querySelectorAll('[id^="modal-card-"]');
             modals.forEach(card => {
                 const handle = card.querySelector('.modal-drag-handle');
-                if (!handle) return; // Skip modals without drag handles (logout, settings)
+                if (!handle) return;
                 const saveBtn = card.querySelector('[id^="save-pos-"]');
                 let isDragging = false;
                 let startX, startY, origLeft, origTop;
@@ -1416,7 +1432,6 @@
                 });
             });
 
-            // Metric Cards reordering (left-to-right & up-and-down)
             const metricsGrid = document.getElementById('metrics-grid');
             if (metricsGrid) {
                 if (Array.isArray(appState.metricOrder)) {
@@ -3077,6 +3092,9 @@
         }
 
         window.addEventListener('DOMContentLoaded', () => {
+            const ui = new FlowPayUI();
+            ui.render();
+
             loadData();
             checkAuthSession();
             initAuthHandlers();
