@@ -29,7 +29,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; }
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
         .glass {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
@@ -67,6 +67,7 @@
         .modal-drag-handle, .widget-drag-handle {
             cursor: grab;
             user-select: none;
+            touch-action: none;
         }
         .modal-drag-handle:active, .widget-drag-handle:active {
             cursor: grabbing;
@@ -148,21 +149,15 @@
         </div>
     </div>
 
-    <!-- SETTINGS MODAL -->
+    <!-- SETTINGS MODAL (NO DRAG HANDLE AS REQUESTED) -->
     <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-settings" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-gear"></i>
                     <span>Account Settings</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-settings" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
-                    </button>
-                    <button type="button" onclick="closeModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-                </div>
+                <button type="button" onclick="closeModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
             
             <form id="form-change-password" class="space-y-3 text-xs pt-1">
@@ -204,11 +199,9 @@
                 </div>
             </div>
             
-            <p class="text-xs text-slate-500 dark:text-slate-400">Select early next-month bills (e.g. Rent due on the 1st) to reserve funds for them in your current Safe-to-Spend calculation without shifting their calendar due date.</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Select early next-month bills (e.g. Rent due on the 1st) to reserve funds for them in your current Safe-to-Spend calculation without shifting their calendar due date.</p>
 
-            <div id="next-month-bills-checklist" class="space-y-2 pt-2 text-xs">
-                <!-- Populated dynamically -->
-            </div>
+            <div id="next-month-bills-checklist" class="space-y-2 pt-2 text-xs"></div>
 
             <div class="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-700">
                 <button type="button" onclick="closeModal('modal-safe-spend')" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold text-xs">Done</button>
@@ -233,26 +226,20 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400">Bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>).</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>).</p>
 
-            <div id="month-bills-coverage-list" class="space-y-2.5 text-xs">
-                <!-- Populated dynamically -->
-            </div>
+            <div id="month-bills-coverage-list" class="space-y-2.5 text-xs"></div>
         </div>
     </div>
 
-    <!-- LOGOUT CONFIRMATION MODAL -->
+    <!-- LOGOUT CONFIRMATION MODAL (NO DRAG HANDLE AS REQUESTED) -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl text-left">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 text-left">
                 <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Log Out</span>
                 </div>
-                <button type="button" id="save-pos-logout-confirm" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                    <i class="fa-solid fa-floppy-disk"></i> Save Pos
-                </button>
             </div>
 
             <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl mx-auto">
@@ -286,7 +273,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
 
             <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/50 space-y-2.5 text-xs">
                 <h4 class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
@@ -305,9 +292,7 @@
 
             <div class="space-y-3 pt-1">
                 <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">Scheduled Events & Obligations</h4>
-                <div id="modal-date-events-list" class="space-y-2">
-                    <!-- Populated dynamically -->
-                </div>
+                <div id="modal-date-events-list" class="space-y-2"></div>
             </div>
         </div>
     </div>
@@ -347,7 +332,7 @@
             
             <!-- WIDGET 1: SAFE-TO-SPEND PROMINENT WIDGET -->
             <div id="widget-safespend" draggable="true" data-widget-id="safespend" class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/25 relative overflow-hidden transition-all">
-                <div class="absolute top-3 right-4 widget-drag-handle opacity-50 hover:opacity-150 cursor-grab p-2 flex items-center gap-1 text-xs text-indigo-300 bg-indigo-950/80 rounded-lg border border-indigo-500/30">
+                <div class="absolute top-3 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab p-2 flex items-center gap-1 text-xs text-indigo-300 bg-indigo-950/80 rounded-lg border border-indigo-500/30 z-20">
                     <i class="fa-solid fa-arrows-up-down"></i> <span class="hidden sm:inline">Drag Widget</span>
                 </div>
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -402,14 +387,19 @@
                 </div>
             </div>
 
-            <!-- WIDGET 2: 4 CORE METRIC CARDS -->
-            <div id="widget-metrics" draggable="true" data-widget-id="metrics" class="relative transition-all">
-                <div class="absolute top-2 right-3 z-10 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1">
-                    <i class="fa-solid fa-arrows-up-down"></i> Drag Metrics
+            <!-- WIDGET 2: 4 CORE METRIC CARDS CONTAINER (GRID FOR LEFT-TO-RIGHT & UP-AND-DOWN DRAGGING) -->
+            <div id="widget-metrics-container" draggable="true" data-widget-id="metrics" class="relative transition-all">
+                <div class="absolute top-2 right-3 z-25 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Metrics Row
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 sm:pt-0">
-                    <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                        <div class="flex items-center justify-between relative">
+                <div id="metrics-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 sm:pt-0">
+                    
+                    <!-- METRIC CARD 1 -->
+                    <div id="metric-card-balance" draggable="true" data-metric-id="balance" class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
+                        <div class="flex items-center justify-between relative pr-6">
                             <div class="flex items-center gap-1.5">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
                                 <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="balance">
@@ -435,8 +425,12 @@
                         </div>
                     </div>
 
-                    <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
-                        <div class="flex items-center justify-between">
+                    <!-- METRIC CARD 2 -->
+                    <div id="metric-card-nextbill" draggable="true" data-metric-id="nextbill" class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
+                        <div class="flex items-center justify-between pr-6">
                             <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
                             <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">No bills</span>
                         </div>
@@ -458,9 +452,12 @@
                         <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
                     </div>
 
-                    <!-- Active Month Bills Metric Card -->
-                    <div id="btn-open-active-month-bills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition">
-                        <div class="flex items-center justify-between relative">
+                    <!-- METRIC CARD 3 -->
+                    <div id="metric-card-activebills" draggable="true" data-metric-id="activebills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition relative transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
+                        <div class="flex items-center justify-between relative pr-6" id="btn-open-active-month-bills">
                             <div class="flex items-center gap-1.5">
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Month Bills</span>
                                 <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="active-bills">
@@ -470,22 +467,26 @@
                                     <strong>Active Month Bills:</strong> Total sum of recurring obligations scheduled for the selected month. Click card to see full bill coverage breakdown.
                                 </div>
                             </div>
-                            <span class="text-xs text-indigo-500 font-semibold">View List <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                            <span class="text-xs text-indigo-500 font-semibold">View <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
                         </div>
-                        <div class="mt-2">
+                        <div class="mt-2" onclick="openActiveMonthBillsModal()">
                             <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
                             <div class="flex items-center gap-2 mt-2">
                                 <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
                             </div>
                         </div>
-                        <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                        <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs" onclick="openActiveMonthBillsModal()">
                             <span class="text-slate-500">Net Surplus / Deficit:</span>
                             <span id="net-surplus-amount" class="font-bold">$0.00</span>
                         </div>
                     </div>
 
-                    <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
-                        <div class="flex items-center justify-between">
+                    <!-- METRIC CARD 4 -->
+                    <div id="metric-card-savings" draggable="true" data-metric-id="savings" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent relative transition-all">
+                        <div class="absolute top-2 right-2 z-10 metric-drag-handle opacity-30 hover:opacity-100 cursor-grab px-1.5 py-0.5 text-[9px] text-slate-400 bg-slate-100 dark:bg-slate-700 rounded">
+                            <i class="fa-solid fa-grip-vertical"></i>
+                        </div>
+                        <div class="flex items-center justify-between pr-6">
                             <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Savings Goal</span>
                             <button id="open-savings-btn" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
                                 <i class="fa-solid fa-bullseye"></i> Edit Goal
@@ -500,12 +501,13 @@
                             <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
                         </div>
                     </div>
+
                 </div>
             </div>
 
             <!-- WIDGET 3: FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
             <div id="widget-calculator" draggable="true" data-widget-id="calculator" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
-                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down"></i> Drag Calculator
                 </div>
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 sm:pt-0">
@@ -631,10 +633,10 @@
 
             <!-- WIDGET 4: INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
             <div id="widget-calendar" draggable="true" data-widget-id="calendar" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
-                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                <div class="absolute top-3 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down"></i> Drag Calendar
                 </div>
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 sm:pt-0">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-6 sm:pt-0">
                     <div class="flex items-center gap-2 relative">
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calendar-days text-indigo-500"></i> Wall Calendar & Dynamic Cash Flow
@@ -681,7 +683,7 @@
 
             <!-- WIDGET 5: QUICK SPEND & CASH FLOW CHART SECTION -->
             <div id="widget-charts" draggable="true" data-widget-id="charts" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
-                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down"></i> Drag Section
                 </div>
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between pt-8 lg:pt-6">
@@ -776,7 +778,7 @@
 
             <!-- WIDGET 6: RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
             <div id="widget-bills" draggable="true" data-widget-id="bills" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
-                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down"></i> Drag Section
                 </div>
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4 pt-8 lg:pt-6">
@@ -836,7 +838,7 @@
                                     <strong>Activity Log & Undo:</strong> Every change creates a state snapshot. Click Undo to instantly revert deletions, balance edits, or payments.
                                 </div>
                             </div>
-                            <button id="clear-activity-btn" class="text-[11px] text-slate-400 hover:text-rose-500 transition">Clear</button>
+                            <button id="clear-activity-btn" class="text-[11px] text-slate-400 hover:text-rose-500 transition px-2 py-1">Clear</button>
                         </div>
                         <div id="activity-log" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1"></div>
                     </div>
@@ -866,7 +868,7 @@
                 </div>
             </div>
 
-            <form id="form-edit-paycheck" class="space-y-3 text-xs pt-1">
+            <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
                 <input type="hidden" id="edit-paycheck-id">
                 <div>
                     <label for="edit-paycheck-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Source / Name</label>
@@ -906,8 +908,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Fill in details for your recurring payment.</p>
-            <form id="form-bill" class="space-y-3 text-xs">
+            <form id="form-bill" class="space-y-3 text-xs pt-2">
                 <input type="hidden" id="bill-id">
                 <div>
                     <label for="bill-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Bill Name</label>
@@ -977,8 +978,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Enter your account's current available balance.</p>
-            <form id="form-balance" class="space-y-3 text-xs">
+            <form id="form-balance" class="space-y-3 text-xs pt-2">
                 <div>
                     <label for="balance-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Balance ($)</label>
                     <input type="number" step="0.01" id="balance-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
@@ -1007,8 +1007,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Set your minimum reserve cash floor to protect against overdrafts.</p>
-            <form id="form-buffer" class="space-y-3 text-xs">
+            <form id="form-buffer" class="space-y-3 text-xs pt-2">
                 <div>
                     <label for="buffer-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Minimum Buffer ($)</label>
                     <input type="number" min="0" step="0.01" id="buffer-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
@@ -1037,8 +1036,7 @@
                 </div>
             </div>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Specify your monthly savings target.</p>
-            <form id="form-savings" class="space-y-3 text-xs">
+            <form id="form-savings" class="space-y-3 text-xs pt-2">
                 <div>
                     <label for="savings-goal-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Goal ($)</label>
                     <input type="number" min="0" step="0.01" id="savings-goal-input" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
@@ -1053,7 +1051,6 @@
 
     <!-- APPLICATION JAVASCRIPT -->
     <script>
-        // Consistent Local Date Utilities (Avoids toISOString UTC shift)
         function getLocalDateStr(date = new Date()) {
             const y = date.getFullYear();
             const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -1089,10 +1086,11 @@
             savingsGoal: 200,
             bills: [],
             paychecks: [],
-            paidOccurrences: [], // Tracks bill payments per occurrence ("billId_YYYY-MM-DD")
+            paidOccurrences: [],
             includedNextMonthBillIds: [],
             modalPositions: {},
             widgetOrder: ['safespend', 'metrics', 'calculator', 'calendar', 'charts', 'bills'],
+            metricOrder: ['balance', 'nextbill', 'activebills', 'savings'],
             activity: [],
             theme: 'light'
         };
@@ -1100,7 +1098,7 @@
         let appState = { ...DEFAULT_STATE };
         let lastFocusedElement = null;
         let cashFlowChartInstance = null;
-        let chartType = 'line'; // 'line' or 'bar'
+        let chartType = 'line';
         let showAllPastWeeks = false;
         let isRegisterMode = false;
         let hidePaidBills = false;
@@ -1181,6 +1179,7 @@
                     includedNextMonthBillIds: Array.isArray(saved.includedNextMonthBillIds) ? saved.includedNextMonthBillIds.map(Number) : [],
                     modalPositions: saved.modalPositions || {},
                     widgetOrder: Array.isArray(saved.widgetOrder) ? saved.widgetOrder : DEFAULT_STATE.widgetOrder,
+                    metricOrder: Array.isArray(saved.metricOrder) ? saved.metricOrder : DEFAULT_STATE.metricOrder,
                     activity: Array.isArray(saved.activity) ? saved.activity : [],
                     theme: saved.theme === 'dark' ? 'dark' : 'light'
                 };
@@ -1263,18 +1262,17 @@
         function initDraggableModals() {
             const modals = document.querySelectorAll('[id^="modal-card-"]');
             modals.forEach(card => {
-                const handle = card.querySelector('.modal-drag-handle') || card;
+                const handle = card.querySelector('.modal-drag-handle');
+                if (!handle) return; // Skip modals without drag handle (like logout & settings)
                 const saveBtn = card.querySelector('[id^="save-pos-"]');
                 let isDragging = false;
                 let startX, startY, origLeft, origTop;
 
-                handle.addEventListener('mousedown', (e) => {
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+                const startDrag = (clientX, clientY) => {
                     isDragging = true;
-
                     const rect = card.getBoundingClientRect();
-                    startX = e.clientX;
-                    startY = e.clientY;
+                    startX = clientX;
+                    startY = clientY;
 
                     card.style.position = 'absolute';
                     card.style.left = `${rect.left}px`;
@@ -1284,12 +1282,12 @@
 
                     origLeft = rect.left;
                     origTop = rect.top;
-                });
+                };
 
-                window.addEventListener('mousemove', (e) => {
+                const onDrag = (clientX, clientY) => {
                     if (!isDragging) return;
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
+                    const dx = clientX - startX;
+                    const dy = clientY - startY;
 
                     const newLeft = Math.max(10, Math.min(window.innerWidth - card.offsetWidth - 10, origLeft + dx));
                     const newTop = Math.max(10, Math.min(window.innerHeight - card.offsetHeight - 10, origTop + dy));
@@ -1298,13 +1296,38 @@
                     card.style.top = `${newTop}px`;
 
                     if (saveBtn) saveBtn.classList.remove('hidden');
+                };
+
+                const endDrag = () => {
+                    isDragging = false;
+                };
+
+                handle.addEventListener('mousedown', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+                    startDrag(e.clientX, e.clientY);
                 });
 
-                window.addEventListener('mouseup', () => {
-                    if (isDragging) {
-                        isDragging = false;
-                    }
+                window.addEventListener('mousemove', (e) => {
+                    onDrag(e.clientX, e.clientY);
                 });
+
+                window.addEventListener('mouseup', endDrag);
+
+                // Touch events for mobile screens
+                handle.addEventListener('touchstart', (e) => {
+                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
+                    if (e.touches.length === 1) {
+                        startDrag(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: true });
+
+                window.addEventListener('touchmove', (e) => {
+                    if (isDragging && e.touches.length === 1) {
+                        onDrag(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: true });
+
+                window.addEventListener('touchend', endDrag);
 
                 if (saveBtn) {
                     saveBtn.addEventListener('click', () => {
@@ -1360,7 +1383,7 @@
                     e.preventDefault();
                     e.dataTransfer.dropEffect = 'move';
                     const targetWidget = e.target.closest('[draggable="true"]');
-                    if (targetWidget && targetWidget !== draggedWidget && draggedWidget) {
+                    if (targetWidget && targetWidget !== draggedWidget && draggedWidget && targetWidget.parentNode === container) {
                         const rect = targetWidget.getBoundingClientRect();
                         const midpoint = rect.top + rect.height / 2;
                         if (e.clientY < midpoint) {
@@ -1371,6 +1394,50 @@
                     }
                 });
             });
+
+            // Metric Cards reordering (left-to-right & up-and-down)
+            const metricsGrid = document.getElementById('metrics-grid');
+            if (metricsGrid) {
+                if (Array.isArray(appState.metricOrder)) {
+                    appState.metricOrder.forEach(id => {
+                        const metricCard = metricsGrid.querySelector(`[data-metric-id="${id}"]`);
+                        if (metricCard) metricsGrid.appendChild(metricCard);
+                    });
+                }
+
+                let draggedMetric = null;
+                metricsGrid.querySelectorAll('[draggable="true"]').forEach(card => {
+                    card.addEventListener('dragstart', (e) => {
+                        draggedMetric = card;
+                        card.classList.add('dragging-widget');
+                        e.dataTransfer.effectAllowed = 'move';
+                    });
+                    card.addEventListener('dragend', () => {
+                        card.classList.remove('dragging-widget');
+                        draggedMetric = null;
+                        const newMetricOrder = [];
+                        metricsGrid.querySelectorAll('[data-metric-id]').forEach(m => {
+                            newMetricOrder.push(m.dataset.metricId);
+                        });
+                        appState.metricOrder = newMetricOrder;
+                        saveData();
+                    });
+                    card.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        const targetCard = e.target.closest('[data-metric-id]');
+                        if (targetCard && targetCard !== draggedMetric && draggedMetric && targetCard.parentNode === metricsGrid) {
+                            const rect = targetCard.getBoundingClientRect();
+                            const midpointX = rect.left + rect.width / 2;
+                            const midpointY = rect.top + rect.height / 2;
+                            if (e.clientX < midpointX || e.clientY < midpointY) {
+                                metricsGrid.insertBefore(draggedMetric, targetCard);
+                            } else {
+                                metricsGrid.insertBefore(draggedMetric, targetCard.nextSibling);
+                            }
+                        }
+                    });
+                });
+            }
         }
 
         function initAuthHandlers() {
@@ -1868,7 +1935,7 @@
                 desc,
                 type,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                stateSnapshot: createFullSnapshot(), // Captured BEFORE mutation
+                stateSnapshot: createFullSnapshot(),
                 redoSnapshot: null,
                 undone: false
             };
@@ -2068,7 +2135,7 @@
             nameEl.textContent = nextBill.name;
             amountEl.textContent = formatCurrency(nextBill.amount);
             
-           if (diffDays === 0) {
+            if (diffDays === 0) {
                 daysEl.textContent = 'Due Today';
             } else if (diffDays === 1) {
                 daysEl.textContent = 'Due Tomorrow';
