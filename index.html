@@ -80,6 +80,43 @@
                 }
             }, 1600);
         });
+        <!-- LOGIN GATE OVERLAY -->
+<div id="auth-modal" class="fixed inset-0 bg-slate-900 z-[100] flex items-center justify-center p-4">
+    <div class="glass dark:bg-slate-800 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-700 space-y-6 text-center">
+        <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30">
+            <i class="fa-solid fa-lock"></i>
+        </div>
+        <div>
+            <h2 class="text-xl font-bold text-slate-900 dark:text-white">Welcome to FlowPay</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Please log in securely to access your financial data.</p>
+        </div>
+
+        <form id="form-login" class="space-y-4 text-left text-xs">
+            <div>
+                <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                <input type="text" id="login-username" required placeholder="Enter username" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+                <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div id="mfa-container" class="hidden space-y-1">
+                <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Multi-Factor Auth (6-Digit PIN)</label>
+                <input type="text" id="login-mfa" maxlength="6" placeholder="123456" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm tracking-widest text-center font-bold focus:ring-2 focus:ring-indigo-500">
+                <p class="text-[10px] text-slate-400 italic">For setup, your default MFA PIN is: <span class="font-bold text-indigo-400">123456</span></p>
+            </div>
+            <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition">
+                Log In
+            </button>
+        </form>
+
+        <div id="biometric-section" class="pt-2 border-t border-slate-700/50 hidden">
+            <button id="btn-biometric" class="w-full py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-xs">
+                <i class="fa-solid fa-fingerprint text-indigo-500 text-base"></i> Unlock with Fingerprint / Biometrics
+            </button>
+        </div>
+    </div>
+</div>
     </script>
 
     <div id="toast-container" class="fixed top-5 right-5 z-[70] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
@@ -672,6 +709,12 @@
         };
 
         let appState = { ...DEFAULT_STATE };
+        let authState = {
+    username: 'admin',
+    passwordHash: 'flowpay123', // In production, use hashing
+    mfaPin: '123456',
+    isLoggedIn: false
+};
         let lastFocusedElement = null;
         let cashFlowChartInstance = null;
         let showAllPastWeeks = false;
@@ -1797,6 +1840,61 @@
             initMonthSelectors();
             applyTheme();
             calculatePaycheckPreview();
+            if (window.PublicKeyCredential) {
+        document.getElementById('biometric-section').classList.remove('hidden');
+    }
+
+    const authModal = document.getElementById('auth-modal');
+    document.getElementById('form-login').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const user = document.getElementById('login-username').value.trim();
+        const pass = document.getElementById('login-password').value;
+        const mfaBox = document.getElementById('mfa-container');
+        const mfaInput = document.getElementById('login-mfa').value;
+
+        if (user === authState.username && pass === authState.passwordHash) {
+            if (mfaBox.classList.contains('hidden')) {
+                mfaBox.classList.remove('hidden');
+                showToast('Password correct. Enter your 6-digit MFA PIN.', 'info');
+                return;
+            }
+
+            if (mfaInput === authState.mfaPin) {
+                authModal.classList.add('hidden');
+                authState.isLoggedIn = true;
+                showToast('Login successful!');
+            } else {
+                showToast('Incorrect MFA PIN. Try 123456.', 'error');
+            }
+        } else {
+            showToast('Invalid username or password.', 'error');
+        }
+    });
+
+    document.getElementById('btn-biometric').addEventListener('click', async () => {
+        try {
+            if (!window.PublicKeyCredential) {
+                showToast('Biometrics not supported on this device/browser.', 'error');
+                return;
+            }
+
+            const publicKey = {
+                challenge: Uint8Array.from("flowpay_secure_challenge", c => c.charCodeAt(0)),
+                timeout: 60000,
+                userVerification: "required"
+            };
+
+            const credential = await navigator.credentials.get({ publicKey });
+            if (credential) {
+                authModal.classList.add('hidden');
+                authState.isLoggedIn = true;
+                showToast('Fingerprint verified successfully!');
+            }
+        } catch (err) {
+            console.warn('Biometric auth error:', err);
+            showToast('Biometric authentication cancelled or failed.', 'error');
+        }
+    });
 
             const calendarToggleBtn = document.getElementById('calendar-toggle-btn');
             const calendarContent = document.getElementById('calendar-collapsible-content');
