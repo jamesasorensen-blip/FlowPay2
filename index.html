@@ -28,16 +28,16 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .glass {
-            background: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.3);
         }
         .dark .glass {
-            background: rgba(30, 41, 59, 0.7);
+            background: rgba(30, 41, 59, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -46,9 +46,29 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         .dark ::-webkit-scrollbar-thumb { background: #475569; }
+
+        @keyframes successPop {
+            0% { transform: scale(0.8) translateY(-20px); opacity: 0; }
+            50% { transform: scale(1.05) translateY(0); opacity: 1; }
+            100% { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        .animate-success-pop {
+            animation: successPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
+
+    <!-- SUCCESS LOGIN ANIMATED BANNER OVERLAY -->
+    <div id="login-success-banner" class="fixed inset-0 z-[120] bg-slate-950/70 backdrop-blur-md hidden flex items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-3xl p-8 max-w-sm w-full text-center space-y-4 border border-emerald-500/30 shadow-2xl animate-success-pop">
+            <div class="w-20 h-20 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center text-4xl mx-auto shadow-lg shadow-emerald-500/20">
+                <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white">Login Successful!</h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Loading your FlowPay cash flow dashboard...</p>
+        </div>
+    </div>
 
     <!-- AUTHENTICATION & REGISTRATION MODAL GATE -->
     <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
@@ -85,53 +105,68 @@
                     <input type="text" id="auth-mfa" maxlength="6" placeholder="123456" class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm tracking-widest text-center font-bold focus:ring-2 focus:ring-indigo-500">
                     <p class="text-[10px] text-slate-400 italic">Default setup PIN is <span class="font-bold text-indigo-400">123456</span></p>
                 </div>
+
+                <div class="flex items-center justify-between pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs text-slate-600 dark:text-slate-300">
+                        <input type="checkbox" id="remember-me-checkbox" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-700">
+                        <span>Stay Logged In (Keep Active Session)</span>
+                    </label>
+                </div>
+
                 <button type="submit" id="auth-submit-btn" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition">
                     Sign In
                 </button>
             </form>
 
-            <div id="biometric-section" class="pt-2 border-t border-slate-700/50 hidden">
+            <div id="biometric-section" class="pt-2 border-t border-slate-700/50 space-y-2">
                 <button type="button" id="btn-biometric" class="w-full py-2.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-xs">
                     <i class="fa-solid fa-fingerprint text-indigo-500 text-base"></i> Unlock with Fingerprint / Biometrics
+                </button>
+                <button type="button" id="btn-register-biometric" class="text-[11px] text-indigo-500 hover:underline">
+                    Set up / Enable Biometrics on this Phone
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- SPLASH SCREEN -->
-    <div id="splash-screen" style="position: fixed; inset: 0; background-color: #0f172a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; transition: opacity 0.5s ease; pointer-events: none;">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
-            <div style="background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff; width: 72px; height: 72px; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 2.2rem; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4); animation: pulseLogo 1.5s infinite alternate;">$</div>
-            <h1 id="splash-text" style="color: #f8fafc; font-size: 1.75rem; font-weight: 800; letter-spacing: -0.025em; opacity: 0; transform: translateX(-30px); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);">FlowPay</h1>
+    <!-- LOGOUT CONFIRMATION MODAL -->
+    <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
+            <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-right-from-bracket"></i>
+            </div>
+            <div>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Confirm Log Out</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Are you sure you want to log out of your FlowPay session?</p>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button type="button" id="btn-cancel-logout" class="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200">Cancel</button>
+                <button type="button" id="btn-confirm-logout" class="flex-1 py-2.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-500 text-white shadow">Log Out</button>
+            </div>
         </div>
     </div>
-    <style>
-        @keyframes pulseLogo {
-            0% { transform: scale(1); }
-            100% { transform: scale(1.05); }
-        }
-    </style>
-    <script>
-        window.addEventListener('DOMContentLoaded', function () {
-            setTimeout(function () {
-                const textElem = document.getElementById('splash-text');
-                if (textElem) {
-                    textElem.style.opacity = '1';
-                    textElem.style.transform = 'translateX(0)';
-                }
-            }, 150);
 
-            setTimeout(function () {
-                const splash = document.getElementById('splash-screen');
-                if (splash) {
-                    splash.style.opacity = '0';
-                    setTimeout(function () { splash.remove(); }, 500);
-                }
-            }, 1600);
-        });
-    </script>
+    <!-- MOBILE EXPANDED CALENDAR DATE MODAL -->
+    <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div>
+                <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500" id="modal-date-subtitle">Selected Date</span>
+                <h3 class="font-extrabold text-xl text-slate-900 dark:text-white" id="modal-date-title">Date Details</h3>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
+            </div>
 
-    <div id="toast-container" class="fixed top-5 right-5 z-[110] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+            <div class="space-y-3 pt-2">
+                <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">Scheduled Events & Obligations</h4>
+                <div id="modal-date-events-list" class="space-y-2">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed top-5 right-5 z-[130] flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
 
     <div class="min-h-screen flex flex-col">
         <header class="sticky top-0 z-30 glass border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 flex items-center justify-between">
@@ -395,7 +430,7 @@
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calendar-days text-indigo-500"></i> Wall Calendar & Dynamic Cash Flow
                         </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Traditional wall calendar layout starting Sunday. Past days are greyed out with current week focus.</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">Traditional wall calendar layout starting Sunday. Tap any day on mobile to view full details.</p>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <button id="toggle-past-weeks-btn" class="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
@@ -742,10 +777,22 @@
             }, 3500);
         }
 
+        function triggerLoginSuccessAnimation(callback) {
+            const banner = document.getElementById('login-success-banner');
+            if (!banner) { callback(); return; }
+            banner.classList.remove('hidden');
+            setTimeout(() => {
+                banner.classList.add('hidden');
+                if (typeof callback === 'function') callback();
+            }, 1200);
+        }
+
         function checkAuthSession() {
             const authModal = document.getElementById('auth-modal');
-            const isLoggedIn = localStorage.getItem('flowpay_authenticated') === 'true';
-            if (isLoggedIn) {
+            const stayLoggedIn = localStorage.getItem('flowpay_stay_logged_in') === 'true';
+            const sessionActive = sessionStorage.getItem('flowpay_session_active') === 'true';
+
+            if (stayLoggedIn || sessionActive) {
                 authModal.classList.add('hidden');
             } else {
                 authModal.classList.remove('hidden');
@@ -855,6 +902,7 @@
                 const user = document.getElementById('auth-username').value.trim();
                 const pass = document.getElementById('auth-password').value;
                 const mfaInput = document.getElementById('auth-mfa').value;
+                const stayLoggedIn = document.getElementById('remember-me-checkbox').checked;
 
                 if (isRegisterMode) {
                     if (!user || !pass) {
@@ -863,10 +911,18 @@
                     }
                     const account = { username: user, password: pass, mfaPin: mfaInput || '123456' };
                     localStorage.setItem('flowpay_user_account', JSON.stringify(account));
-                    localStorage.setItem('flowpay_authenticated', 'true');
-                    document.getElementById('auth-modal').classList.add('hidden');
-                    showToast('Account created successfully!');
-                    updateDashboard();
+                    
+                    if (stayLoggedIn) {
+                        localStorage.setItem('flowpay_stay_logged_in', 'true');
+                    } else {
+                        localStorage.removeItem('flowpay_stay_logged_in');
+                    }
+                    sessionStorage.setItem('flowpay_session_active', 'true');
+
+                    triggerLoginSuccessAnimation(() => {
+                        document.getElementById('auth-modal').classList.add('hidden');
+                        updateDashboard();
+                    });
                 } else {
                     const savedAccountStr = localStorage.getItem('flowpay_user_account');
                     const defaultUser = 'admin';
@@ -895,54 +951,121 @@
 
                         const pinToCheck = mfaInput || (savedAccountStr ? registeredMfa : defaultMfa);
                         if (!savedAccountStr || pinToCheck === registeredMfa) {
-                            localStorage.setItem('flowpay_authenticated', 'true');
-                            document.getElementById('auth-modal').classList.add('hidden');
-                            showToast('Login successful!');
-                            updateDashboard();
+                            if (stayLoggedIn) {
+                                localStorage.setItem('flowpay_stay_logged_in', 'true');
+                            } else {
+                                localStorage.removeItem('flowpay_stay_logged_in');
+                            }
+                            sessionStorage.setItem('flowpay_session_active', 'true');
+
+                            triggerLoginSuccessAnimation(() => {
+                                document.getElementById('auth-modal').classList.add('hidden');
+                                updateDashboard();
+                            });
                         } else {
                             showToast('Incorrect MFA PIN. Try 123456.', 'error');
                         }
                     } else {
-                        showToast('Invalid username or password. Try registering if you are new.', 'error');
+                        showToast('Invalid credentials. Check username or password.', 'error');
                     }
                 }
             });
 
+            // LOGOUT CONFIRMATION PROMPT HANDLERS
+            const logoutConfirmModal = document.getElementById('modal-logout-confirm');
             document.getElementById('btn-logout').addEventListener('click', () => {
-                localStorage.removeItem('flowpay_authenticated');
+                logoutConfirmModal.classList.remove('hidden');
+                logoutConfirmModal.classList.add('flex');
+            });
+
+            document.getElementById('btn-cancel-logout').addEventListener('click', () => {
+                logoutConfirmModal.classList.remove('flex');
+                logoutConfirmModal.classList.add('hidden');
+            });
+
+            document.getElementById('btn-confirm-logout').addEventListener('click', () => {
+                localStorage.removeItem('flowpay_stay_logged_in');
+                sessionStorage.removeItem('flowpay_session_active');
+                
                 document.getElementById('auth-username').value = '';
                 document.getElementById('auth-password').value = '';
                 document.getElementById('auth-mfa').value = '';
+                
+                logoutConfirmModal.classList.remove('flex');
+                logoutConfirmModal.classList.add('hidden');
+                
                 document.getElementById('auth-modal').classList.remove('hidden');
                 showToast('Logged out successfully.');
             });
 
-            // Biometric handler with safe fallback for mobile
-            if (window.PublicKeyCredential) {
-                document.getElementById('biometric-section').classList.remove('hidden');
-            }
-
+            // BIOMETRIC AUTHENTICATION & SETUP HANDLERS
             document.getElementById('btn-biometric').addEventListener('click', async () => {
+                const credentialId = localStorage.getItem('flowpay_biometric_id');
+                
+                if (!window.PublicKeyCredential) {
+                    showToast('Biometrics not supported on this phone browser.', 'error');
+                    return;
+                }
+
+                if (!credentialId) {
+                    showToast('Biometrics not set up yet. Tap "Set up Biometrics" below.', 'info');
+                    return;
+                }
+
                 try {
-                    if (!window.PublicKeyCredential) {
-                        showToast('Biometrics not supported on this device/browser.', 'error');
-                        return;
-                    }
                     const publicKey = {
-                        challenge: Uint8Array.from("flowpay_secure_challenge", c => c.charCodeAt(0)),
+                        challenge: Uint8Array.from("flowpay_auth_challenge", c => c.charCodeAt(0)),
+                        allowCredentials: [{
+                            id: Uint8Array.from(atob(credentialId), c => c.charCodeAt(0)),
+                            type: 'public-key'
+                        }],
                         timeout: 60000,
                         userVerification: "required"
                     };
-                    const credential = await navigator.credentials.get({ publicKey });
-                    if (credential) {
-                        localStorage.setItem('flowpay_authenticated', 'true');
-                        document.getElementById('auth-modal').classList.add('hidden');
-                        showToast('Fingerprint verified successfully!');
-                        updateDashboard();
+
+                    const assertion = await navigator.credentials.get({ publicKey });
+                    if (assertion) {
+                        sessionStorage.setItem('flowpay_session_active', 'true');
+                        triggerLoginSuccessAnimation(() => {
+                            document.getElementById('auth-modal').classList.add('hidden');
+                            updateDashboard();
+                        });
                     }
                 } catch (err) {
-                    console.warn('Biometric auth error or cancelled:', err);
-                    showToast('Biometric authentication unavailable or cancelled.', 'error');
+                    console.warn('Biometric verify error:', err);
+                    showToast('Biometric unlock failed or was cancelled.', 'error');
+                }
+            });
+
+            document.getElementById('btn-register-biometric').addEventListener('click', async () => {
+                if (!window.PublicKeyCredential) {
+                    showToast('Biometrics not supported on this device/browser.', 'error');
+                    return;
+                }
+
+                try {
+                    const publicKey = {
+                        challenge: Uint8Array.from("flowpay_reg_challenge", c => c.charCodeAt(0)),
+                        rp: { name: "FlowPay App", id: window.location.hostname || "localhost" },
+                        user: {
+                            id: Uint8Array.from("flowpay_user_id", c => c.charCodeAt(0)),
+                            name: "FlowPay User",
+                            displayName: "FlowPay User"
+                        },
+                        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                        authenticatorSelection: { userVerification: "required" },
+                        timeout: 60000
+                    };
+
+                    const credential = await navigator.credentials.create({ publicKey });
+                    if (credential) {
+                        const rawId = btoa(String.fromCharCode(...new Uint8Array(credential.rawId)));
+                        localStorage.setItem('flowpay_biometric_id', rawId);
+                        showToast('Biometrics enabled! You can now log in using your fingerprint.');
+                    }
+                } catch (err) {
+                    console.warn('Biometric registration error:', err);
+                    showToast('Could not register biometrics on this phone.', 'error');
                 }
             });
         }
@@ -960,6 +1083,8 @@
                 btn.addEventListener('click', () => {
                     const modal = btn.closest('[role="dialog"]');
                     if (modal) closeModal(modal.id);
+                    const expModal = document.getElementById('modal-expanded-date');
+                    if (expModal) expModal.classList.add('hidden');
                 });
             });
 
@@ -970,6 +1095,7 @@
                             closeModal(modal.id);
                         }
                     });
+                    document.getElementById('modal-expanded-date').classList.add('hidden');
                 }
             });
 
@@ -1517,6 +1643,49 @@
             });
         }
 
+        function openExpandedDateModal(dateStr, dayProj) {
+            const expModal = document.getElementById('modal-expanded-date');
+            document.getElementById('modal-date-title').textContent = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            document.getElementById('modal-date-balance').textContent = formatCurrency(dayProj.endBalance);
+
+            const listContainer = document.getElementById('modal-date-events-list');
+            listContainer.innerHTML = '';
+
+            const hasEvents = dayProj.bills.length > 0 || dayProj.incomeItems.length > 0;
+            if (!hasEvents) {
+                listContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-4">No scheduled bills or income on this date.</p>';
+            } else {
+                dayProj.bills.forEach(b => {
+                    const card = document.createElement('div');
+                    card.className = `p-3 rounded-xl border flex justify-between items-center ${b.paid ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-400 line-through' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 text-rose-700 dark:text-rose-300'}`;
+                    card.innerHTML = `
+                        <div>
+                            <span class="font-bold text-sm block">${b.name}</span>
+                            <span class="text-[10px] uppercase font-semibold opacity-75">${b.category || 'Bill'} • ${b.paid ? 'Paid' : 'Pending'}</span>
+                        </div>
+                        <span class="font-extrabold text-sm">-${formatCurrency(b.amount)}</span>
+                    `;
+                    listContainer.appendChild(card);
+                });
+
+                dayProj.incomeItems.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 text-emerald-700 dark:text-emerald-300 flex justify-between items-center';
+                    card.innerHTML = `
+                        <div>
+                            <span class="font-bold text-sm block">${p.name}</span>
+                            <span class="text-[10px] uppercase font-semibold opacity-75">Paycheck / Deposit</span>
+                        </div>
+                        <span class="font-extrabold text-sm">+${formatCurrency(p.amount)}</span>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            }
+
+            expModal.classList.remove('hidden');
+            expModal.classList.add('flex');
+        }
+
         function renderFinancialCalendar() {
             const grid = document.getElementById('financial-calendar-grid');
             const monthSelect = document.getElementById('calendar-month-select');
@@ -1585,7 +1754,7 @@
                 const dayProj = projectionMap[dateStr] || { startBalance: appState.balance, endBalance: appState.balance, bills: [], incomeItems: [] };
 
                 const cell = document.createElement('div');
-                cell.className = 'border rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between space-y-1.5 text-[11px] sm:text-xs min-h-[100px] sm:min-h-[120px] transition ';
+                cell.className = 'border rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between space-y-1.5 text-[11px] sm:text-xs min-h-[100px] sm:min-h-[120px] transition cursor-pointer hover:ring-2 hover:ring-indigo-500/50';
 
                 if (isToday) {
                     cell.className += ' bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-500 shadow-sm ring-2 ring-indigo-500/50';
@@ -1594,6 +1763,8 @@
                 } else {
                     cell.className += ' bg-slate-50 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80';
                 }
+
+                cell.addEventListener('click', () => openExpandedDateModal(dateStr, dayProj));
 
                 const headerDiv = document.createElement('div');
                 const topRow = document.createElement('div');
@@ -1665,7 +1836,10 @@
                     delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5';
                     delBtn.title = 'Delete Paycheck';
                     delBtn.innerHTML = '<i class="fa-solid fa-trash text-[8px]"></i>';
-                    delBtn.addEventListener('click', () => deletePaycheck(p.id));
+                    delBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deletePaycheck(p.id);
+                    });
 
                     incBox.appendChild(infoDiv);
                     incBox.appendChild(delBtn);
