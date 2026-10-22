@@ -129,6 +129,36 @@
         </div>
     </div>
 
+    <!-- SETTINGS MODAL -->
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="flex items-center gap-2 text-indigo-500">
+                <i class="fa-solid fa-gear text-xl"></i>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Account Settings</h3>
+            </div>
+            <form id="form-change-password" class="space-y-3 text-xs pt-2">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300">Change Password</h4>
+                <div>
+                    <label for="settings-current-pass" class="block font-medium text-slate-600 dark:text-slate-400 mb-1">Current Password</label>
+                    <input type="password" id="settings-current-pass" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
+                </div>
+                <div>
+                    <label for="settings-new-pass" class="block font-medium text-slate-600 dark:text-slate-400 mb-1">New Password</label>
+                    <input type="password" id="settings-new-pass" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
+                </div>
+                <div>
+                    <label for="settings-confirm-pass" class="block font-medium text-slate-600 dark:text-slate-400 mb-1">Confirm New Password</label>
+                    <input type="password" id="settings-confirm-pass" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" class="close-modal-btn px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
@@ -181,6 +211,9 @@
             </div>
 
             <div class="flex items-center gap-3">
+                <button id="btn-settings" aria-label="Settings" class="p-2 rounded-xl bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
                 <button id="btn-logout" class="flex items-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs sm:text-sm font-semibold px-3 py-2 rounded-xl transition border border-rose-500/20">
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Log Out</span>
@@ -550,7 +583,10 @@
                             </h2>
                             <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
                         </div>
-                        <div class="flex items-center gap-2 self-start sm:self-auto">
+                        <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+                            <button id="toggle-hide-paid-btn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm">
+                                <span id="hide-paid-text">Hide Paid Bills</span>
+                            </button>
                             <select id="bills-month-select" class="text-xs bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-3 py-2 font-medium focus:ring-2 focus:ring-indigo-500">
                                 <!-- Populated dynamically -->
                             </select>
@@ -638,14 +674,15 @@
                     <input type="text" id="bill-name" required maxlength="80" placeholder="e.g. Electric Bill, Rent, Netflix" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
                 </div>
                 <div>
-                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category (Auto-detected from name)</label>
+                    <label for="bill-category" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Category (Auto-detected with preset icon)</label>
                     <select id="bill-category" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl focus:ring-2 focus:ring-indigo-500 text-sm">
-                        <option value="Housing">Housing</option>
-                        <option value="Utilities">Utilities</option>
-                        <option value="Subscriptions">Subscriptions</option>
-                        <option value="Insurance">Insurance</option>
-                        <option value="Credit / Loan">Credit / Loan</option>
-                        <option value="Other">Other</option>
+                        <option value="Housing">Housing 🏠</option>
+                        <option value="Utilities">Utilities ⚡</option>
+                        <option value="Subscriptions">Subscriptions 📶</option>
+                        <option value="Insurance">Insurance 🛡️</option>
+                        <option value="Credit / Loan">Credit / Loan 💳</option>
+                        <option value="Gas / Transport">Gas / Transport ⛽</option>
+                        <option value="Other">Other 📌</option>
                     </select>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
@@ -760,6 +797,17 @@
         let cashFlowChartInstance = null;
         let showAllPastWeeks = false;
         let isRegisterMode = false;
+        let hidePaidBills = false;
+
+        const CATEGORY_ICONS = {
+            'Housing': 'fa-house text-indigo-500',
+            'Utilities': 'fa-bolt text-amber-500',
+            'Subscriptions': 'fa-wifi text-sky-500',
+            'Insurance': 'fa-shield-heart text-emerald-500',
+            'Credit / Loan': 'fa-credit-card text-rose-500',
+            'Gas / Transport': 'fa-gas-pump text-orange-500',
+            'Other': 'fa-tag text-slate-400'
+        };
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -969,6 +1017,56 @@
                         showToast('Invalid credentials. Check username or password.', 'error');
                     }
                 }
+            });
+
+            // SETTINGS & PASSWORD CHANGE
+            const settingsModal = document.getElementById('modal-settings');
+            document.getElementById('btn-settings').addEventListener('click', () => {
+                document.getElementById('form-change-password').reset();
+                settingsModal.classList.remove('hidden');
+                settingsModal.classList.add('flex');
+            });
+
+            document.getElementById('form-change-password').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const currentPassInput = document.getElementById('settings-current-pass').value;
+                const newPass = document.getElementById('settings-new-pass').value;
+                const confirmPass = document.getElementById('settings-confirm-pass').value;
+
+                const savedAccountStr = localStorage.getItem('flowpay_user_account');
+                const defaultPass = 'flowpay123';
+                let currentActualPass = defaultPass;
+                let username = 'admin';
+                let mfaPin = '123456';
+
+                if (savedAccountStr) {
+                    try {
+                        const acc = JSON.parse(savedAccountStr);
+                        currentActualPass = acc.password || defaultPass;
+                        username = acc.username || username;
+                        mfaPin = acc.mfaPin || mfaPin;
+                    } catch (err) {}
+                }
+
+                if (currentPassInput !== currentActualPass) {
+                    showToast('Incorrect current password.', 'error');
+                    return;
+                }
+
+                if (newPass !== confirmPass) {
+                    showToast('New passwords do not match.', 'error');
+                    return;
+                }
+
+                if (newPass.length < 4) {
+                    showToast('Password must be at least 4 characters long.', 'error');
+                    return;
+                }
+
+                const updatedAccount = { username, password: newPass, mfaPin };
+                localStorage.setItem('flowpay_user_account', JSON.stringify(updatedAccount));
+                showToast('Password successfully updated!');
+                closeModal('modal-settings');
             });
 
             // LOGOUT CONFIRMATION PROMPT HANDLERS
@@ -1228,14 +1326,46 @@
             return cell;
         }
 
-        function logActivity(title, desc, type) {
-            appState.activity.unshift({
+        function logActivity(title, desc, type, undoData = null) {
+            const activityItem = {
+                id: Date.now(),
                 title,
                 desc,
                 type,
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            });
-            if (appState.activity.length > 20) appState.activity.pop();
+                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                stateSnapshot: JSON.parse(JSON.stringify(appState)),
+                undoData,
+                undone: false
+            };
+            appState.activity.unshift(activityItem);
+            if (appState.activity.length > 25) appState.activity.pop();
+        }
+
+        function undoActivity(id) {
+            const act = appState.activity.find(x => x.id === id);
+            if (!act || act.undone) return;
+
+            // Save current state as redo snapshot before reverting
+            act.redoSnapshot = JSON.parse(JSON.stringify(appState));
+
+            if (act.stateSnapshot) {
+                appState = JSON.parse(JSON.stringify(act.stateSnapshot));
+                act.undone = true;
+                saveData();
+                updateDashboard();
+                showToast(`Undid action: ${act.title}`);
+            }
+        }
+
+        function redoActivity(id) {
+            const act = appState.activity.find(x => x.id === id);
+            if (!act || !act.undone || !act.redoSnapshot) return;
+
+            appState = JSON.parse(JSON.stringify(act.redoSnapshot));
+            act.undone = false;
+            saveData();
+            updateDashboard();
+            showToast(`Redid action: ${act.title}`);
         }
 
         function addMonthsToDateString(dateStr, monthsToAdd) {
@@ -1488,14 +1618,18 @@
 
             const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
             const expandedBills = getExpandedBillsList();
-            const currentMonthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal));
+            
+            let currentMonthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal));
+            if (hidePaidBills) {
+                currentMonthBills = currentMonthBills.filter(b => !b.paid);
+            }
 
             if (currentMonthBills.length === 0) {
                 const tr = document.createElement('tr');
                 const td = document.createElement('td');
                 td.colSpan = 7;
                 td.className = 'text-center py-6 text-slate-400 italic';
-                td.textContent = 'No recurring bills due for this selected month.';
+                td.textContent = hidePaidBills ? 'No unpaid bills due for this selected month.' : 'No recurring bills due for this selected month.';
                 tr.appendChild(td);
                 tbody.appendChild(tr);
                 return;
@@ -1505,10 +1639,15 @@
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
                 if (bill.paid) {
-                    tr.className += ' line-through opacity-60 text-slate-400 dark:text-slate-500';
+                    tr.className += ' line-through opacity-70 text-slate-400 dark:text-slate-500';
                 }
 
-                tr.appendChild(createTextCell(bill.name, 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200'));
+                // Name with category icon
+                const nameTd = document.createElement('td');
+                nameTd.className = 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2';
+                const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
+                nameTd.innerHTML = `<i class="fa-solid ${iconClass}"></i> <span>${bill.name}</span>`;
+                tr.appendChild(nameTd);
                 
                 const catTd = document.createElement('td');
                 catTd.className = 'py-3';
@@ -1633,12 +1772,30 @@
                 textDiv.appendChild(titleSpan);
                 textDiv.appendChild(descSpan);
 
+                const rightBox = document.createElement('div');
+                rightBox.className = 'flex items-center gap-2';
+
                 const timeSpan = document.createElement('span');
                 timeSpan.className = 'text-[10px] text-slate-400';
                 timeSpan.textContent = act.time;
+                rightBox.appendChild(timeSpan);
+
+                if (act.undone && act.redoSnapshot) {
+                    const redoBtn = document.createElement('button');
+                    redoBtn.className = 'px-2 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-600 hover:bg-indigo-500/20 font-semibold transition';
+                    redoBtn.textContent = 'Redo';
+                    redoBtn.addEventListener('click', () => redoActivity(act.id));
+                    rightBox.appendChild(redoBtn);
+                } else if (!act.undone && act.stateSnapshot) {
+                    const undoBtn = document.createElement('button');
+                    undoBtn.className = 'px-2 py-0.5 rounded text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-300 font-semibold transition';
+                    undoBtn.textContent = 'Undo';
+                    undoBtn.addEventListener('click', () => undoActivity(act.id));
+                    rightBox.appendChild(undoBtn);
+                }
 
                 div.appendChild(textDiv);
-                div.appendChild(timeSpan);
+                div.appendChild(rightBox);
                 actLog.appendChild(div);
             });
         }
@@ -2178,6 +2335,14 @@
                 showAllPastWeeks = !showAllPastWeeks;
                 togglePastWeeksText.textContent = showAllPastWeeks ? 'Hide Previous Weeks' : 'Show Previous Weeks';
                 renderFinancialCalendar();
+            });
+
+            const toggleHidePaidBtn = document.getElementById('toggle-hide-paid-btn');
+            const hidePaidText = document.getElementById('hide-paid-text');
+            toggleHidePaidBtn.addEventListener('click', () => {
+                hidePaidBills = !hidePaidBills;
+                hidePaidText.textContent = hidePaidBills ? 'Show Paid Bills' : 'Hide Paid Bills';
+                renderBillsTable();
             });
 
             document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
