@@ -64,12 +64,16 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .modal-drag-handle {
+        .modal-drag-handle, .widget-drag-handle {
             cursor: grab;
             user-select: none;
         }
-        .modal-drag-handle:active {
+        .modal-drag-handle:active, .widget-drag-handle:active {
             cursor: grabbing;
+        }
+        .dragging-widget {
+            opacity: 0.4;
+            border: 2px dashed #6366f1 !important;
         }
     </style>
 </head>
@@ -149,7 +153,7 @@
         <div id="modal-card-settings" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-gear"></i>
                     <span>Account Settings</span>
                 </div>
@@ -188,7 +192,7 @@
         <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calculator"></i>
                     <span>Include Next Month Bills</span>
                 </div>
@@ -217,7 +221,7 @@
         <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calculator"></i>
                     <span id="month-bills-modal-title">Active Month Bills Coverage</span>
                 </div>
@@ -242,7 +246,7 @@
         <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl text-left">
                 <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Log Out</span>
                 </div>
@@ -270,7 +274,7 @@
         <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calendar-day"></i>
                     <span id="modal-date-title">Date Details</span>
                 </div>
@@ -284,7 +288,6 @@
 
             <p class="text-xs text-slate-500 dark:text-slate-400">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
 
-            <!-- DIRECT PAYCHECK ENTRY ON THIS DATE -->
             <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/50 space-y-2.5 text-xs">
                 <h4 class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
                     <i class="fa-solid fa-plus-circle"></i> Add Paycheck on <span id="modal-paycheck-date-label">This Date</span>
@@ -339,12 +342,16 @@
             </div>
         </header>
 
-        <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+        <!-- DASHBOARD REORDERABLE WIDGETS CONTAINER -->
+        <main id="dashboard-container" class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
             
-            <!-- SAFE-TO-SPEND PROMINENT WIDGET -->
-            <div class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/20 relative overflow-hidden">
+            <!-- WIDGET 1: SAFE-TO-SPEND PROMINENT WIDGET -->
+            <div id="widget-safespend" draggable="true" data-widget-id="safespend" class="glass rounded-3xl p-6 sm:p-8 shadow-xl bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 text-white border border-indigo-500/25 relative overflow-hidden transition-all">
+                <div class="absolute top-3 right-4 widget-drag-handle opacity-50 hover:opacity-150 cursor-grab p-2 flex items-center gap-1 text-xs text-indigo-300 bg-indigo-950/80 rounded-lg border border-indigo-500/30">
+                    <i class="fa-solid fa-arrows-up-down"></i> <span class="hidden sm:inline">Drag Widget</span>
+                </div>
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10 pt-2">
                     <div>
                         <div class="flex items-center gap-2 relative">
                             <span class="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full border border-indigo-500/30">
@@ -395,105 +402,113 @@
                 </div>
             </div>
 
-            <!-- 4 CORE METRIC CARDS -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                    <div class="flex items-center justify-between relative">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
-                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="balance">
-                                <i class="fa-solid fa-circle-info"></i>
+            <!-- WIDGET 2: 4 CORE METRIC CARDS -->
+            <div id="widget-metrics" draggable="true" data-widget-id="metrics" class="relative transition-all">
+                <div class="absolute top-2 right-3 z-10 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Metrics
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 sm:pt-0">
+                    <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <div class="flex items-center justify-between relative">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
+                                <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="balance">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                                <div id="info-pop-balance" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                    <strong>Current Balance:</strong> Manually updated liquid funds available across your primary checking or cash accounts.
+                                </div>
+                            </div>
+                            <button id="open-balance-btn" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit
                             </button>
-                            <div id="info-pop-balance" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
-                                <strong>Current Balance:</strong> Manually updated liquid funds available across your primary checking or cash accounts.
-                            </div>
                         </div>
-                        <button id="open-balance-btn" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
-                            <i class="fa-solid fa-pen-to-square"></i> Edit
-                        </button>
+                        <div class="mt-2">
+                            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
+                                <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
+                            </p>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                            <span class="text-slate-500">Sync Status:</span>
+                            <span class="font-medium text-amber-600 dark:text-amber-400">Manual Entry</span>
+                        </div>
                     </div>
-                    <div class="mt-2">
-                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">
-                            <i class="fa-solid fa-circle-check text-emerald-500"></i> Manually updated
-                        </p>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-                        <span class="text-slate-500">Sync Status:</span>
-                        <span class="font-medium text-amber-600 dark:text-amber-400">Manual Entry</span>
-                    </div>
-                </div>
 
-                <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">No bills</span>
-                    </div>
-                    <div class="mt-2">
-                        <div class="flex justify-between items-baseline gap-2">
-                            <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 truncate" id="next-bill-name">--</h3>
-                            <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400" id="next-bill-amount">$0.00</span>
+                    <div class="glass rounded-2xl p-5 shadow-sm border-l-4 border-indigo-500 relative flex flex-col justify-between bg-gradient-to-br from-indigo-500/5 to-transparent">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Next Upcoming Bill</span>
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 font-medium" id="next-bill-days">No bills</span>
                         </div>
-                        <div class="mt-2 space-y-1">
-                            <div class="flex justify-between text-xs">
-                                <span class="text-slate-500">Amount Needed:</span>
-                                <span class="font-semibold" id="next-bill-needed">$0.00</span>
+                        <div class="mt-2">
+                            <div class="flex justify-between items-baseline gap-2">
+                                <h3 class="font-bold text-lg text-slate-800 dark:text-slate-100 truncate" id="next-bill-name">--</h3>
+                                <span class="text-xl font-bold text-indigo-600 dark:text-indigo-400" id="next-bill-amount">$0.00</span>
                             </div>
-                            <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                                <div id="next-bill-progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+                            <div class="mt-2 space-y-1">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-slate-500">Amount Needed:</span>
+                                    <span class="font-semibold" id="next-bill-needed">$0.00</span>
+                                </div>
+                                <div class="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
+                                    <div id="next-bill-progress" class="bg-indigo-600 h-full transition-all duration-500" style="width: 0%"></div>
+                                </div>
                             </div>
                         </div>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
                     </div>
-                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
-                </div>
 
-                <!-- Active Month Bills Metric Card -->
-                <div id="btn-open-active-month-bills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition">
-                    <div class="flex items-center justify-between relative">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Month Bills</span>
-                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="active-bills">
-                                <i class="fa-solid fa-circle-info"></i>
+                    <!-- Active Month Bills Metric Card -->
+                    <div id="btn-open-active-month-bills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition">
+                        <div class="flex items-center justify-between relative">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Month Bills</span>
+                                <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="active-bills">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                                <div id="info-pop-active-bills" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                    <strong>Active Month Bills:</strong> Total sum of recurring obligations scheduled for the selected month. Click card to see full bill coverage breakdown.
+                                </div>
+                            </div>
+                            <span class="text-xs text-indigo-500 font-semibold">View List <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
+                        </div>
+                        <div class="mt-2">
+                            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
+                            </div>
+                        </div>
+                        <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                            <span class="text-slate-500">Net Surplus / Deficit:</span>
+                            <span id="net-surplus-amount" class="font-bold">$0.00</span>
+                        </div>
+                    </div>
+
+                    <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Savings Goal</span>
+                            <button id="open-savings-btn" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
+                                <i class="fa-solid fa-bullseye"></i> Edit Goal
                             </button>
-                            <div id="info-pop-active-bills" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
-                                <strong>Active Month Bills:</strong> Total sum of recurring obligations scheduled for the selected month. Click card to see full bill coverage breakdown.
-                            </div>
                         </div>
-                        <span class="text-xs text-indigo-500 font-semibold">View List <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
-                    </div>
-                    <div class="mt-2">
-                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
-                        <div class="flex items-center gap-2 mt-2">
-                            <span id="coverage-status-badge" class="px-2 py-0.5 rounded-md text-xs font-semibold">Checking...</span>
+                        <div class="mt-2">
+                            <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Target monthly savings cushion</p>
                         </div>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-                        <span class="text-slate-500">Net Surplus / Deficit:</span>
-                        <span id="net-surplus-amount" class="font-bold">$0.00</span>
-                    </div>
-                </div>
-
-                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between bg-gradient-to-br from-emerald-500/5 to-transparent">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Target Savings Goal</span>
-                        <button id="open-savings-btn" class="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 text-xs font-medium">
-                            <i class="fa-solid fa-bullseye"></i> Edit Goal
-                        </button>
-                    </div>
-                    <div class="mt-2">
-                        <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="required-weekly-income">$0.00</div>
-                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Target monthly savings cushion</p>
-                    </div>
-                    <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
-                        <span class="text-slate-500">Current Goal Target:</span>
-                        <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
+                        <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs">
+                            <span class="text-slate-500">Current Goal Target:</span>
+                            <span id="display-savings-goal" class="font-semibold text-emerald-600 dark:text-emerald-400">$0.00/mo</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
-            <div id="paycheck-calculator-card" class="glass rounded-2xl p-6 shadow-sm space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <!-- WIDGET 3: FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
+            <div id="widget-calculator" draggable="true" data-widget-id="calculator" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
+                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Calculator
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 sm:pt-0">
                     <div class="flex items-center gap-2 relative">
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Tax Calculator
@@ -614,9 +629,12 @@
                 </div>
             </div>
 
-            <!-- INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
-            <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <!-- WIDGET 4: INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
+            <div id="widget-calendar" draggable="true" data-widget-id="calendar" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
+                <div class="absolute top-4 right-4 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Calendar
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 sm:pt-0">
                     <div class="flex items-center gap-2 relative">
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calendar-days text-indigo-500"></i> Wall Calendar & Dynamic Cash Flow
@@ -661,8 +679,12 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+            <!-- WIDGET 5: QUICK SPEND & CASH FLOW CHART SECTION -->
+            <div id="widget-charts" draggable="true" data-widget-id="charts" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Section
+                </div>
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between pt-8 lg:pt-6">
                     <div>
                         <div class="flex items-center justify-between mb-4">
                             <div class="flex items-center gap-2 relative">
@@ -717,7 +739,7 @@
                     </div>
                 </div>
 
-                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between pt-8 lg:pt-6">
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-2 relative">
                             <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -752,9 +774,12 @@
                 </div>
             </div>
 
-            <!-- RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
+            <!-- WIDGET 6: RECURRING BILLS SCHEDULE & RECENT ACTIVITY -->
+            <div id="widget-bills" draggable="true" data-widget-id="bills" class="grid grid-cols-1 lg:grid-cols-3 gap-6 relative transition-all">
+                <div class="absolute top-2 right-3 widget-drag-handle opacity-50 hover:opacity-100 cursor-grab px-2.5 py-1 text-[11px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-10">
+                    <i class="fa-solid fa-arrows-up-down"></i> Drag Section
+                </div>
+                <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4 pt-8 lg:pt-6">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div class="flex items-center gap-2 relative">
                             <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -797,7 +822,7 @@
                     </div>
                 </div>
 
-                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+                <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between pt-8 lg:pt-6">
                     <div>
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center gap-2 relative">
@@ -820,6 +845,7 @@
                     </div>
                 </div>
             </div>
+
         </main>
     </div>
 
@@ -829,7 +855,7 @@
         <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <span>Edit Paycheck</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -869,7 +895,7 @@
         <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <span id="modal-bill-title">Add Recurring Bill</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -940,7 +966,7 @@
         <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <span id="modal-balance-title">Update Current Balance</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -970,7 +996,7 @@
         <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <span id="modal-buffer-title">Emergency Cash Buffer</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1000,7 +1026,7 @@
         <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" title="Drag to reposition"></i>
                     <span id="modal-savings-title">Set Monthly Savings Goal</span>
                 </div>
                 <div class="flex items-center gap-2">
@@ -1027,6 +1053,34 @@
 
     <!-- APPLICATION JAVASCRIPT -->
     <script>
+        // Consistent Local Date Utilities (Avoids toISOString UTC shift)
+        function getLocalDateStr(date = new Date()) {
+            const y = date.getFullYear();
+            const m = String(date.getMonth() + 1).padStart(2, '0');
+            const d = String(date.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+
+        function parseLocalDate(dateStr) {
+            if (!dateStr) return new Date();
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, (m || 1) - 1, d || 1);
+        }
+
+        function addMonthsToDateString(dateStr, monthsToAdd) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const target = new Date(y, m - 1 + monthsToAdd, 1);
+            const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+            const safeDay = Math.min(d, daysInMonth);
+            return getLocalDateStr(new Date(target.getFullYear(), target.getMonth(), safeDay));
+        }
+
+        function addDaysToDateString(dateStr, daysToAdd) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const target = new Date(y, m - 1, d + daysToAdd);
+            return getLocalDateStr(target);
+        }
+
         const DEFAULT_STATE = {
             balance: 500,
             emergencyBuffer: 75,
@@ -1035,8 +1089,10 @@
             savingsGoal: 200,
             bills: [],
             paychecks: [],
+            paidOccurrences: [], // Tracks bill payments per occurrence ("billId_YYYY-MM-DD")
             includedNextMonthBillIds: [],
             modalPositions: {},
+            widgetOrder: ['safespend', 'metrics', 'calculator', 'calendar', 'charts', 'bills'],
             activity: [],
             theme: 'light'
         };
@@ -1104,10 +1160,27 @@
                 appState = {
                     ...DEFAULT_STATE,
                     ...saved,
-                    bills: Array.isArray(saved.bills) ? saved.bills : [],
-                    paychecks: Array.isArray(saved.paychecks) ? saved.paychecks : [],
-                    includedNextMonthBillIds: Array.isArray(saved.includedNextMonthBillIds) ? saved.includedNextMonthBillIds : [],
+                    bills: Array.isArray(saved.bills) ? saved.bills.map(b => ({
+                        id: Number(b.id) || Date.now(),
+                        name: String(b.name || 'Unnamed Bill'),
+                        category: String(b.category || 'Other'),
+                        amount: Number(b.amount) || 0,
+                        frequency: ['weekly', 'monthly'].includes(b.frequency) ? b.frequency : 'monthly',
+                        dueDate: String(b.dueDate || getLocalDateStr()),
+                        repeatType: ['forever', 'until'].includes(b.repeatType) ? b.repeatType : 'forever',
+                        endDate: b.endDate ? String(b.endDate) : null
+                    })) : [],
+                    paychecks: Array.isArray(saved.paychecks) ? saved.paychecks.map(p => ({
+                        id: Number(p.id) || Date.now(),
+                        name: String(p.name || 'Paycheck'),
+                        amount: Number(p.amount) || 0,
+                        gross: Number(p.gross || p.amount) || 0,
+                        date: String(p.date || getLocalDateStr())
+                    })) : [],
+                    paidOccurrences: Array.isArray(saved.paidOccurrences) ? saved.paidOccurrences : [],
+                    includedNextMonthBillIds: Array.isArray(saved.includedNextMonthBillIds) ? saved.includedNextMonthBillIds.map(Number) : [],
                     modalPositions: saved.modalPositions || {},
+                    widgetOrder: Array.isArray(saved.widgetOrder) ? saved.widgetOrder : DEFAULT_STATE.widgetOrder,
                     activity: Array.isArray(saved.activity) ? saved.activity : [],
                     theme: saved.theme === 'dark' ? 'dark' : 'light'
                 };
@@ -1118,6 +1191,7 @@
                 }
 
                 sortBillsByDate();
+                sortPaychecksByDate();
             } catch (error) {
                 appState = { ...DEFAULT_STATE };
                 console.warn('Could not load FlowPay data:', error);
@@ -1241,6 +1315,61 @@
                         showToast('Modal position saved permanently!');
                     });
                 }
+            });
+        }
+
+        function initDashboardWidgetReordering() {
+            const container = document.getElementById('dashboard-container');
+            if (!container) return;
+
+            if (Array.isArray(appState.widgetOrder)) {
+                appState.widgetOrder.forEach(id => {
+                    const widget = container.querySelector(`[data-widget-id="${id}"]`);
+                    if (widget) container.appendChild(widget);
+                });
+            }
+
+            let draggedWidget = null;
+
+            const widgets = container.querySelectorAll('[draggable="true"]');
+            widgets.forEach(widget => {
+                widget.addEventListener('dragstart', (e) => {
+                    if (!e.target.closest('.widget-drag-handle') && e.target !== widget) {
+                        e.preventDefault();
+                        return;
+                    }
+                    draggedWidget = widget;
+                    widget.classList.add('dragging-widget');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                widget.addEventListener('dragend', () => {
+                    widget.classList.remove('dragging-widget');
+                    draggedWidget = null;
+                    
+                    const newOrder = [];
+                    container.querySelectorAll('[data-widget-id]').forEach(w => {
+                        newOrder.push(w.dataset.widgetId);
+                    });
+                    appState.widgetOrder = newOrder;
+                    saveData();
+                    showToast('Dashboard layout updated!');
+                });
+
+                widget.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    const targetWidget = e.target.closest('[draggable="true"]');
+                    if (targetWidget && targetWidget !== draggedWidget && draggedWidget) {
+                        const rect = targetWidget.getBoundingClientRect();
+                        const midpoint = rect.top + rect.height / 2;
+                        if (e.clientY < midpoint) {
+                            container.insertBefore(draggedWidget, targetWidget);
+                        } else {
+                            container.insertBefore(draggedWidget, targetWidget.nextSibling);
+                        }
+                    }
+                });
             });
         }
 
@@ -1601,7 +1730,6 @@
                 if (el) el.addEventListener('input', calculatePaycheckPreview);
             });
 
-            // DIRECT SAVE PAYCHECK FROM CALENDAR DATE MODAL
             document.getElementById('btn-save-paycheck-on-date').addEventListener('click', () => {
                 const nameInput = document.getElementById('modal-paycheck-name');
                 const amountInput = document.getElementById('modal-paycheck-amount');
@@ -1617,6 +1745,7 @@
                         gross: amount,
                         date: selectedCalendarDate
                     });
+                    sortPaychecksByDate();
                     saveData();
                     updateDashboard();
                     nameInput.value = '';
@@ -1700,6 +1829,10 @@
             appState.bills.sort((a, b) => a.dueDate.localeCompare(b.dueDate));
         }
 
+        function sortPaychecksByDate() {
+            appState.paychecks.sort((a, b) => a.date.localeCompare(b.date));
+        }
+
         function formatCurrency(amount) {
             return new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -1723,6 +1856,7 @@
                 savingsGoal: appState.savingsGoal,
                 bills: JSON.parse(JSON.stringify(appState.bills)),
                 paychecks: JSON.parse(JSON.stringify(appState.paychecks)),
+                paidOccurrences: [...appState.paidOccurrences],
                 includedNextMonthBillIds: [...appState.includedNextMonthBillIds]
             };
         }
@@ -1734,7 +1868,7 @@
                 desc,
                 type,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                stateSnapshot: createFullSnapshot(),
+                stateSnapshot: createFullSnapshot(), // Captured BEFORE mutation
                 redoSnapshot: null,
                 undone: false
             };
@@ -1757,6 +1891,7 @@
                 appState.savingsGoal = snap.savingsGoal;
                 appState.bills = JSON.parse(JSON.stringify(snap.bills));
                 appState.paychecks = JSON.parse(JSON.stringify(snap.paychecks));
+                appState.paidOccurrences = [...(snap.paidOccurrences || [])];
                 appState.includedNextMonthBillIds = [...(snap.includedNextMonthBillIds || [])];
                 
                 act.undone = true;
@@ -1778,27 +1913,13 @@
             appState.savingsGoal = snap.savingsGoal;
             appState.bills = JSON.parse(JSON.stringify(snap.bills));
             appState.paychecks = JSON.parse(JSON.stringify(snap.paychecks));
+            appState.paidOccurrences = [...(snap.paidOccurrences || [])];
             appState.includedNextMonthBillIds = [...(snap.includedNextMonthBillIds || [])];
 
             act.undone = false;
             saveData();
             updateDashboard();
             showToast(`Redid action: ${act.title}`);
-        }
-
-        function addMonthsToDateString(dateStr, monthsToAdd) {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            const target = new Date(y, m - 1 + monthsToAdd, 1);
-            const daysInMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
-            const safeDay = Math.min(d, daysInMonth);
-            target.setDate(safeDay);
-            return target.toISOString().split('T')[0];
-        }
-
-        function addDaysToDateString(dateStr, daysToAdd) {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            const target = new Date(y, m - 1, d + daysToAdd);
-            return target.toISOString().split('T')[0];
         }
 
         function getOccurrencesForBill(bill, maxMonthsAhead = 12) {
@@ -1808,17 +1929,21 @@
 
             const limitDate = new Date();
             limitDate.setMonth(limitDate.getMonth() + maxMonthsAhead);
-            const limitStr = limitDate.toISOString().split('T')[0];
+            const limitStr = getLocalDateStr(limitDate);
 
             let count = 0;
             while (count < 100) {
                 if (endDate && currentDueDate > endDate) break;
                 if (currentDueDate > limitStr) break;
 
+                const occurrenceKey = `${bill.id}_${currentDueDate}`;
+                const isPaid = appState.paidOccurrences.includes(occurrenceKey);
+
                 occurrences.push({
                     ...bill,
                     dueDate: currentDueDate,
-                    paid: count === 0 ? bill.paid : false
+                    occurrenceKey,
+                    paid: isPaid
                 });
 
                 count++;
@@ -1851,7 +1976,7 @@
             for (let i = 0; i <= 90; i++) {
                 const d = new Date(startDate);
                 d.setDate(startDate.getDate() + i);
-                const dateStr = d.toISOString().split('T')[0];
+                const dateStr = getLocalDateStr(d);
                 timeline[dateStr] = {
                     date: dateStr,
                     income: 0,
@@ -1902,7 +2027,7 @@
         }
 
         function getNextPaycheckDate() {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalDateStr();
             const upcoming = appState.paychecks
                 .filter(p => p.date >= todayStr)
                 .sort((a, b) => a.date.localeCompare(b.date));
@@ -1910,7 +2035,7 @@
         }
 
         function updateNextUpcomingBillCard() {
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalDateStr();
             const expandedBills = getExpandedBillsList();
             const unpaidBills = expandedBills
                 .filter(b => !b.paid && b.dueDate >= todayStr)
@@ -1936,14 +2061,14 @@
             const nextBill = unpaidBills[0];
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const due = new Date(nextBill.dueDate);
+            const due = parseLocalDate(nextBill.dueDate);
             due.setHours(0, 0, 0, 0);
             const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
 
             nameEl.textContent = nextBill.name;
             amountEl.textContent = formatCurrency(nextBill.amount);
             
-            if (diffDays === 0) {
+           if (diffDays === 0) {
                 daysEl.textContent = 'Due Today';
             } else if (diffDays === 1) {
                 daysEl.textContent = 'Due Tomorrow';
@@ -1970,7 +2095,7 @@
         function getNextMonthBills() {
             const now = new Date();
             const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-            const nextMonthVal = nextMonth.toISOString().slice(0, 7);
+            const nextMonthVal = getLocalDateStr(nextMonth).slice(0, 7);
             const expandedBills = getExpandedBillsList();
             return expandedBills.filter(b => b.dueDate.startsWith(nextMonthVal) && !b.paid);
         }
@@ -2026,7 +2151,7 @@
 
         function openActiveMonthBillsModal() {
             const billsMonthSelect = document.getElementById('bills-month-select');
-            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : getLocalDateStr().slice(0, 7);
             
             const [y, m] = selectedMonthVal.split('-');
             const monthName = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -2093,9 +2218,10 @@
         function updateDashboard() {
             applyTheme();
             sortBillsByDate();
+            sortPaychecksByDate();
 
             const nextPayDate = getNextPaycheckDate();
-            const todayStr = new Date().toISOString().split('T')[0];
+            const todayStr = getLocalDateStr();
 
             const expandedBills = getExpandedBillsList();
             const unpaidBillsBeforeNextPay = expandedBills.filter(b => {
@@ -2105,7 +2231,7 @@
                 }
                 const limitDate = new Date();
                 limitDate.setDate(limitDate.getDate() + 14);
-                return b.dueDate >= todayStr && b.dueDate <= limitDate.toISOString().split('T')[0];
+                return b.dueDate >= todayStr && b.dueDate <= getLocalDateStr(limitDate);
             });
 
             const billsDueTotal = unpaidBillsBeforeNextPay.reduce((acc, b) => acc + b.amount, 0);
@@ -2132,7 +2258,7 @@
             document.getElementById('display-savings-goal').textContent = `${formatCurrency(appState.savingsGoal)}/mo`;
 
             const billsMonthSelect = document.getElementById('bills-month-select');
-            const selectedBillsMonth = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            const selectedBillsMonth = billsMonthSelect ? billsMonthSelect.value : getLocalDateStr().slice(0, 7);
             const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedBillsMonth));
             const monthBillsTotal = monthBills.reduce((acc, b) => acc + b.amount, 0);
             document.getElementById('display-bills-total').textContent = formatCurrency(monthBillsTotal);
@@ -2164,7 +2290,7 @@
             const billsMonthSelect = document.getElementById('bills-month-select');
             tbody.innerHTML = '';
 
-            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : getLocalDateStr().slice(0, 7);
             const expandedBills = getExpandedBillsList();
             
             let currentMonthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal));
@@ -2229,7 +2355,7 @@
                 const payBtn = document.createElement('button');
                 payBtn.className = 'text-indigo-600 hover:text-indigo-800 font-medium text-xs';
                 payBtn.textContent = bill.paid ? 'Unpaid' : 'Pay';
-                payBtn.addEventListener('click', () => toggleBillPaid(bill.id));
+                payBtn.addEventListener('click', () => toggleBillPaid(bill.id, bill.occurrenceKey, bill.amount, bill.name));
                 actionsTd.appendChild(payBtn);
 
                 const delBtn = document.createElement('button');
@@ -2260,8 +2386,10 @@
                 return;
             }
 
+            const sortedPaychecks = [...appState.paychecks].sort((a, b) => a.date.localeCompare(b.date));
             let runningPreviewBal = appState.balance;
-            appState.paychecks.forEach(p => {
+            
+            sortedPaychecks.forEach(p => {
                 runningPreviewBal += p.amount;
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
@@ -2350,7 +2478,7 @@
         function openExpandedDateModal(dateStr, dayProj) {
             selectedCalendarDate = dateStr;
             
-            const formattedDateStr = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const formattedDateStr = parseLocalDate(dateStr).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             document.getElementById('modal-date-title').textContent = formattedDateStr;
             document.getElementById('modal-paycheck-date-label').textContent = dateStr;
             document.getElementById('modal-date-balance').textContent = formatCurrency(dayProj.endBalance);
@@ -2412,7 +2540,7 @@
 
             const today = new Date();
             today.setHours(0, 0, 0, 0);
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = getLocalDateStr(today);
 
             const currentDayOfWeek = today.getDay();
             const currentWeekStart = new Date(today);
@@ -2448,7 +2576,7 @@
 
             cells.forEach(item => {
                 const dateObj = item.dateObj;
-                const dateStr = dateObj.toISOString().split('T')[0];
+                const dateStr = getLocalDateStr(dateObj);
                 const isToday = dateStr === todayStr;
                 const isPast = dateStr < todayStr;
 
@@ -2660,6 +2788,7 @@
                     gross: res.gross,
                     date
                 });
+                sortPaychecksByDate();
                 saveData();
                 updateDashboard();
                 document.getElementById('form-paycheck-calc').reset();
@@ -2698,6 +2827,7 @@
                     p.amount = amount;
                     p.date = date;
                 }
+                sortPaychecksByDate();
                 saveData();
                 updateDashboard();
                 closeModal('modal-edit-paycheck');
@@ -2785,8 +2915,7 @@
                         frequency,
                         dueDate,
                         repeatType,
-                        endDate,
-                        paid: false
+                        endDate
                     });
                 }
 
@@ -2806,37 +2935,25 @@
             updateDashboard();
         }
 
-        function toggleBillPaid(id) {
-            const bill = appState.bills.find(b => b.id === id);
-            if (bill) {
-                bill.paid = !bill.paid;
-                if (bill.paid) {
-                    logActivity('Paid Bill', `Paid ${formatCurrency(bill.amount)} for ${bill.name}`, 'expense');
-                    appState.balance -= bill.amount;
-                    
-                    let nextDate;
-                    if (bill.frequency === 'monthly') {
-                        nextDate = addMonthsToDateString(bill.dueDate, 1);
-                    } else if (bill.frequency === 'weekly') {
-                        nextDate = addDaysToDateString(bill.dueDate, 7);
-                    }
-
-                    if (nextDate) {
-                        if (bill.repeatType === 'until' && bill.endDate && nextDate > bill.endDate) {
-                            logActivity('Bill Completed', `${bill.name} reached its end date (${bill.endDate}).`, 'info');
-                        } else {
-                            bill.dueDate = nextDate;
-                            bill.paid = false;
-                        }
-                    }
-                } else {
-                    logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
-                    appState.balance += bill.amount;
-                }
-                sortBillsByDate();
-                saveData();
-                updateDashboard();
+        function toggleBillPaid(id, occurrenceKey, amount, name) {
+            const isCurrentlyPaid = appState.paidOccurrences.includes(occurrenceKey);
+            
+            if (isCurrentlyPaid) {
+                logActivity('Unpaid Bill', `Reverted payment status for ${name}`, 'info');
+            } else {
+                logActivity('Paid Bill', `Paid ${formatCurrency(amount)} for ${name}`, 'expense');
             }
+
+            if (isCurrentlyPaid) {
+                appState.paidOccurrences = appState.paidOccurrences.filter(k => k !== occurrenceKey);
+                appState.balance += amount;
+            } else {
+                appState.paidOccurrences.push(occurrenceKey);
+                appState.balance -= amount;
+            }
+
+            saveData();
+            updateDashboard();
         }
 
         function handleLogSpend(e) {
@@ -2862,6 +2979,7 @@
             initInfoPopups();
             initModals();
             initDraggableModals();
+            initDashboardWidgetReordering();
             initMonthSelectors();
             applyTheme();
             calculatePaycheckPreview();
@@ -2930,6 +3048,7 @@
                 document.getElementById('bill-id').value = '';
                 document.getElementById('bill-repeat-type').value = 'forever';
                 document.getElementById('bill-end-date-container').classList.add('hidden');
+                document.getElementById('bill-due-date').value = getLocalDateStr();
                 openModal('modal-bill', e.currentTarget);
             });
             document.getElementById('clear-activity-btn').addEventListener('click', () => {
