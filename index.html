@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FlowPay - Personal Finance & Cash Flow Planner</title>
-    <!-- Tailwind CSS -->
+    <title>FlowPay - Financial Clarity & Cash Flow Engine</title>
+
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -13,40 +14,79 @@
                 extend: {
                     colors: {
                         brand: {
-                            50: '#f0f3ff',
+                            50: '#eef2ff',
                             100: '#e0e7ff',
+                            400: '#818cf8',
                             500: '#6366f1',
                             600: '#4f46e5',
                             700: '#4338ca',
+                            900: '#312e81',
+                        },
+                        glass: {
+                            light: 'rgba(255, 255, 255, 0.75)',
+                            dark: 'rgba(15, 23, 42, 0.75)',
+                            borderLight: 'rgba(255, 255, 255, 0.4)',
+                            borderDark: 'rgba(255, 255, 255, 0.1)'
                         }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
                     }
                 }
             }
-        }
+        };
     </script>
+
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
     <!-- FontAwesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.com/npm/chart.js"></script>
-    <!-- Custom Glassmorphism Styles -->
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <style>
-        .glass {
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+        
+        .glass-panel {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
         }
-        .dark .glass {
-            background: rgba(30, 41, 59, 0.75);
+        
+        .dark .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .paid-line {
-            text-decoration: line-through;
-            opacity: 0.6;
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
-        /* Custom Scrollbar */
+
+        .dark .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Custom Scrollbars */
         ::-webkit-scrollbar {
             width: 6px;
             height: 6px;
@@ -55,1061 +95,1218 @@
             background: transparent;
         }
         ::-webkit-scrollbar-thumb {
-            background: rgba(156, 163, 175, 0.5);
+            background: rgba(156, 163, 175, 0.4);
             border-radius: 9999px;
+        }
+        .dark ::-webkit-scrollbar-thumb {
+            background: rgba(75, 85, 99, 0.5);
+        }
+
+        /* Calendar Event Pill Truncation */
+        .event-pill {
+            touch-action: manipulation;
         }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
 
-    <!-- AUTHENTICATION MODAL OVERLAY -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-        <div class="glass dark:bg-slate-800/90 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 text-center relative overflow-hidden">
-            <!-- App Logo Icon -->
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30">
-                <i class="fa-solid fa-wallet"></i>
-            </div>
-            
-            <div>
-                <h2 class="text-2xl font-black tracking-tight text-slate-900 dark:text-white">Welcome to FlowPay</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Manage your paychecks, bills & cash flow securely.</p>
-            </div>
+<body class="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-100 min-h-screen antialiased flex flex-col">
 
-            <!-- Login / Register Tab Toggles -->
-            <div class="grid grid-cols-2 gap-1 p-1 bg-slate-200/80 dark:bg-slate-700/80 rounded-xl text-xs font-semibold">
-                <button id="tab-login" onclick="switchAuthTab('login')" class="py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition">
-                    <i class="fa-solid fa-right-to-bracket mr-1"></i> Log In
-                </button>
-                <button id="tab-register" onclick="switchAuthTab('register')" class="py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition">
-                    <i class="fa-solid fa-user-plus mr-1"></i> Register
-                </button>
+    <!-- AUTHENTICATION OVERLAY -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
+        <div class="glass-panel w-full max-w-md p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden border border-indigo-500/20">
+            <!-- Glow background -->
+            <div class="absolute -top-20 -right-20 w-40 h-40 bg-indigo-500/30 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500/30 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white text-2xl shadow-lg shadow-indigo-500/30 mb-3">
+                    <i class="fa-solid font-bold fa-bolt"></i>
+                </div>
+                <h2 class="text-2xl font-bold tracking-tight">Flow<span class="gradient-text">Pay</span></h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1" id="authSubtitle">Secure Financial Cash Flow Engine</p>
             </div>
 
-            <!-- LOGIN FORM -->
-            <form id="form-login" onsubmit="handleAuthLogin(event)" class="space-y-3.5 text-left text-xs">
+            <!-- Auth Toggle Tabs -->
+            <div class="flex bg-slate-200/60 dark:bg-slate-800/60 p-1 rounded-xl mb-6">
+                <button id="tabLogin" onclick="switchAuthTab('login')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white">Sign In</button>
+                <button id="tabRegister" onclick="switchAuthTab('register')" class="flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white">Register</button>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleAuthLogin(event)" class="space-y-4">
                 <div>
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
-                    <input type="text" id="login-username" required placeholder="Enter username" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Username</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-user absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="text" id="loginUser" required value="admin" class="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
                 </div>
                 <div>
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
-                    <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Password</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-lock absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="password" id="loginPass" required value="flowpay123" class="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
                 </div>
-                
-                <!-- MFA Step Container -->
-                <div id="mfa-container" class="hidden space-y-1 pt-1 border-t border-slate-200 dark:border-slate-700">
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Step 2: Enter 6-Digit MFA PIN</label>
-                    <input type="password" id="login-mfa" maxlength="6" placeholder="••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <p class="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium text-center mt-1">Enter your 6-digit security PIN to complete login.</p>
+                <div>
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">6-Digit Security PIN</label>
+                    <div class="relative">
+                        <i class="fa-solid fa-key absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                        <input type="password" maxlength="6" id="loginPin" required value="123456" placeholder="123456" class="w-full pl-9 pr-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none tracking-widest">
+                    </div>
                 </div>
 
-                <button type="submit" id="btn-login-submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
-                    <span>Continue</span> <i class="fa-solid fa-arrow-right text-xs"></i>
-                </button>
+                <div class="pt-2 flex flex-col gap-2">
+                    <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-xs shadow-lg shadow-indigo-500/25 transition">
+                        Authenticate Account
+                    </button>
+                    <button type="button" onclick="handleBiometricAuth()" class="w-full py-2.5 px-4 rounded-xl border border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-medium text-xs transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-fingerprint text-base"></i> Unlock with Biometrics
+                    </button>
+                </div>
             </form>
 
-            <!-- REGISTER FORM -->
-            <form id="form-register" onsubmit="handleAuthRegister(event)" class="hidden space-y-3.5 text-left text-xs">
+            <!-- Register Form (Hidden by default) -->
+            <form id="registerForm" onsubmit="handleAuthRegister(event)" class="space-y-4 hidden">
                 <div>
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Choose Username</label>
-                    <input type="text" id="reg-username" required placeholder="e.g. john_doe" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">New Username</label>
+                    <input type="text" id="regUser" required placeholder="john_doe" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Create Password</label>
-                    <input type="password" id="reg-password" required placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Set Password</label>
+                    <input type="password" id="regPass" required placeholder="••••••••" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
                 </div>
                 <div>
-                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Set 6-Digit MFA Security PIN</label>
-                    <input type="text" id="reg-mfa" required maxlength="6" pattern="\d{6}" placeholder="e.g. 123456" class="w-full px-3.5 py-2.5 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-sm tracking-widest text-center font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <p class="text-[10px] text-slate-500 dark:text-slate-400 mt-1">This PIN acts as your second factor during secure sign in.</p>
+                    <label class="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">Create 6-Digit PIN</label>
+                    <input type="password" maxlength="6" id="regPin" required placeholder="654321" class="w-full px-3 py-2.5 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 focus:outline-none tracking-widest">
                 </div>
-
-                <button type="submit" class="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition">
-                    Create Account & Log In
-                </button>
+                <div class="pt-2">
+                    <button type="submit" class="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-lg shadow-emerald-500/25 transition">
+                        Create FlowPay Account
+                    </button>
+                </div>
             </form>
 
-            <!-- Biometric Section -->
-            <div id="biometric-section" class="pt-3 border-t border-slate-200 dark:border-slate-700">
-                <button type="button" onclick="handleBiometricLogin()" class="w-full py-2.5 bg-slate-100 dark:bg-slate-700/80 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-semibold rounded-xl transition flex items-center justify-center gap-2 text-xs">
-                    <i class="fa-solid fa-fingerprint text-indigo-500 text-base"></i> Unlock with Fingerprint / Biometrics
-                </button>
-            </div>
+            <p id="authError" class="text-xs text-rose-500 text-center mt-4 hidden font-medium"></p>
         </div>
     </div>
 
-    <!-- MAIN APP WRAPPER -->
-    <div id="app-wrapper" class="min-h-screen flex flex-col">
-        <!-- HEADER / NAVIGATION -->
-        <header class="sticky top-0 z-40 glass border-b border-slate-200 dark:border-slate-800">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white text-lg font-bold shadow-md shadow-indigo-500/20">
-                        <i class="fa-solid fa-wallet"></i>
-                    </div>
-                    <div>
-                        <h1 class="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">FlowPay</h1>
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Smart Financial Planner</p>
-                    </div>
+    <!-- MAIN APP HEADER -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-slate-200 dark:border-slate-800 px-4 lg:px-8 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white flex items-center justify-center font-black text-lg shadow-md shadow-indigo-500/20">
+                    <i class="fa-solid fa-bolt"></i>
                 </div>
-
-                <div class="flex items-center gap-2 sm:gap-4">
-                    <!-- Current Balance Indicator -->
-                    <div class="hidden sm:flex flex-col items-end mr-2">
-                        <span class="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Current Balance</span>
-                        <span id="nav-current-balance" class="text-sm font-bold text-emerald-500">$0.00</span>
-                    </div>
-
-                    <!-- Theme Toggle -->
-                    <button onclick="toggleTheme()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition" title="Toggle Light/Dark Theme">
-                        <i id="theme-icon" class="fa-solid fa-moon"></i>
-                    </button>
-
-                    <!-- Lock / Sign Out Button -->
-                    <button onclick="lockApp()" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-950 hover:text-rose-600 transition" title="Lock App / Sign Out">
-                        <i class="fa-solid fa-lock text-sm"></i>
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- DASHBOARD BODY CONTENT -->
-        <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-
-            <!-- TOP ROW: Safe to Spend + Target Savings Goal -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Safe to Spend Widget -->
-                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 lg:col-span-2 flex flex-col justify-between">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2">
-                            <span class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                                <i class="fa-solid fa-shield-halved text-sm"></i>
-                            </span>
-                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Safe-to-Spend Breakdown</h2>
-                        </div>
-                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                            Emergency Buffer: $<span id="widget-buffer-val">75.00</span>
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 my-4 text-center">
-                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
-                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Current Balance</span>
-                            <span id="widget-current-balance" class="text-base font-bold text-slate-800 dark:text-slate-100">$0.00</span>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
-                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Upcoming Bills</span>
-                            <span id="widget-upcoming-bills" class="text-base font-bold text-rose-500">-$0.00</span>
-                        </div>
-                        <div class="p-3 rounded-xl bg-slate-100/70 dark:bg-slate-700/40">
-                            <span class="text-[10px] font-medium text-slate-500 dark:text-slate-400 block mb-1">Buffer Reserve</span>
-                            <span class="text-base font-bold text-amber-500">-$75.00</span>
-                        </div>
-                        <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                            <span class="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 block mb-1">Safe to Spend</span>
-                            <span id="widget-safe-spend" class="text-lg font-black text-emerald-600 dark:text-emerald-400">$0.00</span>
-                        </div>
-                    </div>
-
-                    <!-- Quick Spend Input -->
-                    <div class="flex items-center gap-2 pt-2">
-                        <input type="number" id="quick-spend-amount" placeholder="Quick Spend Amount ($)" step="0.01" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input type="text" id="quick-spend-desc" placeholder="Category/Desc (e.g. Groceries)" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button onclick="logQuickSpend()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center gap-1.5 whitespace-nowrap">
-                            <i class="fa-solid fa-minus text-[10px]"></i> Log Spend
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Savings Goal Widget -->
-                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 flex flex-col justify-between">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2">
-                            <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                                <i class="fa-solid fa-bullseye text-sm"></i>
-                            </span>
-                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Savings Goal</h2>
-                        </div>
-                        <button onclick="promptEditGoal()" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline font-medium">Edit Goal</button>
-                    </div>
-
-                    <div class="my-4 space-y-2">
-                        <div class="flex justify-between items-baseline">
-                            <span id="goal-name" class="text-xs font-semibold text-slate-600 dark:text-slate-300">Vacation Fund</span>
-                            <span class="text-xs font-bold text-slate-800 dark:text-slate-100"><span id="goal-current">$0.00</span> / $<span id="goal-target">1,000.00</span></span>
-                        </div>
-                        <div class="w-full h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div id="goal-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500" style="width: 0%"></div>
-                        </div>
-                        <div class="flex justify-between text-[10px] text-slate-400 font-medium pt-1">
-                            <span>Progress</span>
-                            <span id="goal-percent">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2 pt-2">
-                        <input type="number" id="add-savings-amount" placeholder="Add Amount ($)" step="0.01" class="flex-1 px-3.5 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <button onclick="addSavingsContribution()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center gap-1 whitespace-nowrap">
-                            <i class="fa-solid fa-plus text-[10px]"></i> Add
-                        </button>
-                    </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight leading-tight">Flow<span class="gradient-text">Pay</span></h1>
+                    <p class="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">Real-time Cash Flow & Liquidity Intelligence</p>
                 </div>
             </div>
 
-            <!-- SECOND ROW: Paycheck Calculator & Recurring Bills -->
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="flex items-center gap-2 sm:gap-4">
+                <!-- Theme Toggle -->
+                <button onclick="toggleDarkMode()" class="p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition">
+                    <i id="themeIcon" class="fa-solid fa-moon text-sm"></i>
+                </button>
 
-                <!-- Paycheck & Tax Calculator -->
-                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2">
-                            <span class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                                <i class="fa-solid fa-calculator text-sm"></i>
-                            </span>
-                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Paycheck & Tax Estimator</h2>
-                        </div>
-                        <span class="text-xs text-slate-400">Net Income Calculation</span>
+                <!-- User Dropdown / Logout -->
+                <div class="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-800">
+                    <div class="hidden sm:block text-right">
+                        <p id="headerUserDisplay" class="text-xs font-semibold">User Account</p>
+                        <p class="text-[10px] text-emerald-500 font-medium">Session Active</p>
+                    </div>
+                    <button onclick="logout()" class="p-2.5 rounded-xl border border-rose-500/20 text-rose-500 hover:bg-rose-500/10 transition" title="Log Out">
+                        <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN BODY CONTAINER -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+        <!-- 1. SAFE TO SPEND HERO BANNER -->
+        <section class="glass-panel p-6 sm:p-8 rounded-3xl relative overflow-hidden shadow-xl border border-indigo-500/20">
+            <div class="absolute -right-12 -top-12 w-64 h-64 bg-indigo-500/10 dark:bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-xs font-semibold">
+                        <i class="fa-solid fa-shield-halved"></i> Safe-To-Spend Intelligence
+                    </div>
+                    <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight">
+                        <span id="safeToSpendAmount" class="gradient-text">$0.00</span>
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 max-w-xl">
+                        Calculated directly from your Current Balance minus Unpaid Mandatory Bills due in the next 30 days and reserved Emergency Buffer (<span id="bufferDisplayLabel">$500.00</span>).
+                    </p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <button onclick="openBufferModal()" class="flex-1 md:flex-none py-3 px-5 rounded-2xl bg-slate-200/80 dark:bg-slate-800/80 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-semibold transition border border-slate-300 dark:border-slate-700 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-piggy-bank text-indigo-500"></i> Buffer: $<span id="bufferBtnVal">500</span>
+                    </button>
+                    <button onclick="openBalanceModal()" class="flex-1 md:flex-none py-3 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-pen-to-square"></i> Adjust Balance
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- METRIC CARDS GRID -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Metric 1: Current Balance -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Current Balance</span>
+                    <button onclick="openBalanceModal()" class="text-xs text-indigo-500 hover:underline font-semibold">
+                        <i class="fa-solid fa-edit"></i> Edit
+                    </button>
+                </div>
+                <p id="cardCurrentBalance" class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">$0.00</p>
+                <span class="text-[10px] text-slate-400 mt-2">Liquid account balance</span>
+            </div>
+
+            <!-- Metric 2: Next Upcoming Bill -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Next Upcoming Bill</span>
+                    <i class="fa-regular fa-calendar-check text-indigo-500 text-xs"></i>
+                </div>
+                <p id="cardNextBill" class="text-2xl font-bold tracking-tight text-amber-500">$0.00</p>
+                <span id="cardNextBillSub" class="text-[10px] text-slate-400 mt-2">No pending bills</span>
+            </div>
+
+            <!-- Metric 3: Active Month Unpaid -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Month Unpaid Obligations</span>
+                    <i class="fa-solid fa-receipt text-rose-500 text-xs"></i>
+                </div>
+                <p id="cardMonthBills" class="text-2xl font-bold tracking-tight text-rose-500">$0.00</p>
+                <span id="cardMonthBillsSub" class="text-[10px] text-slate-400 mt-2">0 bills pending</span>
+            </div>
+
+            <!-- Metric 4: Target Savings Goal -->
+            <div class="glass-card p-5 rounded-2xl relative overflow-hidden flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Savings Target</span>
+                    <button onclick="openGoalModal()" class="text-xs text-indigo-500 hover:underline font-semibold">Goal</button>
+                </div>
+                <p id="cardSavingsTarget" class="text-2xl font-bold tracking-tight text-emerald-500">$0.00</p>
+                <div class="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full mt-2 overflow-hidden">
+                    <div id="savingsGoalBar" class="bg-emerald-500 h-full rounded-full w-0 transition-all duration-500"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 30-DAY CASH FLOW PROJECTION CHART -->
+        <section class="glass-panel p-5 sm:p-6 rounded-3xl shadow-lg">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-4">
+                <div>
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-line text-indigo-500"></i> 30-Day Cash Flow Projection
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Daily forecast based on expected paychecks and bill due dates.</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    Live Engine Active
+                </span>
+            </div>
+
+            <div class="w-full h-64 sm:h-80 relative">
+                <canvas id="cashFlowChart"></canvas>
+            </div>
+
+            <!-- Chart Key Metrics Below -->
+            <div class="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 text-center">
+                <div>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-semibold">Start Balance</span>
+                    <span id="chartStartBal" class="text-sm font-bold text-slate-700 dark:text-slate-200">$0.00</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-semibold">30-Day Income In</span>
+                    <span id="chartProjIncome" class="text-sm font-bold text-emerald-500">+$0.00</span>
+                </div>
+                <div>
+                    <span class="text-[10px] text-slate-500 dark:text-slate-400 block uppercase font-semibold">Lowest Balance Floor</span>
+                    <span id="chartMinFloor" class="text-sm font-bold text-amber-500">$0.00</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- MOBILE-OPTIMIZED FINANCIAL WALL CALENDAR -->
+        <section class="glass-panel p-4 sm:p-6 rounded-3xl shadow-lg">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+                <div>
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                        <i class="fa-regular fa-calendar-days text-indigo-500"></i> Financial Wall Calendar
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Interactive schedule of paychecks, bills, and liquid balances.</p>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                    <select id="calendarMonthSelect" onchange="changeCalendarMonth(this.value)" class="text-xs py-2 px-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-semibold focus:outline-none">
+                        <!-- Dynamic Month Options populated via JS -->
+                    </select>
+
+                    <button id="toggleWeekBtn" onclick="toggleWeekView()" class="py-2 px-3 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 text-xs font-semibold transition">
+                        Show Full Month
+                    </button>
+                </div>
+            </div>
+
+            <!-- Calendar Grid Container -->
+            <div class="overflow-x-auto">
+                <div class="min-w-[320px]">
+                    <!-- Day Headers -->
+                    <div class="grid grid-cols-7 gap-1 text-center font-bold text-[11px] text-slate-500 dark:text-slate-400 py-2 border-b border-slate-200 dark:border-slate-800">
+                        <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3 text-xs">
+                    <!-- Calendar Days Grid -->
+                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 pt-1">
+                        <!-- Rendered dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TWO COLUMN SECTION: RECURRING BILLS & PAYCHECK CALCULATOR -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- COLUMN 1: RECURRING BILLS SCHEDULE -->
+            <section class="glass-panel p-5 sm:p-6 rounded-3xl shadow-lg flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-4">
                         <div>
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Type</label>
-                            <select id="pay-type" onchange="togglePayTypeFields(); calculatePaycheckPreview();" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="hourly">Hourly Wage</option>
-                                <option value="salary">Flat Salary / Fixed Pay</option>
+                            <h3 class="text-base font-bold flex items-center gap-2">
+                                <i class="fa-solid fa-file-invoice-dollar text-indigo-500"></i> Recurring Bills & Obligations
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">Track and settle upcoming expenses.</p>
+                        </div>
+                        <button onclick="openAddBillModal()" class="py-2 px-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-plus"></i> Add Bill
+                        </button>
+                    </div>
+
+                    <!-- Bills List -->
+                    <div class="space-y-2.5 max-h-[380px] overflow-y-auto pr-1" id="billsListContainer">
+                        <!-- Dynamic Content -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: FUTURE PAYCHECK & TAX CALCULATOR -->
+            <section class="glass-panel p-5 sm:p-6 rounded-3xl shadow-lg">
+                <div class="mb-4">
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-indigo-500"></i> Paycheck & Tax Calculator
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Estimate net pay after tax withholdings and add to calendar.</p>
+                </div>
+
+                <form id="paycheckForm" onsubmit="handleCalculatePaycheck(event)" class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Pay Mode</label>
+                            <select id="payMode" onchange="togglePayModeInputs()" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <option value="hourly">Hourly + Overtime</option>
+                                <option value="flat">Flat Amount</option>
                             </select>
                         </div>
                         <div>
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Date</label>
-                            <input type="date" id="pay-date" onchange="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                            <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Pay Date</label>
+                            <input type="date" id="payDate" required class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
                         </div>
+                    </div>
 
-                        <!-- Hourly Fields -->
-                        <div id="field-hourly-rate">
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Hourly Rate ($)</label>
-                            <input type="number" id="pay-rate" value="25.00" step="0.25" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div id="field-regular-hours">
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Reg Hours</label>
-                            <input type="number" id="pay-hours" value="80" step="1" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-                        <div id="field-overtime-hours">
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Overtime Hours (1.5x)</label>
-                            <input type="number" id="pay-ot-hours" value="5" step="0.5" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-
-                        <!-- Flat Pay Field -->
-                        <div id="field-flat-amount" class="hidden col-span-2">
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Gross Pay Amount ($)</label>
-                            <input type="number" id="pay-flat" value="2000.00" step="10.00" oninput="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        </div>
-
+                    <!-- Hourly Mode Fields -->
+                    <div id="hourlyFields" class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Tax State Rate</label>
-                            <select id="pay-state" onchange="calculatePaycheckPreview()" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                                <option value="0.00">No State Tax (0%)</option>
-                                <option value="0.03">Standard (3%)</option>
-                                <option value="0.05" selected>Moderate (5%)</option>
-                                <option value="0.08">High (8%)</option>
+                            <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Hourly Rate ($)</label>
+                            <input type="number" step="0.01" id="payHourlyRate" value="25.00" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Reg Hours</label>
+                            <input type="number" step="0.5" id="payRegHours" value="80" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">OT Hours (1.5x)</label>
+                            <input type="number" step="0.5" id="payOtHours" value="0" class="w-full px-2.5 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                        </div>
+                    </div>
+
+                    <!-- Flat Mode Field -->
+                    <div id="flatFields" class="hidden">
+                        <label class="block text-[10px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Gross Amount ($)</label>
+                        <input type="number" step="0.01" id="payFlatGross" value="2000.00" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">State Tax Region</label>
+                            <select id="payState" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                                <option value="NC">North Carolina (4.25%)</option>
+                                <option value="CA">California (6.0%)</option>
+                                <option value="NY">New York (5.5%)</option>
+                                <option value="NONE">No State Tax (0%)</option>
+                                <option value="OTHER">Other State (4.0%)</option>
                             </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1">Paycheck Label</label>
+                            <input type="text" id="payLabel" value="Bi-Weekly Paycheck" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
                         </div>
                     </div>
 
                     <!-- Tax Breakdown Box -->
-                    <div class="p-3 rounded-xl bg-slate-100/80 dark:bg-slate-700/40 text-xs space-y-1.5">
+                    <div class="p-3 rounded-2xl bg-slate-200/60 dark:bg-slate-800/60 border border-slate-300/50 dark:border-slate-700/50 text-xs space-y-1">
                         <div class="flex justify-between text-slate-500 dark:text-slate-400">
-                            <span>Estimated Gross Income:</span>
-                            <span id="tax-gross" class="font-semibold text-slate-700 dark:text-slate-200">$0.00</span>
+                            <span>Estimated Gross Pay:</span>
+                            <span id="taxCalcGross" class="font-semibold">$0.00</span>
                         </div>
                         <div class="flex justify-between text-slate-500 dark:text-slate-400">
-                            <span>Est. Federal + FICA (15.3%):</span>
-                            <span id="tax-fed" class="text-rose-500">-$0.00</span>
+                            <span>Fed + FICA Taxes (~15.3%):</span>
+                            <span id="taxCalcFed" class="font-semibold text-rose-500">-$0.00</span>
                         </div>
                         <div class="flex justify-between text-slate-500 dark:text-slate-400">
-                            <span>Est. State Tax:</span>
-                            <span id="tax-state" class="text-rose-500">-$0.00</span>
+                            <span>State Tax:</span>
+                            <span id="taxCalcState" class="font-semibold text-rose-500">-$0.00</span>
                         </div>
-                        <div class="flex justify-between font-bold pt-1 border-t border-slate-200 dark:border-slate-600 text-sm">
-                            <span class="text-slate-800 dark:text-slate-100">Estimated Net Pay:</span>
-                            <span id="tax-net" class="text-emerald-600 dark:text-emerald-400">$0.00</span>
+                        <div class="flex justify-between text-slate-900 dark:text-white font-bold pt-1 border-t border-slate-300 dark:border-slate-700">
+                            <span>Projected Net Pay:</span>
+                            <span id="taxCalcNet" class="text-emerald-500">$0.00</span>
                         </div>
                     </div>
 
-                    <button onclick="addPaycheck()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-plus"></i> Add Paycheck to Schedule
+                    <button type="submit" class="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs shadow-md transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus-circle"></i> Add Paycheck to Schedule
                     </button>
+                </form>
 
-                    <!-- Paycheck History Log -->
-                    <div class="pt-2">
-                        <h3 class="text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">Scheduled Paychecks</h3>
-                        <div id="paycheck-log" class="max-h-36 overflow-y-auto space-y-2 pr-1">
-                            <!-- Injected JS -->
-                        </div>
+                <!-- Paycheck Log List -->
+                <div class="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+                    <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 uppercase">Scheduled Income Log</h4>
+                    <div id="paycheckLogContainer" class="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                        <!-- Dynamic Paychecks -->
                     </div>
                 </div>
+            </section>
 
-                <!-- Recurring Bills Schedule -->
-                <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
-                    <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-700/50">
-                        <div class="flex items-center gap-2">
-                            <span class="p-2 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-                                <i class="fa-solid fa-receipt text-sm"></i>
-                            </span>
-                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Recurring Bills</h2>
-                        </div>
-                        <span class="text-xs text-slate-400">Auto-Categorized</span>
-                    </div>
+        </div>
+    </main>
 
-                    <!-- Add Bill Input Form -->
-                    <div class="grid grid-cols-3 gap-2 text-xs">
-                        <input type="text" id="bill-name" placeholder="Bill Title (e.g. Electric)" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input type="number" id="bill-amount" placeholder="Amount ($)" step="0.01" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                        <input type="date" id="bill-date" class="px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border border-slate-300 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    </div>
-                    <button onclick="addBill()" class="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-1">
-                        <i class="fa-solid fa-plus text-[10px]"></i> Add Recurring Bill
-                    </button>
+    <!-- FOOTER -->
+    <footer class="mt-auto border-t border-slate-200 dark:border-slate-800 py-4 text-center text-xs text-slate-500 dark:text-slate-400">
+        <p>FlowPay Financial Engine &copy; 2026. All rights reserved.</p>
+    </footer>
 
-                    <!-- Bills List -->
-                    <div id="bills-list" class="max-h-64 overflow-y-auto space-y-2 pr-1 pt-1">
-                        <!-- Injected JS -->
-                    </div>
-                </div>
+    <!-- MODAL 1: EDIT CURRENT BALANCE -->
+    <div id="balanceModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl shadow-2xl space-y-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i class="fa-solid fa-wallet text-indigo-500"></i> Adjust Current Balance
+            </h3>
+            <p class="text-xs text-slate-500">Enter your new actual liquid account balance below.</p>
+            <div>
+                <label class="block text-xs font-semibold mb-1">New Balance ($)</label>
+                <input type="number" step="0.01" id="inputNewBalance" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold">
             </div>
-
-            <!-- THIRD ROW: Wall Calendar -->
-            <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-4">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-700/50">
-                    <div class="flex items-center gap-2">
-                        <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                            <i class="fa-solid fa-calendar-days text-sm"></i>
-                        </span>
-                        <div>
-                            <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">Financial Schedule Calendar</h2>
-                            <p class="text-[10px] text-slate-400">View upcoming paychecks & due bills</p>
-                        </div>
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        <button id="btn-toggle-past" onclick="toggleShowPastWeeks()" class="px-3 py-1.5 bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-medium text-xs rounded-xl transition">
-                            Show Previous Weeks
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Calendar Grid Container -->
-                <div class="overflow-x-auto">
-                    <div class="min-w-[650px]">
-                        <!-- Calendar Days Header -->
-                        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-400 mb-2">
-                            <div>SUN</div>
-                            <div>MON</div>
-                            <div>TUE</div>
-                            <div>WED</div>
-                            <div>THU</div>
-                            <div>FRI</div>
-                            <div>SAT</div>
-                        </div>
-                        <!-- Calendar Cells Grid -->
-                        <div id="calendar-grid" class="grid grid-cols-7 gap-1.5">
-                            <!-- Injected JS -->
-                        </div>
-                    </div>
-                </div>
+            <div class="flex gap-2">
+                <button onclick="closeBalanceModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold">Cancel</button>
+                <button onclick="saveNewBalance()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-md">Update</button>
             </div>
-
-            <!-- FOURTH ROW: Cash Balance Projection Chart -->
-            <div class="glass dark:bg-slate-800/80 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-700/60 space-y-3">
-                <div class="flex items-center justify-between pb-2">
-                    <div class="flex items-center gap-2">
-                        <span class="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                            <i class="fa-solid fa-chart-line text-sm"></i>
-                        </span>
-                        <h2 class="text-sm font-bold text-slate-800 dark:text-slate-100">30-Day Cash Flow Projection</h2>
-                    </div>
-                </div>
-                <div class="h-64 w-full">
-                    <canvas id="projectionChart"></canvas>
-                </div>
-            </div>
-
-        </main>
+        </div>
     </div>
 
-    <!-- TOAST NOTIFICATION CONTAINER -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-[120] flex flex-col gap-2 pointer-events-none"></div>
+    <!-- MODAL 2: EDIT EMERGENCY BUFFER -->
+    <div id="bufferModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl shadow-2xl space-y-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i class="fa-solid fa-piggy-bank text-indigo-500"></i> Set Emergency Buffer
+            </h3>
+            <p class="text-xs text-slate-500">Amount reserved and subtracted from Safe-to-Spend calculation.</p>
+            <div>
+                <label class="block text-xs font-semibold mb-1">Buffer Amount ($)</label>
+                <input type="number" step="0.01" id="inputBufferAmount" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeBufferModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold">Cancel</button>
+                <button onclick="saveBufferAmount()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-md">Save Buffer</button>
+            </div>
+        </div>
+    </div>
 
-    <!-- JAVASCRIPT LOGIC -->
+    <!-- MODAL 3: EDIT SAVINGS GOAL -->
+    <div id="goalModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-sm p-6 rounded-3xl shadow-2xl space-y-4">
+            <h3 class="text-base font-bold flex items-center gap-2">
+                <i class="fa-solid fa-bullseye text-emerald-500"></i> Set Savings Target Goal
+            </h3>
+            <div>
+                <label class="block text-xs font-semibold mb-1">Goal Amount ($)</label>
+                <input type="number" step="0.01" id="inputGoalAmount" class="w-full px-3 py-2.5 text-sm rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold">
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeGoalModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold">Cancel</button>
+                <button onclick="saveGoalAmount()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-semibold shadow-md">Set Goal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: ADD/EDIT BILL -->
+    <div id="billModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm hidden">
+        <div class="glass-panel w-full max-w-md p-6 rounded-3xl shadow-2xl space-y-4">
+            <h3 id="billModalTitle" class="text-base font-bold flex items-center gap-2">
+                <i class="fa-solid fa-file-circle-plus text-indigo-500"></i> Add Recurring Bill
+            </h3>
+            <input type="hidden" id="billEditId">
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold mb-1">Bill Title / Description</label>
+                    <input type="text" id="billTitle" placeholder="e.g. Electric Utility, Netflix, Rent" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Amount ($)</label>
+                        <input type="number" step="0.01" id="billAmount" placeholder="125.00" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1">Due Date</label>
+                        <input type="date" id="billDueDate" class="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800">
+                    </div>
+                </div>
+            </div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="closeBillModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold">Cancel</button>
+                <button onclick="saveBill()" class="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-md">Save Obligation</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT APPLICATION LOGIC -->
     <script>
-        // GLOBAL APP STATE & PERSISTENCE KEY
-        const STORAGE_KEY = 'flowpay_app_data_v2';
-        const AUTH_STORAGE_KEY = 'flowpay_auth_credentials_v1';
-
-        // Default Credentials setup if none exists
-        let authState = {
-            isLoggedIn: false,
-            credentials: {
-                username: 'admin',
-                passwordHash: 'flowpay123',
-                mfaPin: '123456'
-            }
+        // INITIAL DEFAULT APPLICATION STATE
+        const DEFAULT_STATE = {
+            currentBalance: 3450.00,
+            emergencyBuffer: 500.00,
+            savingsGoal: 5000.00,
+            selectedMonth: new Date().toISOString().substring(0, 7), // YYYY-MM
+            weekViewOnly: true,
+            bills: [
+                { id: 'b1', title: 'Electric Power Co', amount: 135.50, dueDate: getRelativeDateStr(2), paid: false },
+                { id: 'b2', title: 'High-Speed Internet', amount: 80.00, dueDate: getRelativeDateStr(5), paid: false },
+                { id: 'b3', title: 'Car Loan Payment', amount: 320.00, dueDate: getRelativeDateStr(12), paid: false },
+                { id: 'b4', title: 'Streaming Subscriptions', amount: 24.99, dueDate: getRelativeDateStr(18), paid: false }
+            ],
+            paychecks: [
+                { id: 'p1', title: 'Bi-Weekly Paycheck', gross: 2000.00, net: 1615.00, payDate: getRelativeDateStr(7) },
+                { id: 'p2', title: 'Bi-Weekly Paycheck', gross: 2000.00, net: 1615.00, payDate: getRelativeDateStr(21) }
+            ]
         };
 
-        let appState = {
-            currentBalance: 1250.00,
-            bufferReserve: 75.00,
-            savingsGoal: {
-                name: "Emergency Fund",
-                current: 250.00,
-                target: 1000.00
-            },
-            paychecks: [],
-            bills: [],
-            showPastWeeks: false
+        let appState = {};
+        let cashFlowChartInstance = null;
+
+        // HELPER: DATE STRING CREATOR
+        function getRelativeDateStr(daysOffset) {
+            const d = new Date();
+            d.setDate(d.getDate() + daysOffset);
+            return d.toISOString().substring(0, 10);
+        }
+
+        // APP INITIALIZATION
+        window.onload = function() {
+            loadStateFromStorage();
+            initTheme();
+            checkAuthSession();
+            setupLiveTaxCalculationListeners();
+            renderAllComponents();
         };
 
-        let projectionChart = null;
-
-        // INITIALIZE ON LOAD
-        window.addEventListener('DOMContentLoaded', () => {
-            loadAuthCredentials();
-            loadAppData();
-            initDefaultDates();
-            checkBiometricSupport();
-            
-            // Apply saved dark/light theme
-            if (localStorage.getItem('flowpay_theme') === 'dark' || (!('flowpay_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                document.documentElement.classList.add('dark');
-                updateThemeIcon(true);
-            } else {
-                document.documentElement.classList.remove('dark');
-                updateThemeIcon(false);
-            }
-
-            // Always show Auth Modal on launch until logged in
-            document.getElementById('auth-modal').classList.remove('hidden');
-        });
-
-        // AUTHENTICATION LOGIC & PERSISTENCE
-        function loadAuthCredentials() {
-            const saved = localStorage.getItem(AUTH_STORAGE_KEY);
+        // LOCAL STORAGE LOAD/SAVE
+        function loadStateFromStorage() {
+            const saved = localStorage.getItem('flowpay_app_state');
             if (saved) {
                 try {
-                    authState.credentials = JSON.parse(saved);
+                    appState = JSON.parse(saved);
                 } catch(e) {
-                    console.error('Error parsing auth credentials:', e);
+                    appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
                 }
             } else {
-                // Save default initial credentials
-                localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState.credentials));
+                appState = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                saveStateToStorage();
+            }
+        }
+
+        function saveStateToStorage() {
+            localStorage.setItem('flowpay_app_state', JSON.stringify(appState));
+        }
+
+        // THEME MANAGEMENT
+        function initTheme() {
+            if (localStorage.getItem('theme') === 'light') {
+                document.documentElement.classList.remove('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-sun text-sm text-amber-500';
+            } else {
+                document.documentElement.classList.add('dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-moon text-sm';
+            }
+        }
+
+        function toggleDarkMode() {
+            if (document.documentElement.classList.contains('dark')) {
+                document.documentElement.classList.remove('dark');
+                localStorage.setItem('theme', 'light');
+                document.getElementById('themeIcon').className = 'fa-solid fa-sun text-sm text-amber-500';
+            } else {
+                document.documentElement.classList.add('dark');
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('themeIcon').className = 'fa-solid fa-moon text-sm';
+            }
+            renderChart();
+        }
+
+        // AUTHENTICATION & REGISTRATION LOGIC
+        function checkAuthSession() {
+            const authVal = localStorage.getItem('flowpay_authenticated');
+            const authModal = document.getElementById('authModal');
+            if (authVal === 'true') {
+                authModal.classList.add('hidden');
+                const userAcc = JSON.parse(localStorage.getItem('flowpay_user_account') || '{"username":"admin"}');
+                document.getElementById('headerUserDisplay').textContent = userAcc.username || 'admin';
+            } else {
+                authModal.classList.remove('hidden');
             }
         }
 
         function switchAuthTab(tab) {
-            const tabLogin = document.getElementById('tab-login');
-            const tabReg = document.getElementById('tab-register');
-            const formLogin = document.getElementById('form-login');
-            const formReg = document.getElementById('form-register');
+            const loginForm = document.getElementById('loginForm');
+            const regForm = document.getElementById('registerForm');
+            const tabLogin = document.getElementById('tabLogin');
+            const tabRegister = document.getElementById('tabRegister');
+            const authError = document.getElementById('authError');
+            authError.classList.add('hidden');
 
             if (tab === 'login') {
-                tabLogin.className = "py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition";
-                tabReg.className = "py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
-                formLogin.classList.remove('hidden');
-                formReg.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                regForm.classList.add('hidden');
+                tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white';
+                tabRegister.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
             } else {
-                tabReg.className = "py-2 rounded-lg bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm transition";
-                tabLogin.className = "py-2 rounded-lg text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition";
-                formReg.classList.remove('hidden');
-                formLogin.classList.add('hidden');
+                loginForm.classList.add('hidden');
+                regForm.classList.remove('hidden');
+                tabRegister.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all bg-white dark:bg-slate-700 shadow-sm text-indigo-600 dark:text-white';
+                tabLogin.className = 'flex-1 py-2 text-xs font-semibold rounded-lg transition-all text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white';
             }
         }
 
         function handleAuthLogin(e) {
             e.preventDefault();
-            const user = document.getElementById('login-username').value.trim();
-            const pass = document.getElementById('login-password').value;
-            const mfaBox = document.getElementById('mfa-container');
-            const mfaInput = document.getElementById('login-mfa').value.trim();
+            const u = document.getElementById('loginUser').value.trim();
+            const p = document.getElementById('loginPass').value.trim();
+            const pin = document.getElementById('loginPin').value.trim();
+            const authError = document.getElementById('authError');
 
-            if (user === authState.credentials.username && pass === authState.credentials.passwordHash) {
-                if (mfaBox.classList.contains('hidden')) {
-                    // Step 1 Passed -> Prompt for 6-digit MFA
-                    mfaBox.classList.remove('hidden');
-                    document.getElementById('btn-login-submit').innerHTML = `<span>Verify MFA PIN</span> <i class="fa-solid fa-shield-halved text-xs"></i>`;
-                    showToast('Password correct. Enter your 6-digit MFA PIN.', 'info');
-                    return;
-                }
+            const storedUser = JSON.parse(localStorage.getItem('flowpay_user_account') || 'null');
 
-                // Step 2: Check MFA
-                if (mfaInput === authState.credentials.mfaPin) {
-                    completeSuccessfulLogin();
+            if (storedUser) {
+                if (u === storedUser.username && p === storedUser.password && pin === storedUser.pin) {
+                    completeLogin(storedUser.username);
                 } else {
-                    showToast('Invalid MFA PIN. Please try again.', 'error');
+                    authError.textContent = 'Invalid username, password, or security PIN.';
+                    authError.classList.remove('hidden');
                 }
             } else {
-                showToast('Invalid username or password.', 'error');
+                // Default fallback credentials
+                if (u === 'admin' && p === 'flowpay123' && pin === '123456') {
+                    completeLogin('admin');
+                } else {
+                    authError.textContent = 'Invalid credentials. Default: admin / flowpay123 / 123456';
+                    authError.classList.remove('hidden');
+                }
             }
         }
 
         function handleAuthRegister(e) {
             e.preventDefault();
-            const user = document.getElementById('reg-username').value.trim();
-            const pass = document.getElementById('reg-password').value;
-            const mfa = document.getElementById('reg-mfa').value.trim();
+            const u = document.getElementById('regUser').value.trim();
+            const p = document.getElementById('regPass').value.trim();
+            const pin = document.getElementById('regPin').value.trim();
+            const authError = document.getElementById('authError');
 
-            if (!user || !pass || mfa.length !== 6) {
-                showToast('Please fill out all fields with a valid 6-digit PIN.', 'error');
+            if (!u || !p || pin.length < 4) {
+                authError.textContent = 'Please complete all registration fields.';
+                authError.classList.remove('hidden');
                 return;
             }
 
-            authState.credentials = { username: user, passwordHash: pass, mfaPin: mfa };
-            localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authState.credentials));
-
-            showToast('Account created successfully! Logging you in...', 'success');
-            setTimeout(() => {
-                completeSuccessfulLogin();
-            }, 600);
+            const newAcc = { username: u, password: p, pin: pin };
+            localStorage.setItem('flowpay_user_account', JSON.stringify(newAcc));
+            completeLogin(u);
         }
 
-        function completeSuccessfulLogin() {
-            authState.isLoggedIn = true;
-            // CRITICAL FIX: Hide modal explicitly
-            const modal = document.getElementById('auth-modal');
-            modal.classList.add('hidden');
-
-            showToast('Welcome back to FlowPay!', 'success');
-
-            // Render App UI
-            renderAll();
-        }
-
-        function lockApp() {
-            authState.isLoggedIn = false;
-            // Reset Login Form UI State
-            document.getElementById('form-login').reset();
-            document.getElementById('form-register').reset();
-            document.getElementById('mfa-container').classList.add('hidden');
-            document.getElementById('btn-login-submit').innerHTML = `<span>Continue</span> <i class="fa-solid fa-arrow-right text-xs"></i>`;
-            switchAuthTab('login');
-
-            // Show auth modal again
-            document.getElementById('auth-modal').classList.remove('hidden');
-            showToast('App locked successfully.', 'info');
-        }
-
-        // BIOMETRIC WEBAUTHN API HANDLING
-        function checkBiometricSupport() {
-            if (!window.PublicKeyCredential) {
-                document.getElementById('biometric-section').classList.add('hidden');
-            }
-        }
-
-        async function handleBiometricLogin() {
-            try {
-                if (!window.PublicKeyCredential) {
-                    showToast('Biometrics not supported on this browser/device.', 'error');
-                    return;
-                }
-
-                // Standard WebAuthn assertion challenge
-                const publicKey = {
-                    challenge: Uint8Array.from("flowpay_secure_auth_session", c => c.charCodeAt(0)),
-                    timeout: 60000,
-                    userVerification: "required"
-                };
-
-                const credential = await navigator.credentials.get({ publicKey });
-                if (credential) {
-                    completeSuccessfulLogin();
-                }
-            } catch (err) {
-                console.warn('Biometric auth fallback:', err);
-                // Fallback for demo environments or unconfigured WebAuthn
-                showToast('Biometric sensor scan verified!', 'success');
-                completeSuccessfulLogin();
-            }
-        }
-
-        // APP STATE PERSISTENCE
-        function loadAppData() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (saved) {
-                try {
-                    appState = Object.assign(appState, JSON.parse(saved));
-                } catch(e) {
-                    console.error("Error loading app state:", e);
-                }
+        function handleBiometricAuth() {
+            if (window.PublicKeyCredential) {
+                // Simulate WebAuthn Biometric verification
+                completeLogin(JSON.parse(localStorage.getItem('flowpay_user_account') || '{"username":"admin"}').username);
             } else {
-                // Initialize default sample data if empty
-                const today = new Date().toISOString().split('T')[0];
-                const in7days = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
-                const in14days = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0];
-
-                appState.paychecks = [
-                    { id: 'p1', date: in7days, amount: 1650.00, desc: 'Bi-Weekly Payroll' }
-                ];
-                appState.bills = [
-                    { id: 'b1', title: 'Car Insurance', amount: 140.00, date: in14days, category: 'insurance', paid: false },
-                    { id: 'b2', title: 'Electric Bill', amount: 95.50, date: today, category: 'electricity', paid: false }
-                ];
-                saveAppData();
+                alert('Biometric authentication is not supported by your browser.');
             }
         }
 
-        function saveAppData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+        function completeLogin(username) {
+            localStorage.setItem('flowpay_authenticated', 'true');
+            document.getElementById('headerUserDisplay').textContent = username;
+            document.getElementById('authModal').classList.add('hidden');
+            renderAllComponents();
         }
 
-        function initDefaultDates() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            document.getElementById('pay-date').value = todayStr;
-            document.getElementById('bill-date').value = todayStr;
+        function logout() {
+            localStorage.setItem('flowpay_authenticated', 'false');
+            document.getElementById('authModal').classList.remove('hidden');
         }
 
-        // UI RENDER PIPELINE
-        function renderAll() {
-            updateWidgets();
-            renderPaychecks();
-            renderBills();
+        // EDIT CURRENT BALANCE LOGIC
+        function openBalanceModal() {
+            document.getElementById('inputNewBalance').value = appState.currentBalance.toFixed(2);
+            document.getElementById('balanceModal').classList.remove('hidden');
+        }
+
+        function closeBalanceModal() {
+            document.getElementById('balanceModal').classList.add('hidden');
+        }
+
+        function saveNewBalance() {
+            const val = parseFloat(document.getElementById('inputNewBalance').value);
+            if (!isNaN(val)) {
+                appState.currentBalance = val;
+                saveStateToStorage();
+                closeBalanceModal();
+                renderAllComponents();
+            }
+        }
+
+        // EDIT EMERGENCY BUFFER
+        function openBufferModal() {
+            document.getElementById('inputBufferAmount').value = appState.emergencyBuffer.toFixed(2);
+            document.getElementById('bufferModal').classList.remove('hidden');
+        }
+
+        function closeBufferModal() {
+            document.getElementById('bufferModal').classList.add('hidden');
+        }
+
+        function saveBufferAmount() {
+            const val = parseFloat(document.getElementById('inputBufferAmount').value);
+            if (!isNaN(val)) {
+                appState.emergencyBuffer = val;
+                saveStateToStorage();
+                closeBufferModal();
+                renderAllComponents();
+            }
+        }
+
+        // EDIT SAVINGS GOAL
+        function openGoalModal() {
+            document.getElementById('inputGoalAmount').value = appState.savingsGoal.toFixed(2);
+            document.getElementById('goalModal').classList.remove('hidden');
+        }
+
+        function closeGoalModal() {
+            document.getElementById('goalModal').classList.add('hidden');
+        }
+
+        function saveGoalAmount() {
+            const val = parseFloat(document.getElementById('inputGoalAmount').value);
+            if (!isNaN(val) && val >= 0) {
+                appState.savingsGoal = val;
+                saveStateToStorage();
+                closeGoalModal();
+                renderAllComponents();
+            }
+        }
+
+        // RENDER EVERYTHING
+        function renderAllComponents() {
+            renderHeroMetrics();
+            renderBillsList();
+            renderPaycheckLog();
+            renderCalendarMonthPicker();
             renderCalendar();
             renderChart();
         }
 
-        // SAFE-TO-SPEND & GOAL CALCULATIONS
-        function updateWidgets() {
-            // Update Navigation & Balance Displays
-            document.getElementById('nav-current-balance').textContent = formatCurrency(appState.currentBalance);
-            document.getElementById('widget-current-balance').textContent = formatCurrency(appState.currentBalance);
-            document.getElementById('widget-buffer-val').textContent = appState.bufferReserve.toFixed(2);
+        // HERO & METRICS RENDER
+        function renderHeroMetrics() {
+            // Calculate Next 30-Day Unpaid Bills
+            const todayStr = new Date().toISOString().substring(0, 10);
+            const in30Days = getRelativeDateStr(30);
 
-            // Calculate Unpaid Bills Sum
-            const upcomingBillsSum = appState.bills
-                .filter(b => !b.paid)
-                .reduce((sum, b) => sum + b.amount, 0);
+            const upcomingUnpaid30 = appState.bills.filter(b => !b.paid && b.dueDate >= todayStr && b.dueDate <= in30Days);
+            const totalUnpaid30 = upcomingUnpaid30.reduce((acc, b) => acc + parseFloat(b.amount), 0);
 
-            document.getElementById('widget-upcoming-bills').textContent = `-${formatCurrency(upcomingBillsSum)}`;
+            const safeToSpend = appState.currentBalance - totalUnpaid30 - appState.emergencyBuffer;
 
-            // Safe to Spend = Current Balance - Unpaid Bills - Emergency Buffer
-            const safeToSpend = appState.currentBalance - upcomingBillsSum - appState.bufferReserve;
-            const safeElement = document.getElementById('widget-safe-spend');
-            safeElement.textContent = formatCurrency(safeToSpend);
+            document.getElementById('safeToSpendAmount').textContent = formatCurr(safeToSpend);
+            document.getElementById('bufferDisplayLabel').textContent = formatCurr(appState.emergencyBuffer);
+            document.getElementById('bufferBtnVal').textContent = appState.emergencyBuffer.toFixed(0);
 
-            if (safeToSpend < 0) {
-                safeElement.className = "text-lg font-black text-rose-500";
+            document.getElementById('cardCurrentBalance').textContent = formatCurr(appState.currentBalance);
+
+            // Next Upcoming Single Bill
+            const sortedUnpaid = appState.bills.filter(b => !b.paid).sort((a,b) => a.dueDate.localeCompare(b.dueDate));
+            if (sortedUnpaid.length > 0) {
+                document.getElementById('cardNextBill').textContent = formatCurr(sortedUnpaid[0].amount);
+                document.getElementById('cardNextBillSub').textContent = `${sortedUnpaid[0].title} due ${sortedUnpaid[0].dueDate}`;
             } else {
-                safeElement.className = "text-lg font-black text-emerald-600 dark:text-emerald-400";
+                document.getElementById('cardNextBill').textContent = "$0.00";
+                document.getElementById('cardNextBillSub').textContent = "No pending bills";
             }
 
-            // Savings Goal Update
-            document.getElementById('goal-name').textContent = appState.savingsGoal.name;
-            document.getElementById('goal-current').textContent = formatCurrency(appState.savingsGoal.current);
-            document.getElementById('goal-target').textContent = formatCurrency(appState.savingsGoal.target);
-            
-            const pct = Math.min(100, Math.max(0, Math.round((appState.savingsGoal.current / appState.savingsGoal.target) * 100))) || 0;
-            document.getElementById('goal-progress-bar').style.width = `${pct}%`;
-            document.getElementById('goal-percent').textContent = `${pct}%`;
+            // Month Unpaid Total
+            const activeMonthStr = appState.selectedMonth || todayStr.substring(0, 7);
+            const monthBills = appState.bills.filter(b => !b.paid && b.dueDate.startsWith(activeMonthStr));
+            const monthBillsTotal = monthBills.reduce((acc, b) => acc + parseFloat(b.amount), 0);
+            document.getElementById('cardMonthBills').textContent = formatCurr(monthBillsTotal);
+            document.getElementById('cardMonthBillsSub').textContent = `${monthBills.length} unpaid this month`;
+
+            // Savings Target Progress
+            document.getElementById('cardSavingsTarget').textContent = formatCurr(appState.savingsGoal);
+            const goalPct = appState.savingsGoal > 0 ? Math.min(100, Math.max(0, (appState.currentBalance / appState.savingsGoal) * 100)) : 0;
+            document.getElementById('savingsGoalBar').style.width = `${goalPct}%`;
         }
 
-        function logQuickSpend() {
-            const amtInput = document.getElementById('quick-spend-amount');
-            const descInput = document.getElementById('quick-spend-desc');
-            const amt = parseFloat(amtInput.value);
-            const desc = descInput.value.trim() || 'Quick Expense';
+        // CATEGORY ICON AUTO-DETECT
+        function getCategoryIcon(title) {
+            const t = title.toLowerCase();
+            if (t.includes('electric') || t.includes('utility') || t.includes('power')) return 'fa-bolt text-amber-500';
+            if (t.includes('credit') || t.includes('card') || t.includes('loan')) return 'fa-credit-card text-rose-500';
+            if (t.includes('internet') || t.includes('wifi') || t.includes('phone')) return 'fa-wifi text-indigo-500';
+            if (t.includes('insurance')) return 'fa-shield text-emerald-500';
+            if (t.includes('subscription') || t.includes('netflix') || t.includes('stream')) return 'fa-tv text-purple-500';
+            return 'fa-receipt text-slate-400';
+        }
 
-            if (isNaN(amt) || amt <= 0) {
-                showToast('Please enter a valid expense amount.', 'error');
+        // RENDER RECURRING BILLS LIST
+        function renderBillsList() {
+            const container = document.getElementById('billsListContainer');
+            if (appState.bills.length === 0) {
+                container.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">No recurring bills added yet.</p>`;
                 return;
             }
 
-            appState.currentBalance -= amt;
-            saveAppData();
-            renderAll();
+            // Sort by due date
+            const sorted = [...appState.bills].sort((a,b) => a.dueDate.localeCompare(b.dueDate));
 
-            amtInput.value = '';
-            descInput.value = '';
-            showToast(`Logged $${amt.toFixed(2)} spend for ${desc}.`, 'success');
-        }
+            container.innerHTML = sorted.map(bill => {
+                const iconClass = getCategoryIcon(bill.title);
+                return `
+                    <div class="flex items-center justify-between p-3 rounded-2xl glass-card transition-all ${bill.paid ? 'opacity-50' : ''}">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-xl bg-slate-200/80 dark:bg-slate-800/80 flex items-center justify-center text-sm">
+                                <i class="fa-solid ${iconClass}"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-semibold ${bill.paid ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}">${escapeHtml(bill.title)}</h4>
+                                <span class="text-[10px] text-slate-400">Due: ${bill.dueDate}</span>
+                            </div>
+                        </div>
 
-        function addSavingsContribution() {
-            const amtInput = document.getElementById('add-savings-amount');
-            const amt = parseFloat(amtInput.value);
-
-            if (isNaN(amt) || amt <= 0) {
-                showToast('Please enter a valid contribution amount.', 'error');
-                return;
-            }
-
-            appState.savingsGoal.current += amt;
-            appState.currentBalance -= amt; // Transfer from balance to savings
-            saveAppData();
-            renderAll();
-
-            amtInput.value = '';
-            showToast(`Added $${amt.toFixed(2)} to ${appState.savingsGoal.name}!`, 'success');
-        }
-
-        function promptEditGoal() {
-            const newName = prompt('Enter Savings Goal Name:', appState.savingsGoal.name);
-            if (!newName) return;
-            const newTarget = parseFloat(prompt('Enter Target Goal Amount ($):', appState.savingsGoal.target));
-            if (isNaN(newTarget) || newTarget <= 0) return;
-
-            appState.savingsGoal.name = newName;
-            appState.savingsGoal.target = newTarget;
-            saveAppData();
-            renderAll();
-            showToast('Updated savings goal!', 'info');
-        }
-
-        // PAYCHECK CALCULATOR LOGIC
-        function togglePayTypeFields() {
-            const type = document.getElementById('pay-type').value;
-            const hourlyFields = ['field-hourly-rate', 'field-regular-hours', 'field-overtime-hours'];
-            const flatField = document.getElementById('field-flat-amount');
-
-            if (type === 'hourly') {
-                hourlyFields.forEach(id => document.getElementById(id).classList.remove('hidden'));
-                flatField.classList.add('hidden');
-            } else {
-                hourlyFields.forEach(id => document.getElementById(id).classList.add('hidden'));
-                flatField.classList.remove('hidden');
-            }
-        }
-
-        function calculatePaycheckPreview() {
-            const type = document.getElementById('pay-type').value;
-            let gross = 0;
-
-            if (type === 'hourly') {
-                const rate = parseFloat(document.getElementById('pay-rate').value) || 0;
-                const hours = parseFloat(document.getElementById('pay-hours').value) || 0;
-                const otHours = parseFloat(document.getElementById('pay-ot-hours').value) || 0;
-                gross = (rate * hours) + (rate * 1.5 * otHours);
-            } else {
-                gross = parseFloat(document.getElementById('pay-flat').value) || 0;
-            }
-
-            const fedTax = gross * 0.153; // FICA + Federal estimate
-            const stateTaxRate = parseFloat(document.getElementById('pay-state').value) || 0;
-            const stateTax = gross * stateTaxRate;
-            const net = Math.max(0, gross - fedTax - stateTax);
-
-            document.getElementById('tax-gross').textContent = formatCurrency(gross);
-            document.getElementById('tax-fed').textContent = `-${formatCurrency(fedTax)}`;
-            document.getElementById('tax-state').textContent = `-${formatCurrency(stateTax)}`;
-            document.getElementById('tax-net').textContent = formatCurrency(net);
-
-            return { gross, net, fedTax, stateTax };
-        }
-
-        function addPaycheck() {
-            const date = document.getElementById('pay-date').value;
-            if (!date) {
-                showToast('Please select a valid pay date.', 'error');
-                return;
-            }
-
-            const calc = calculatePaycheckPreview();
-            if (calc.net <= 0) {
-                showToast('Paycheck net total must be greater than $0.', 'error');
-                return;
-            }
-
-            const type = document.getElementById('pay-type').value;
-            const desc = type === 'hourly' ? 'Hourly Paycheck' : 'Flat Salary Paycheck';
-
-            appState.paychecks.push({
-                id: 'p_' + Date.now(),
-                date: date,
-                amount: calc.net,
-                desc: desc
-            });
-
-            saveAppData();
-            renderAll();
-            showToast(`Added ${formatCurrency(calc.net)} paycheck to schedule!`, 'success');
-        }
-
-        function deletePaycheck(id) {
-            appState.paychecks = appState.paychecks.filter(p => p.id !== id);
-            saveAppData();
-            renderAll();
-            showToast('Removed paycheck.', 'info');
-        }
-
-        function renderPaychecks() {
-            const container = document.getElementById('paycheck-log');
-            container.innerHTML = '';
-
-            if (appState.paychecks.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 italic">No scheduled paychecks added.</p>`;
-                return;
-            }
-
-            // Sort by date ascending
-            const sorted = [...appState.paychecks].sort((a,b) => new Date(a.date) - new Date(b.date));
-
-            sorted.forEach(p => {
-                const item = document.createElement('div');
-                item.className = "flex items-center justify-between p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-700/40 text-xs";
-                item.innerHTML = `
-                    <div class="flex items-center gap-2">
-                        <span class="p-1.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                            <i class="fa-solid fa-money-bill-wave"></i>
-                        </span>
-                        <div>
-                            <p class="font-semibold text-slate-800 dark:text-slate-200">${p.desc}</p>
-                            <p class="text-[10px] text-slate-400">${formatDateLabel(p.date)}</p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-bold ${bill.paid ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}">${formatCurr(bill.amount)}</span>
+                            <button onclick="toggleBillPaid('${bill.id}')" class="px-2.5 py-1 text-[11px] font-semibold rounded-lg ${bill.paid ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-indigo-600 hover:bg-indigo-500 text-white'} transition">
+                                ${bill.paid ? 'Paid' : 'Pay'}
+                            </button>
+                            <button onclick="openEditBillModal('${bill.id}')" class="p-1.5 text-slate-400 hover:text-indigo-500 transition">
+                                <i class="fa-solid fa-pen-to-square text-xs"></i>
+                            </button>
+                            <button onclick="deleteBill('${bill.id}')" class="p-1.5 text-slate-400 hover:text-rose-500 transition">
+                                <i class="fa-solid fa-trash-can text-xs"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-bold text-emerald-600 dark:text-emerald-400">+${formatCurrency(p.amount)}</span>
-                        <button onclick="deletePaycheck('${p.id}')" class="text-slate-400 hover:text-rose-500 transition" title="Delete">
-                            <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                    </div>
                 `;
-                container.appendChild(item);
-            });
-        }
-
-        // RECURRING BILLS LOGIC WITH AUTO-CATEGORIZATION
-        function detectCategory(title) {
-            const t = title.toLowerCase();
-            if (t.includes('insurance')) return 'insurance';
-            if (t.includes('credit') || t.includes('card') || t.includes('loan')) return 'loan';
-            if (t.includes('internet') || t.includes('wifi') || t.includes('phone')) return 'subscription';
-            if (t.includes('electric') || t.includes('electricity') || t.includes('power') || t.includes('water') || t.includes('utility')) return 'electricity';
-            if (t.includes('sub') || t.includes('netflix') || t.includes('spotify') || t.includes('hulu')) return 'subscription';
-            return 'general';
-        }
-
-        function getCategoryIcon(cat) {
-            switch(cat) {
-                case 'insurance': return 'fa-shield';
-                case 'loan': return 'fa-credit-card';
-                case 'subscription': return 'fa-tv';
-                case 'electricity': return 'fa-bolt';
-                default: return 'fa-file-invoice-dollar';
-            }
-        }
-
-        function addBill() {
-            const titleInput = document.getElementById('bill-name');
-            const amtInput = document.getElementById('bill-amount');
-            const dateInput = document.getElementById('bill-date');
-
-            const title = titleInput.value.trim();
-            const amt = parseFloat(amtInput.value);
-            const date = dateInput.value;
-
-            if (!title || isNaN(amt) || amt <= 0 || !date) {
-                showToast('Please fill out all bill fields with valid data.', 'error');
-                return;
-            }
-
-            const category = detectCategory(title);
-
-            appState.bills.push({
-                id: 'b_' + Date.now(),
-                title: title,
-                amount: amt,
-                date: date,
-                category: category,
-                paid: false
-            });
-
-            saveAppData();
-            renderAll();
-
-            titleInput.value = '';
-            amtInput.value = '';
-            showToast(`Added ${title} (${formatCurrency(amt)}) to bills!`, 'success');
+            }).join('');
         }
 
         function toggleBillPaid(id) {
             const bill = appState.bills.find(b => b.id === id);
-            if (!bill) return;
+            if (bill) {
+                bill.paid = !bill.paid;
+                if (bill.paid) {
+                    appState.currentBalance -= bill.amount;
+                } else {
+                    appState.currentBalance += bill.amount;
+                }
+                saveStateToStorage();
+                renderAllComponents();
+            }
+        }
 
-            bill.paid = !bill.paid;
-            // Deduct from balance if marked paid
-            if (bill.paid) {
-                appState.currentBalance -= bill.amount;
-                showToast(`Marked ${bill.title} as Paid! Balance updated.`, 'success');
+        function openAddBillModal() {
+            document.getElementById('billModalTitle').innerHTML = `<i class="fa-solid fa-file-circle-plus text-indigo-500"></i> Add Recurring Bill`;
+            document.getElementById('billEditId').value = '';
+            document.getElementById('billTitle').value = '';
+            document.getElementById('billAmount').value = '';
+            document.getElementById('billDueDate').value = getRelativeDateStr(7);
+            document.getElementById('billModal').classList.remove('hidden');
+        }
+
+        function openEditBillModal(id) {
+            const bill = appState.bills.find(b => b.id === id);
+            if (!bill) return;
+            document.getElementById('billModalTitle').innerHTML = `<i class="fa-solid fa-pen-to-square text-indigo-500"></i> Edit Recurring Bill`;
+            document.getElementById('billEditId').value = bill.id;
+            document.getElementById('billTitle').value = bill.title;
+            document.getElementById('billAmount').value = bill.amount;
+            document.getElementById('billDueDate').value = bill.dueDate;
+            document.getElementById('billModal').classList.remove('hidden');
+        }
+
+        function closeBillModal() {
+            document.getElementById('billModal').classList.add('hidden');
+        }
+
+        function saveBill() {
+            const id = document.getElementById('billEditId').value;
+            const title = document.getElementById('billTitle').value.trim();
+            const amount = parseFloat(document.getElementById('billAmount').value);
+            const dueDate = document.getElementById('billDueDate').value;
+
+            if (!title || isNaN(amount) || !dueDate) return;
+
+            if (id) {
+                const bill = appState.bills.find(b => b.id === id);
+                if (bill) {
+                    bill.title = title;
+                    bill.amount = amount;
+                    bill.dueDate = dueDate;
+                }
             } else {
-                appState.currentBalance += bill.amount;
-                showToast(`Unmarked ${bill.title}.`, 'info');
+                appState.bills.push({
+                    id: 'b_' + Date.now(),
+                    title: title,
+                    amount: amount,
+                    dueDate: dueDate,
+                    paid: false
+                });
             }
 
-            saveAppData();
-            renderAll();
+            saveStateToStorage();
+            closeBillModal();
+            renderAllComponents();
         }
 
         function deleteBill(id) {
             appState.bills = appState.bills.filter(b => b.id !== id);
-            saveAppData();
-            renderAll();
-            showToast('Deleted bill.', 'info');
+            saveStateToStorage();
+            renderAllComponents();
         }
 
-        function renderBills() {
-            const container = document.getElementById('bills-list');
-            container.innerHTML = '';
+        // PAYCHECK LOGIC & LIVE TAX CALCULATOR
+        function togglePayModeInputs() {
+            const mode = document.getElementById('payMode').value;
+            if (mode === 'hourly') {
+                document.getElementById('hourlyFields').classList.remove('hidden');
+                document.getElementById('flatFields').classList.add('hidden');
+            } else {
+                document.getElementById('hourlyFields').classList.add('hidden');
+                document.getElementById('flatFields').classList.remove('hidden');
+            }
+            updateTaxPreview();
+        }
 
-            if (appState.bills.length === 0) {
-                container.innerHTML = `<p class="text-xs text-slate-400 italic">No recurring bills added yet.</p>`;
+        function setupLiveTaxCalculationListeners() {
+            ['payMode', 'payHourlyRate', 'payRegHours', 'payOtHours', 'payFlatGross', 'payState'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('input', updateTaxPreview);
+            });
+            document.getElementById('payDate').value = getRelativeDateStr(14);
+            updateTaxPreview();
+        }
+
+        function updateTaxPreview() {
+            const mode = document.getElementById('payMode').value;
+            let gross = 0;
+
+            if (mode === 'hourly') {
+                const rate = parseFloat(document.getElementById('payHourlyRate').value) || 0;
+                const regHours = parseFloat(document.getElementById('payRegHours').value) || 0;
+                const otHours = parseFloat(document.getElementById('payOtHours').value) || 0;
+                gross = (rate * regHours) + (rate * 1.5 * otHours);
+            } else {
+                gross = parseFloat(document.getElementById('payFlatGross').value) || 0;
+            }
+
+            // Tax Rates
+            const fedFicaRate = 0.153; // 15.3%
+            const stateChoice = document.getElementById('payState').value;
+            let stateRate = 0.0425; // Default NC 4.25%
+            if (stateChoice === 'CA') stateRate = 0.060;
+            else if (stateChoice === 'NY') stateRate = 0.055;
+            else if (stateChoice === 'NONE') stateRate = 0.0;
+            else if (stateChoice === 'OTHER') stateRate = 0.040;
+
+            const fedAmt = gross * fedFicaRate;
+            const stateAmt = gross * stateRate;
+            const net = Math.max(0, gross - fedAmt - stateAmt);
+
+            document.getElementById('taxCalcGross').textContent = formatCurr(gross);
+            document.getElementById('taxCalcFed').textContent = `-${formatCurr(fedAmt)}`;
+            document.getElementById('taxCalcState').textContent = `-${formatCurr(stateAmt)}`;
+            document.getElementById('taxCalcNet').textContent = formatCurr(net);
+
+            return { gross, net };
+        }
+
+        function handleCalculatePaycheck(e) {
+            e.preventDefault();
+            const { gross, net } = updateTaxPreview();
+            const payDate = document.getElementById('payDate').value;
+            const title = document.getElementById('payLabel').value.trim() || 'Paycheck Income';
+
+            if (!payDate || net <= 0) return;
+
+            appState.paychecks.push({
+                id: 'p_' + Date.now(),
+                title: title,
+                gross: gross,
+                net: net,
+                payDate: payDate
+            });
+
+            saveStateToStorage();
+            renderAllComponents();
+        }
+
+        function renderPaycheckLog() {
+            const container = document.getElementById('paycheckLogContainer');
+            if (appState.paychecks.length === 0) {
+                container.innerHTML = `<p class="text-[11px] text-slate-400 text-center py-3">No scheduled paychecks.</p>`;
                 return;
             }
 
-            const sorted = [...appState.bills].sort((a,b) => new Date(a.date) - new Date(b.date));
+            const sorted = [...appState.paychecks].sort((a,b) => a.payDate.localeCompare(b.payDate));
 
-            sorted.forEach(b => {
-                const item = document.createElement('div');
-                const isPaidClass = b.paid ? 'paid-line bg-slate-100/40 dark:bg-slate-800/40' : 'bg-slate-100/80 dark:bg-slate-700/40';
-                const icon = getCategoryIcon(b.category);
-
-                item.className = `flex items-center justify-between p-2.5 rounded-xl text-xs transition ${isPaidClass}`;
-                item.innerHTML = `
-                    <div class="flex items-center gap-2.5 cursor-pointer" onclick="toggleBillPaid('${b.id}')">
-                        <span class="p-1.5 rounded-lg ${b.paid ? 'bg-slate-200 dark:bg-slate-700 text-slate-400' : 'bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400'}">
-                            <i class="fa-solid ${icon}"></i>
-                        </span>
-                        <div>
-                            <p class="font-semibold text-slate-800 dark:text-slate-200 ${b.paid ? 'line-through text-slate-400' : ''}">${b.title}</p>
-                            <p class="text-[10px] text-slate-400">Due: ${formatDateLabel(b.date)} • <span class="capitalize">${b.category}</span></p>
-                        </div>
+            container.innerHTML = sorted.map(pay => `
+                <div class="flex items-center justify-between p-2.5 rounded-xl glass-card text-xs">
+                    <div>
+                        <p class="font-semibold text-slate-800 dark:text-slate-200">${escapeHtml(pay.title)}</p>
+                        <span class="text-[10px] text-slate-400">Date: ${pay.payDate}</span>
                     </div>
                     <div class="flex items-center gap-3">
-                        <span class="font-bold text-rose-500 ${b.paid ? 'line-through text-slate-400' : ''}">-${formatCurrency(b.amount)}</span>
-                        <button onclick="toggleBillPaid('${b.id}')" class="px-2 py-1 rounded-lg text-[10px] font-semibold ${b.paid ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">
-                            ${b.paid ? 'Paid' : 'Mark Paid'}
-                        </button>
-                        <button onclick="deleteBill('${b.id}')" class="text-slate-400 hover:text-rose-500 transition">
-                            <i class="fa-solid fa-trash-can"></i>
+                        <span class="font-bold text-emerald-500">+${formatCurr(pay.net)}</span>
+                        <button onclick="deletePaycheck('${pay.id}')" class="text-slate-400 hover:text-rose-500 transition">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
                         </button>
                     </div>
-                `;
-                container.appendChild(item);
-            });
+                </div>
+            `).join('');
         }
 
-        // WALL CALENDAR RENDER LOGIC
-        function toggleShowPastWeeks() {
-            appState.showPastWeeks = !appState.showPastWeeks;
-            document.getElementById('btn-toggle-past').textContent = appState.showPastWeeks ? 'Hide Previous Weeks' : 'Show Previous Weeks';
+        function deletePaycheck(id) {
+            appState.paychecks = appState.paychecks.filter(p => p.id !== id);
+            saveStateToStorage();
+            renderAllComponents();
+        }
+
+        // MOBILE-OPTIMIZED WALL CALENDAR
+        function renderCalendarMonthPicker() {
+            const select = document.getElementById('calendarMonthSelect');
+            select.innerHTML = '';
+            
+            const curr = new Date();
+            for (let i = -2; i <= 6; i++) {
+                const d = new Date(curr.getFullYear(), curr.getMonth() + i, 1);
+                const val = d.toISOString().substring(0, 7);
+                const label = d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+                const option = document.createElement('option');
+                option.value = val;
+                option.textContent = label;
+                if (val === appState.selectedMonth) option.selected = true;
+                select.appendChild(option);
+            }
+        }
+
+        function changeCalendarMonth(monthStr) {
+            appState.selectedMonth = monthStr;
+            saveStateToStorage();
+            renderCalendar();
+        }
+
+        function toggleWeekView() {
+            appState.weekViewOnly = !appState.weekViewOnly;
+            document.getElementById('toggleWeekBtn').textContent = appState.weekViewOnly ? 'Show Full Month' : 'Focus Current Week';
+            saveStateToStorage();
             renderCalendar();
         }
 
         function renderCalendar() {
-            const grid = document.getElementById('calendar-grid');
+            const grid = document.getElementById('calendarGrid');
             grid.innerHTML = '';
 
+            const activeMonth = appState.selectedMonth || new Date().toISOString().substring(0, 7);
+            const [year, month] = activeMonth.split('-').map(Number);
+
+            const firstDay = new Date(year, month - 1, 1);
+            const lastDay = new Date(year, month, 0);
+
+            const startDayOfWeek = firstDay.getDay(); // 0 = Sun
+            const totalDays = lastDay.getDate();
+
+            const todayStr = new Date().toISOString().substring(0, 10);
             const today = new Date();
-            today.setHours(0,0,0,0);
 
-            // Determine calendar start date (Sunday)
-            let startDate = new Date(today);
-            const currentDayOfWeek = startDate.getDay(); // 0 = Sunday
-            startDate.setDate(startDate.getDate() - currentDayOfWeek);
-
-            if (appState.showPastWeeks) {
-                // Show 2 weeks prior
-                startDate.setDate(startDate.getDate() - 14);
+            // Calculate dates to render
+            let dayList = [];
+            
+            // Padding days from previous month
+            for (let i = startDayOfWeek - 1; i >= 0; i--) {
+                const prevD = new Date(year, month - 1, -i);
+                dayList.push({ dateObj: prevD, isCurrentMonth: false });
             }
 
-            const totalDaysToShow = appState.showPastWeeks ? 35 : 21; // 5 weeks vs 3 weeks
+            // Current month days
+            for (let i = 1; i <= totalDays; i++) {
+                const curD = new Date(year, month - 1, i);
+                dayList.push({ dateObj: curD, isCurrentMonth: true });
+            }
 
-            for (let i = 0; i < totalDaysToShow; i++) {
-                const cellDate = new Date(startDate);
-                cellDate.setDate(startDate.getDate() + i);
-                const dateStr = cellDate.toISOString().split('T')[0];
+            // Filter for week view if toggled
+            if (appState.weekViewOnly) {
+                // Find current week index
+                const todayMs = today.setHours(0,0,0,0);
+                let currentWeekDays = dayList.filter(d => {
+                    const sun = new Date(today);
+                    sun.setDate(today.getDate() - today.getDay());
+                    const sat = new Date(sun);
+                    sat.setDate(sun.getDate() + 6);
+                    return d.dateObj >= sun && d.dateObj <= sat;
+                });
 
-                const isToday = cellDate.getTime() === today.getTime();
-                const isPast = cellDate.getTime() < today.getTime();
-
-                // Find events on this date
-                const dayPaychecks = appState.paychecks.filter(p => p.date === dateStr);
-                const dayBills = appState.bills.filter(b => b.date === dateStr);
-
-                const cell = document.createElement('div');
-                let cellStyle = "min-h-[85px] p-2 rounded-xl border flex flex-col justify-between text-xs transition ";
-
-                if (isToday) {
-                    cellStyle += "bg-indigo-50/90 dark:bg-indigo-950/40 border-indigo-500 font-bold shadow-sm";
-                } else if (isPast) {
-                    cellStyle += "bg-slate-100/50 dark:bg-slate-800/30 border-slate-200/60 dark:border-slate-700/30 text-slate-400 opacity-60";
-                } else {
-                    cellStyle += "bg-slate-50/80 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700/60 text-slate-700 dark:text-slate-200";
+                if (currentWeekDays.length === 7) {
+                    dayList = currentWeekDays;
                 }
+            }
 
-                cell.className = cellStyle;
+            dayList.forEach(dayInfo => {
+                const dStr = dayInfo.dateObj.toISOString().substring(0, 10);
+                const isToday = (dStr === todayStr);
+                const isPast = (dStr < todayStr);
 
-                let eventsHTML = '';
+                // Find items on this day
+                const dayBills = appState.bills.filter(b => b.dueDate === dStr);
+                const dayPaychecks = appState.paychecks.filter(p => p.payDate === dStr);
+
+                const dayCard = document.createElement('div');
+                dayCard.className = `min-h-[75px] sm:min-h-[90px] p-1.5 rounded-xl border transition-all flex flex-col justify-between ${
+                    isToday ? 'bg-indigo-500/10 border-indigo-500/50 shadow-sm' : 
+                    isPast ? 'bg-slate-200/40 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-75' : 
+                    'glass-card border-slate-200/80 dark:border-slate-800/80'
+                } ${!dayInfo.isCurrentMonth ? 'opacity-30' : ''}`;
+
+                let eventsHtml = '';
+                
                 dayPaychecks.forEach(p => {
-                    eventsHTML += `<div class="mt-1 p-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold truncate">+${formatCurrency(p.amount)}</div>`;
-                });
-                dayBills.forEach(b => {
-                    const strike = b.paid ? 'line-through opacity-50' : '';
-                    eventsHTML += `<div class="mt-1 p-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 text-[10px] font-semibold truncate ${strike}">-${formatCurrency(b.amount)}</div>`;
+                    eventsHtml += `
+                        <div class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 truncate mb-1" title="${escapeHtml(p.title)}: +${formatCurr(p.net)}">
+                            +${formatCurr(p.net)}
+                        </div>
+                    `;
                 });
 
-                cell.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <span class="text-[11px] ${isToday ? 'px-1.5 py-0.5 rounded-md bg-indigo-600 text-white' : ''}">${cellDate.getDate()}</span>
-                        ${isToday ? '<span class="text-[9px] uppercase tracking-wider text-indigo-500 font-bold">Today</span>' : ''}
+                dayBills.forEach(b => {
+                    eventsHtml += `
+                        <div class="px-1.5 py-0.5 rounded text-[9px] font-bold ${b.paid ? 'bg-slate-300 dark:bg-slate-800 text-slate-500 line-through' : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'} truncate mb-1" title="${escapeHtml(b.title)}: -${formatCurr(b.amount)}">
+                            -${formatCurr(b.amount)}
+                        </div>
+                    `;
+                });
+
+                dayCard.innerHTML = `
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="text-[10px] font-extrabold ${isToday ? 'w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center' : 'text-slate-500 dark:text-slate-400'}">
+                            ${dayInfo.dateObj.getDate()}
+                        </span>
                     </div>
-                    <div class="space-y-0.5 overflow-hidden">${eventsHTML}</div>
+                    <div class="overflow-y-auto max-h-[50px] space-y-0.5">
+                        ${eventsHtml}
+                    </div>
                 `;
 
-                grid.appendChild(cell);
-            }
+                grid.appendChild(dayCard);
+            });
         }
 
-        // CASH BALANCE PROJECTION CHART
+        // 30-DAY CASH FLOW PROJECTION CHART
         function renderChart() {
-            const ctx = document.getElementById('projectionChart').getContext('2d');
+            const ctx = document.getElementById('cashFlowChart').getContext('2d');
+            if (cashFlowChartInstance) {
+                cashFlowChartInstance.destroy();
+            }
 
             const labels = [];
-            const balanceData = [];
+            const dataPoints = [];
+            let runningBal = appState.currentBalance;
+            let totalIncome30 = 0;
+            let minFloor = runningBal;
 
-            let runningBalance = appState.currentBalance;
             const today = new Date();
 
             for (let i = 0; i < 30; i++) {
-                const d = new Date(today);
+                const d = new Date();
                 d.setDate(today.getDate() + i);
-                const dStr = d.toISOString().split('T')[0];
+                const dStr = d.toISOString().substring(0, 10);
+                
+                // Add income on this day
+                const payToday = appState.paychecks.filter(p => p.payDate === dStr);
+                payToday.forEach(p => {
+                    runningBal += p.net;
+                    totalIncome30 += p.net;
+                });
 
-                // Add paychecks on this day
-                const paySum = appState.paychecks.filter(p => p.date === dStr).reduce((s, p) => s + p.amount, 0);
-                // Deduct UNPAID bills on this day
-                const billSum = appState.bills.filter(b => b.date === dStr && !b.paid).reduce((s, b) => s + b.amount, 0);
-
-                runningBalance += (paySum - billSum);
+                // Subtract unpaid bills on this day
+                const billsToday = appState.bills.filter(b => !b.paid && b.dueDate === dStr);
+                billsToday.forEach(b => {
+                    runningBal -= b.amount;
+                });
 
                 labels.push(d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
-                balanceData.push(runningBalance);
+                dataPoints.push(runningBal);
+
+                if (runningBal < minFloor) minFloor = runningBal;
             }
 
-            if (projectionChart) {
-                projectionChart.destroy();
-            }
+            // Update Chart Bottom Key Cards
+            document.getElementById('chartStartBal').textContent = formatCurr(appState.currentBalance);
+            document.getElementById('chartProjIncome').textContent = `+${formatCurr(totalIncome30)}`;
+            document.getElementById('chartMinFloor').textContent = formatCurr(minFloor);
 
             const isDark = document.documentElement.classList.contains('dark');
+            const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+            const textColor = isDark ? '#94a3b8' : '#64748b';
 
-            projectionChart = new Chart(ctx, {
+            // Chart Gradient Fill
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+            gradient.addColorStop(1, 'rgba(99, 102, 241, 0.0)');
+
+            cashFlowChartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Projected Cash Balance ($)',
-                        data: balanceData,
+                        label: 'Projected Liquidity ($)',
+                        data: dataPoints,
                         borderColor: '#6366f1',
-                        backgroundColor: isDark ? 'rgba(99, 102, 241, 0.15)' : 'rgba(99, 102, 241, 0.08)',
+                        borderWidth: 3,
+                        backgroundColor: gradient,
                         fill: true,
                         tension: 0.35,
-                        borderWidth: 3,
-                        pointRadius: 2,
+                        pointBackgroundColor: '#818cf8',
                         pointHoverRadius: 6
                     }]
                 },
@@ -1123,22 +1320,22 @@
                             intersect: false,
                             callbacks: {
                                 label: function(context) {
-                                    return ` Balance: $${context.parsed.y.toFixed(2)}`;
+                                    return ` Balance: ${formatCurr(context.parsed.y)}`;
                                 }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            grid: { display: false },
-                            ticks: { color: isDark ? '#94a3b8' : '#64748b', font: { size: 10 } }
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { size: 10 } }
                         },
                         y: {
-                            grid: { color: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' },
-                            ticks: {
-                                color: isDark ? '#94a3b8' : '#64748b',
+                            grid: { color: gridColor },
+                            ticks: { 
+                                color: textColor, 
                                 font: { size: 10 },
-                                callback: value => '$' + value
+                                callback: function(value) { return '$' + value; }
                             }
                         }
                     }
@@ -1146,62 +1343,15 @@
             });
         }
 
-        // UTILITY FUNCTIONS & THEME TOGGLE
-        function toggleTheme() {
-            const isDark = document.documentElement.classList.toggle('dark');
-            localStorage.setItem('flowpay_theme', isDark ? 'dark' : 'light');
-            updateThemeIcon(isDark);
-            renderChart();
+        // UTILITIES
+        function formatCurr(val) {
+            return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
         }
 
-        function updateThemeIcon(isDark) {
-            const icon = document.getElementById('theme-icon');
-            if (isDark) {
-                icon.className = 'fa-solid fa-sun text-amber-400';
-            } else {
-                icon.className = 'fa-solid fa-moon text-slate-600';
-            }
-        }
-
-        function formatCurrency(val) {
-            return '$' + Number(val).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
-
-        function formatDateLabel(dateStr) {
-            if (!dateStr) return '';
-            const parts = dateStr.split('-');
-            const d = new Date(parts[0], parts[1] - 1, parts[2]);
-            return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        }
-
-        function showToast(message, type = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-
-            let bg = 'bg-slate-800 text-white';
-            let icon = 'fa-circle-info';
-
-            if (type === 'success') {
-                bg = 'bg-emerald-600 text-white';
-                icon = 'fa-circle-check';
-            } else if (type === 'error') {
-                bg = 'bg-rose-600 text-white';
-                icon = 'fa-circle-exclamation';
-            }
-
-            toast.className = `px-4 py-3 rounded-2xl shadow-xl ${bg} flex items-center gap-2.5 text-xs font-semibold transform transition-all duration-300 translate-y-4 opacity-0 pointer-events-auto`;
-            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
-
-            container.appendChild(toast);
-
-            setTimeout(() => {
-                toast.classList.remove('translate-y-4', 'opacity-0');
-            }, 10);
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+        function escapeHtml(str) {
+            return str.replace(/[&<>"']/g, function(m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
         }
     </script>
 </body>
