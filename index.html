@@ -55,6 +55,14 @@
         .animate-success-pop {
             animation: successPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+
+        .info-popup {
+            animation: fadeIn 0.2s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
@@ -159,6 +167,22 @@
         </div>
     </div>
 
+    <!-- ACTIVE MONTH BILLS COVERAGE BREAKDOWN MODAL -->
+    <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
+        <div class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="flex items-center gap-2 text-indigo-500">
+                <i class="fa-solid fa-calculator text-xl"></i>
+                <h3 class="font-bold text-lg text-slate-900 dark:text-white" id="month-bills-modal-title">Active Month Bills Coverage</h3>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>).</p>
+
+            <div id="month-bills-coverage-list" class="space-y-2.5 text-xs">
+                <!-- Populated dynamically -->
+            </div>
+        </div>
+    </div>
+
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
@@ -232,9 +256,18 @@
                 <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
                     <div>
-                        <span class="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full border border-indigo-500/30">
-                            Available to Spend Safely
-                        </span>
+                        <div class="flex items-center gap-2 relative">
+                            <span class="text-xs font-bold uppercase tracking-widest text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-full border border-indigo-500/30">
+                                Available to Spend Safely
+                            </span>
+                            <button type="button" class="info-btn text-indigo-300 hover:text-white transition text-xs" data-info="safe-spend">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <!-- Info Popup Card -->
+                            <div id="info-pop-safe-spend" class="info-popup hidden absolute top-8 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Safe-To-Spend:</strong> The true money you can spend today without missing upcoming bills before your next paycheck, while protecting your emergency cushion.
+                            </div>
+                        </div>
                         <div class="text-4xl sm:text-6xl font-extrabold tracking-tight mt-3 text-white" id="safe-to-spend-amount">$0.00</div>
                         <p class="text-xs text-indigo-200/80 mt-2 max-w-xl">
                             Calculated from your available balance minus bills due before your next paycheck, essentials, pending transactions, and your emergency cash buffer.
@@ -269,8 +302,16 @@
             <!-- 4 CORE METRIC CARDS -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass rounded-2xl p-5 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
+                    <div class="flex items-center justify-between relative">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
+                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="balance">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <div id="info-pop-balance" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Current Balance:</strong> Manually updated liquid funds available across your primary checking or cash accounts.
+                            </div>
+                        </div>
                         <button id="open-balance-btn" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium">
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                         </button>
@@ -310,10 +351,19 @@
                     <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-2 italic" id="next-bill-status-text">Add a bill to see coverage.</p>
                 </div>
 
-                <div class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Month Bills</span>
-                        <span class="text-xs text-slate-400 font-medium">Scheduled</span>
+                <!-- Active Month Bills Metric Card (Clickable to open breakdown) -->
+                <div id="btn-open-active-month-bills" class="glass rounded-2xl p-5 shadow-sm flex flex-col justify-between cursor-pointer hover:ring-2 hover:ring-indigo-500/50 transition">
+                    <div class="flex items-center justify-between relative">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Active Month Bills</span>
+                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="active-bills">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <div id="info-pop-active-bills" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Active Month Bills:</strong> Total sum of recurring obligations scheduled for the selected month. Click card to see full bill coverage breakdown.
+                            </div>
+                        </div>
+                        <span class="text-xs text-indigo-500 font-semibold">View List <i class="fa-solid fa-chevron-right text-[10px]"></i></span>
                     </div>
                     <div class="mt-2">
                         <div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-bills-total">$0.00</div>
@@ -348,11 +398,16 @@
             <!-- FUTURE PAYCHECK & TAX CALCULATOR WIDGET -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
+                    <div class="flex items-center gap-2 relative">
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calculator text-emerald-500"></i> Future Paycheck & Tax Calculator
                         </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Calculate gross pay via hourly/overtime or flat rate, estimate taxes, and add to your active calendar.</p>
+                        <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="pay-calc">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </button>
+                        <div id="info-pop-pay-calc" class="info-popup hidden absolute top-8 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                            <strong>Paycheck Calculator:</strong> Calculates tax withholdings (Federal + FICA and State) for hourly or flat income and projects it directly onto your wall calendar.
+                        </div>
                     </div>
                 </div>
 
@@ -459,11 +514,16 @@
             <!-- INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
             <div class="glass rounded-2xl p-6 shadow-sm space-y-4">
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                    <div>
+                    <div class="flex items-center gap-2 relative">
                         <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                             <i class="fa-solid fa-calendar-days text-indigo-500"></i> Wall Calendar & Dynamic Cash Flow
                         </h2>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">Traditional wall calendar layout starting Sunday. Tap any day on mobile to view full details.</p>
+                        <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="calendar">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </button>
+                        <div id="info-pop-calendar" class="info-popup hidden absolute top-8 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                            <strong>Wall Calendar:</strong> Renders your dynamic cash flow day-by-day. Tap any day on mobile to view expanded detail titles and amounts.
+                        </div>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <button id="toggle-past-weeks-btn" class="bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 shadow-sm">
@@ -502,9 +562,17 @@
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-4">
-                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <i class="fa-solid fa-minus-circle text-rose-500"></i> Log Quick Spend
-                            </h2>
+                            <div class="flex items-center gap-2 relative">
+                                <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-minus-circle text-rose-500"></i> Log Quick Spend
+                                </h2>
+                                <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="quick-spend">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                                <div id="info-pop-quick-spend" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                    <strong>Quick Spend:</strong> Deduct ad-hoc cash or debit card purchases to instantly test impact on your safe-to-spend balance.
+                                </div>
+                            </div>
                             <span class="text-xs text-slate-400">Instant Impact</span>
                         </div>
                         <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Log any expense to immediately see how it impacts your safe-to-spend balance.</p>
@@ -548,12 +616,20 @@
 
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 flex flex-col justify-between">
                     <div class="flex items-center justify-between mb-2">
-                        <div>
+                        <div class="flex items-center gap-2 relative">
                             <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <i class="fa-solid fa-chart-line text-indigo-500"></i> Balance Projection vs. Bills
                             </h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Estimated account balance trajectory over time including scheduled income and bills</p>
+                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="chart">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <div id="info-pop-chart" class="info-popup hidden absolute top-6 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Cash Flow Projection:</strong> Interactive chart visualizing your 30-day projected balance trajectory based on scheduled income vs due bills.
+                            </div>
                         </div>
+                        <button id="toggle-chart-type-btn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-chart-simple"></i> <span id="chart-type-text">Switch to Bar Chart</span>
+                        </button>
                     </div>
                     <div class="w-full h-64 relative"><canvas id="cashFlowChart"></canvas></div>
                     <div class="grid grid-cols-3 gap-2 text-center pt-3 border-t border-slate-200/60 dark:border-slate-700/60 mt-2">
@@ -577,11 +653,16 @@
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div class="glass rounded-2xl p-6 shadow-sm lg:col-span-2 space-y-4">
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div>
+                        <div class="flex items-center gap-2 relative">
                             <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <i class="fa-solid fa-calendar-check text-indigo-500"></i> Recurring Bills Schedule
                             </h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">Track and plan for your weekly and monthly obligations</p>
+                            <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="bills-schedule">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </button>
+                            <div id="info-pop-bills-schedule" class="info-popup hidden absolute top-6 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                <strong>Bills Schedule:</strong> Manage recurring liabilities. Marking a bill paid updates your balance and marks it complete with a green badge.
+                            </div>
                         </div>
                         <div class="flex items-center gap-2 flex-wrap self-start sm:self-auto">
                             <button id="toggle-hide-paid-btn" class="bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold px-3 py-2 rounded-xl transition shadow-sm">
@@ -616,9 +697,17 @@
                 <div class="glass rounded-2xl p-6 shadow-sm flex flex-col justify-between">
                     <div>
                         <div class="flex items-center justify-between mb-3">
-                            <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Recent Activity
-                            </h2>
+                            <div class="flex items-center gap-2 relative">
+                                <h2 class="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                    <i class="fa-solid fa-clock-rotate-left text-slate-500"></i> Recent Activity
+                                </h2>
+                                <button type="button" class="info-btn text-slate-400 hover:text-indigo-500 text-xs" data-info="activity-log">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </button>
+                                <div id="info-pop-activity-log" class="info-popup hidden absolute top-6 left-0 z-50 w-64 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
+                                    <strong>Activity Log & Undo:</strong> Every change creates a state snapshot. Click Undo to instantly revert deletions, balance edits, or payments.
+                                </div>
+                            </div>
                             <button id="clear-activity-btn" class="text-[11px] text-slate-400 hover:text-rose-500 transition">Clear</button>
                         </div>
                         <div id="activity-log" class="space-y-2.5 max-h-[320px] overflow-y-auto pr-1"></div>
@@ -795,6 +884,7 @@
         let appState = { ...DEFAULT_STATE };
         let lastFocusedElement = null;
         let cashFlowChartInstance = null;
+        let chartType = 'line'; // 'line' or 'bar'
         let showAllPastWeeks = false;
         let isRegisterMode = false;
         let hidePaidBills = false;
@@ -1168,6 +1258,29 @@
             });
         }
 
+        function initInfoPopups() {
+            document.querySelectorAll('.info-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const infoKey = btn.dataset.info;
+                    const targetPop = document.getElementById(`info-pop-${infoKey}`);
+                    
+                    // Close other popups first
+                    document.querySelectorAll('.info-popup').forEach(pop => {
+                        if (pop !== targetPop) pop.classList.add('hidden');
+                    });
+
+                    if (targetPop) {
+                        targetPop.classList.toggle('hidden');
+                    }
+                });
+            });
+
+            window.addEventListener('click', () => {
+                document.querySelectorAll('.info-popup').forEach(pop => pop.classList.add('hidden'));
+            });
+        }
+
         function initModals() {
             document.querySelectorAll('[role="dialog"]').forEach(modal => {
                 modal.addEventListener('click', (e) => {
@@ -1181,8 +1294,8 @@
                 btn.addEventListener('click', () => {
                     const modal = btn.closest('[role="dialog"]');
                     if (modal) closeModal(modal.id);
-                    const expModal = document.getElementById('modal-expanded-date');
-                    if (expModal) expModal.classList.add('hidden');
+                    document.getElementById('modal-expanded-date').classList.add('hidden');
+                    document.getElementById('modal-active-month-bills').classList.add('hidden');
                 });
             });
 
@@ -1194,6 +1307,7 @@
                         }
                     });
                     document.getElementById('modal-expanded-date').classList.add('hidden');
+                    document.getElementById('modal-active-month-bills').classList.add('hidden');
                 }
             });
 
@@ -1326,15 +1440,27 @@
             return cell;
         }
 
-        function logActivity(title, desc, type, undoData = null) {
+        function createFullSnapshot() {
+            return {
+                balance: appState.balance,
+                emergencyBuffer: appState.emergencyBuffer,
+                essentialSpending: appState.essentialSpending,
+                pendingTransactions: appState.pendingTransactions,
+                savingsGoal: appState.savingsGoal,
+                bills: JSON.parse(JSON.stringify(appState.bills)),
+                paychecks: JSON.parse(JSON.stringify(appState.paychecks))
+            };
+        }
+
+        function logActivity(title, desc, type) {
             const activityItem = {
                 id: Date.now(),
                 title,
                 desc,
                 type,
                 time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                stateSnapshot: JSON.parse(JSON.stringify(appState)),
-                undoData,
+                stateSnapshot: createFullSnapshot(),
+                redoSnapshot: null,
                 undone: false
             };
             appState.activity.unshift(activityItem);
@@ -1345,11 +1471,18 @@
             const act = appState.activity.find(x => x.id === id);
             if (!act || act.undone) return;
 
-            // Save current state as redo snapshot before reverting
-            act.redoSnapshot = JSON.parse(JSON.stringify(appState));
+            act.redoSnapshot = createFullSnapshot();
 
             if (act.stateSnapshot) {
-                appState = JSON.parse(JSON.stringify(act.stateSnapshot));
+                const snap = act.stateSnapshot;
+                appState.balance = snap.balance;
+                appState.emergencyBuffer = snap.emergencyBuffer;
+                appState.essentialSpending = snap.essentialSpending;
+                appState.pendingTransactions = snap.pendingTransactions;
+                appState.savingsGoal = snap.savingsGoal;
+                appState.bills = JSON.parse(JSON.stringify(snap.bills));
+                appState.paychecks = JSON.parse(JSON.stringify(snap.paychecks));
+                
                 act.undone = true;
                 saveData();
                 updateDashboard();
@@ -1361,7 +1494,15 @@
             const act = appState.activity.find(x => x.id === id);
             if (!act || !act.undone || !act.redoSnapshot) return;
 
-            appState = JSON.parse(JSON.stringify(act.redoSnapshot));
+            const snap = act.redoSnapshot;
+            appState.balance = snap.balance;
+            appState.emergencyBuffer = snap.emergencyBuffer;
+            appState.essentialSpending = snap.essentialSpending;
+            appState.pendingTransactions = snap.pendingTransactions;
+            appState.savingsGoal = snap.savingsGoal;
+            appState.bills = JSON.parse(JSON.stringify(snap.bills));
+            appState.paychecks = JSON.parse(JSON.stringify(snap.paychecks));
+
             act.undone = false;
             saveData();
             updateDashboard();
@@ -1549,6 +1690,74 @@
             }
         }
 
+        function openActiveMonthBillsModal() {
+            const billsMonthSelect = document.getElementById('bills-month-select');
+            const selectedMonthVal = billsMonthSelect ? billsMonthSelect.value : new Date().toISOString().slice(0, 7);
+            
+            const [y, m] = selectedMonthVal.split('-');
+            const monthName = new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+            
+            document.getElementById('month-bills-modal-title').textContent = `${monthName} Bills Coverage`;
+            document.getElementById('modal-curr-bal-display').textContent = formatCurrency(appState.balance);
+
+            const expandedBills = getExpandedBillsList();
+            const monthBills = expandedBills.filter(b => b.dueDate.startsWith(selectedMonthVal)).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+
+            const listContainer = document.getElementById('month-bills-coverage-list');
+            listContainer.innerHTML = '';
+
+            if (monthBills.length === 0) {
+                listContainer.innerHTML = '<p class="text-xs text-slate-400 italic text-center py-6">No bills scheduled for this month.</p>';
+            } else {
+                let runningRequiredCumulative = 0;
+
+                monthBills.forEach(bill => {
+                    if (!bill.paid) {
+                        runningRequiredCumulative += bill.amount;
+                    }
+
+                    const isCovered = appState.balance >= runningRequiredCumulative;
+                    const shortfall = runningRequiredCumulative - appState.balance;
+
+                    const card = document.createElement('div');
+                    card.className = `p-3.5 rounded-xl border flex items-center justify-between transition ${bill.paid ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 text-slate-400 line-through opacity-70' : (isCovered ? 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50' : 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50')}`;
+
+                    const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
+
+                    let statusBadgeHTML = '';
+                    if (bill.paid) {
+                        statusBadgeHTML = `<span class="text-[10px] font-bold text-slate-400">Paid</span>`;
+                    } else if (isCovered) {
+                        statusBadgeHTML = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-200/60 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-200">Covered</span>`;
+                    } else {
+                        statusBadgeHTML = `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-rose-200/60 dark:bg-rose-900/80 text-rose-800 dark:text-rose-200">Need ${formatCurrency(shortfall)} more</span>`;
+                    }
+
+                    card.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-white dark:bg-slate-700 flex items-center justify-center text-sm shadow-sm">
+                                <i class="fa-solid ${iconClass}"></i>
+                            </div>
+                            <div>
+                                <span class="font-bold text-slate-900 dark:text-white block text-sm">${bill.name}</span>
+                                <span class="text-[10px] text-slate-500">Due: ${bill.dueDate}</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-extrabold text-sm block text-slate-900 dark:text-white">${formatCurrency(bill.amount)}</span>
+                            ${statusBadgeHTML}
+                        </div>
+                    `;
+
+                    listContainer.appendChild(card);
+                });
+            }
+
+            const modal = document.getElementById('modal-active-month-bills');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
         function updateDashboard() {
             applyTheme();
             sortBillsByDate();
@@ -1642,7 +1851,6 @@
                     tr.className += ' line-through opacity-70 text-slate-400 dark:text-slate-500';
                 }
 
-                // Name with category icon
                 const nameTd = document.createElement('td');
                 nameTd.className = 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2';
                 const iconClass = CATEGORY_ICONS[bill.category] || 'fa-tag text-slate-400';
@@ -2032,17 +2240,20 @@
             document.getElementById('chart-total-in').textContent = formatCurrency(totalIn);
             document.getElementById('chart-lowest-bal').textContent = formatCurrency(lowestBal);
 
+            const isBar = chartType === 'bar';
+
             cashFlowChartInstance = new Chart(ctx, {
-                type: 'line',
+                type: isBar ? 'bar' : 'line',
                 data: {
                     labels: labels,
                     datasets: [{
                         label: 'Projected Balance',
                         data: dataPoints,
                         borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
-                        fill: true,
-                        tension: 0.3
+                        backgroundColor: isBar ? 'rgba(99, 102, 241, 0.65)' : 'rgba(99, 102, 241, 0.1)',
+                        fill: !isBar,
+                        tension: 0.3,
+                        borderRadius: isBar ? 6 : 0
                     }]
                 },
                 options: {
@@ -2061,8 +2272,8 @@
             e.preventDefault();
             const val = parseFloat(document.getElementById('balance-input').value);
             if (Number.isFinite(val)) {
-                appState.balance = val;
                 logActivity('Updated Balance', `Set available balance to ${formatCurrency(val)}`, 'info');
+                appState.balance = val;
                 saveData();
                 updateDashboard();
                 closeModal('modal-balance');
@@ -2073,8 +2284,8 @@
             e.preventDefault();
             const val = parseFloat(document.getElementById('buffer-input').value);
             if (Number.isFinite(val) && val >= 0) {
-                appState.emergencyBuffer = val;
                 logActivity('Buffer Updated', `Set emergency cash buffer to ${formatCurrency(val)}`, 'info');
+                appState.emergencyBuffer = val;
                 saveData();
                 updateDashboard();
                 closeModal('modal-buffer');
@@ -2085,8 +2296,8 @@
             e.preventDefault();
             const val = parseFloat(document.getElementById('savings-goal-input').value);
             if (Number.isFinite(val) && val >= 0) {
-                appState.savingsGoal = val;
                 logActivity('Savings Goal', `Updated monthly goal to ${formatCurrency(val)}`, 'info');
+                appState.savingsGoal = val;
                 saveData();
                 updateDashboard();
                 closeModal('modal-savings');
@@ -2100,6 +2311,7 @@
             const res = calculatePaycheckPreview();
 
             if (name && date && res.net > 0) {
+                logActivity('Added Paycheck', `Added ${formatCurrency(res.net)} net deposit from ${name} for ${date}`, 'income');
                 appState.paychecks.push({
                     id: Date.now(),
                     name,
@@ -2107,7 +2319,6 @@
                     gross: res.gross,
                     date
                 });
-                logActivity('Added Paycheck', `Added ${formatCurrency(res.net)} net deposit from ${name} for ${date}`, 'income');
                 saveData();
                 updateDashboard();
                 document.getElementById('form-paycheck-calc').reset();
@@ -2139,13 +2350,13 @@
             const date = document.getElementById('edit-paycheck-date').value;
 
             if (id && name && Number.isFinite(amount) && date) {
+                logActivity('Updated Paycheck', `Modified paycheck ${name} (${formatCurrency(amount)})`, 'info');
                 const p = appState.paychecks.find(x => x.id == id);
                 if (p) {
                     p.name = name;
                     p.amount = amount;
                     p.date = date;
                 }
-                logActivity('Updated Paycheck', `Modified paycheck ${name} (${formatCurrency(amount)})`, 'info');
                 saveData();
                 updateDashboard();
                 closeModal('modal-edit-paycheck');
@@ -2154,10 +2365,10 @@
         }
 
         function deletePaycheck(id) {
+            logActivity('Deleted Paycheck', 'Removed income from calendar schedule', 'warn');
             appState.paychecks = appState.paychecks.filter(p => p.id !== id);
             saveData();
             updateDashboard();
-            logActivity('Deleted Paycheck', 'Removed income from calendar schedule', 'warn');
             showToast('Paycheck removed.');
         }
 
@@ -2212,6 +2423,7 @@
 
             if (name && Number.isFinite(amount) && amount > 0 && dueDate) {
                 if (id) {
+                    logActivity('Updated Bill', `Modified ${name} (${formatCurrency(amount)})`, 'info');
                     const bill = appState.bills.find(b => b.id == id);
                     if (bill) {
                         bill.name = name;
@@ -2222,8 +2434,8 @@
                         bill.repeatType = repeatType;
                         bill.endDate = endDate;
                     }
-                    logActivity('Updated Bill', `Modified ${name} (${formatCurrency(amount)})`, 'info');
                 } else {
+                    logActivity('Added Bill', `Scheduled ${name} (${formatCurrency(amount)}) starting ${dueDate}`, 'info');
                     appState.bills.push({
                         id: Date.now(),
                         name,
@@ -2235,7 +2447,6 @@
                         endDate,
                         paid: false
                     });
-                    logActivity('Added Bill', `Scheduled ${name} (${formatCurrency(amount)}) starting ${dueDate}`, 'info');
                 }
 
                 sortBillsByDate();
@@ -2246,11 +2457,11 @@
         }
 
         function deleteBill(id) {
+            logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
             appState.bills = appState.bills.filter(b => b.id !== id);
             sortBillsByDate();
             saveData();
             updateDashboard();
-            logActivity('Deleted Bill', 'Removed bill from schedule', 'warn');
         }
 
         function toggleBillPaid(id) {
@@ -2258,8 +2469,8 @@
             if (bill) {
                 bill.paid = !bill.paid;
                 if (bill.paid) {
-                    appState.balance -= bill.amount;
                     logActivity('Paid Bill', `Paid ${formatCurrency(bill.amount)} for ${bill.name}`, 'expense');
+                    appState.balance -= bill.amount;
                     
                     let nextDate;
                     if (bill.frequency === 'monthly') {
@@ -2277,8 +2488,8 @@
                         }
                     }
                 } else {
-                    appState.balance += bill.amount;
                     logActivity('Unpaid Bill', `Reverted payment status for ${bill.name}`, 'info');
+                    appState.balance += bill.amount;
                 }
                 sortBillsByDate();
                 saveData();
@@ -2293,8 +2504,8 @@
             const note = document.getElementById('spend-note').value.trim() || category;
 
             if (Number.isFinite(amount) && amount > 0) {
-                appState.balance -= amount;
                 logActivity('Expense Logged', `Spent ${formatCurrency(amount)} on ${note}`, 'expense');
+                appState.balance -= amount;
                 saveData();
                 updateDashboard();
                 document.getElementById('spend-form').reset();
@@ -2306,6 +2517,7 @@
             loadData();
             checkAuthSession();
             initAuthHandlers();
+            initInfoPopups();
             initModals();
             initMonthSelectors();
             applyTheme();
@@ -2344,6 +2556,16 @@
                 hidePaidText.textContent = hidePaidBills ? 'Show Paid Bills' : 'Hide Paid Bills';
                 renderBillsTable();
             });
+
+            const toggleChartBtn = document.getElementById('toggle-chart-type-btn');
+            const chartTypeText = document.getElementById('chart-type-text');
+            toggleChartBtn.addEventListener('click', () => {
+                chartType = chartType === 'line' ? 'bar' : 'line';
+                chartTypeText.textContent = chartType === 'line' ? 'Switch to Bar Chart' : 'Switch to Line Chart';
+                renderChart();
+            });
+
+            document.getElementById('btn-open-active-month-bills').addEventListener('click', openActiveMonthBillsModal);
 
             document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
             document.getElementById('open-balance-btn').addEventListener('click', (e) => {
