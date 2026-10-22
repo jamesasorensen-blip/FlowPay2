@@ -65,8 +65,11 @@
         }
 
         .modal-drag-handle {
-            cursor: move;
+            cursor: grab;
             user-select: none;
+        }
+        .modal-drag-handle:active {
+            cursor: grabbing;
         }
     </style>
 </head>
@@ -94,7 +97,6 @@
                 <p id="auth-subtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-1">Please log in securely to access your financial data.</p>
             </div>
 
-            <!-- Tab switcher for Login / Register -->
             <div class="flex bg-slate-200 dark:bg-slate-700/60 p-1 rounded-xl text-xs font-semibold">
                 <button type="button" id="tab-login" class="flex-1 py-2 rounded-lg bg-white dark:bg-slate-600 text-indigo-600 dark:text-white shadow-sm transition">Sign In</button>
                 <button type="button" id="tab-register" class="flex-1 py-2 rounded-lg text-slate-600 dark:text-slate-300 transition">Register</button>
@@ -145,18 +147,21 @@
     <!-- SETTINGS MODAL -->
     <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-settings" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
-            <button type="button" id="save-pos-settings" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" onclick="closeModal('modal-settings')" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="flex items-center gap-2 text-indigo-500 modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <i class="fa-solid fa-gear text-xl"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Account Settings</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-gear"></i>
+                    <span>Account Settings</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-settings" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" onclick="closeModal('modal-settings')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
             
-            <form id="form-change-password" class="space-y-3 text-xs pt-2">
+            <form id="form-change-password" class="space-y-3 text-xs pt-1">
                 <h4 class="font-bold text-slate-700 dark:text-slate-300">Change Password</h4>
                 <div>
                     <label for="settings-current-pass" class="block font-medium text-slate-600 dark:text-slate-400 mb-1">Current Password</label>
@@ -171,7 +176,7 @@
                     <input type="password" id="settings-confirm-pass" required placeholder="••••••••" class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
                 </div>
                 <div class="flex justify-end gap-2 pt-2">
-                    <button type="button" onclick="closeModal('modal-settings')" class="close-modal-btn px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="button" onclick="closeModal('modal-settings')" class="px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
                     <button type="submit" class="px-4 py-2 rounded-xl text-white bg-indigo-600 hover:bg-indigo-500 font-semibold">Update Password</button>
                 </div>
             </form>
@@ -181,16 +186,20 @@
     <!-- SAFE TO SPEND INCLUDE NEXT MONTH BILLS MODAL -->
     <div id="modal-safe-spend" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
-            <button type="button" id="save-pos-safe-spend" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="flex items-center gap-2 text-indigo-500 modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <i class="fa-solid fa-calculator text-xl"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white">Include Next Month Bills</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-calculator"></i>
+                    <span>Include Next Month Bills</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-safe-spend" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
+            
             <p class="text-xs text-slate-500 dark:text-slate-400">Select early next-month bills (e.g. Rent due on the 1st) to reserve funds for them in your current Safe-to-Spend calculation without shifting their calendar due date.</p>
 
             <div id="next-month-bills-checklist" class="space-y-2 pt-2 text-xs">
@@ -206,16 +215,20 @@
     <!-- ACTIVE MONTH BILLS COVERAGE BREAKDOWN MODAL -->
     <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
-            <button type="button" id="save-pos-active-month-bills" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="flex items-center gap-2 text-indigo-500 modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <i class="fa-solid fa-calculator text-xl"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white" id="month-bills-modal-title">Active Month Bills Coverage</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-calculator"></i>
+                    <span id="month-bills-modal-title">Active Month Bills Coverage</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-active-month-bills" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
+
             <p class="text-xs text-slate-500 dark:text-slate-400">Bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>).</p>
 
             <div id="month-bills-coverage-list" class="space-y-2.5 text-xs">
@@ -227,15 +240,19 @@
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
-            <button type="button" id="save-pos-logout-confirm" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-
-            <div class="modal-drag-handle pt-2">
-                <i class="fa-solid fa-grip text-slate-400 mb-2"></i>
-                <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl mx-auto">
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl text-left">
+                <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
                     <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Log Out</span>
                 </div>
+                <button type="button" id="save-pos-logout-confirm" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                    <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                </button>
+            </div>
+
+            <div class="w-12 h-12 bg-rose-500/10 text-rose-500 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-right-from-bracket"></i>
             </div>
             <div>
                 <h3 class="font-bold text-lg text-slate-900 dark:text-white">Confirm Log Out</h3>
@@ -248,30 +265,42 @@
         </div>
     </div>
 
-    <!-- MOBILE EXPANDED CALENDAR DATE MODAL -->
+    <!-- MOBILE EXPANDED CALENDAR DATE MODAL WITH DIRECT PAYCHECK ENTRY -->
     <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
-            <button type="button" id="save-pos-expanded-date" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle flex items-center gap-2 text-indigo-500 pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <div>
-                    <span class="text-[10px] font-bold uppercase tracking-wider text-indigo-500" id="modal-date-subtitle">Selected Date</span>
-                    <h3 class="font-extrabold text-xl text-slate-900 dark:text-white" id="modal-date-title">Date Details</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <i class="fa-solid fa-calendar-day"></i>
+                    <span id="modal-date-title">Date Details</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-expanded-date" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
                 </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
 
-            <div class="pt-2">
-                <button type="button" id="btn-add-paycheck-on-date" class="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-plus-circle"></i> Add Paycheck on <span id="add-paycheck-date-label">This Date</span>
-                </button>
+            <p class="text-xs text-slate-500 dark:text-slate-400">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
+
+            <!-- DIRECT PAYCHECK ENTRY ON THIS DATE -->
+            <div class="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 dark:border-emerald-900/50 space-y-2.5 text-xs">
+                <h4 class="font-bold text-emerald-700 dark:text-emerald-300 flex items-center gap-1.5">
+                    <i class="fa-solid fa-plus-circle"></i> Add Paycheck on <span id="modal-paycheck-date-label">This Date</span>
+                </h4>
+                <div class="space-y-2">
+                    <input type="text" id="modal-paycheck-name" placeholder="Paycheck Source (e.g. Salary, Side Gig)" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-medium">
+                    <div class="flex gap-2">
+                        <input type="number" min="0.01" step="0.01" id="modal-paycheck-amount" placeholder="Net Amount ($)" class="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-bold">
+                        <button type="button" id="btn-save-paycheck-on-date" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow transition">
+                            Save Paycheck
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div class="space-y-3 pt-2">
+            <div class="space-y-3 pt-1">
                 <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">Scheduled Events & Obligations</h4>
                 <div id="modal-date-events-list" class="space-y-2">
                     <!-- Populated dynamically -->
@@ -324,7 +353,6 @@
                             <button type="button" class="info-btn text-indigo-300 hover:text-white transition text-xs" data-info="safe-spend">
                                 <i class="fa-solid fa-circle-info"></i>
                             </button>
-                            <!-- Info Popup Card -->
                             <div id="info-pop-safe-spend" class="info-popup hidden absolute top-8 left-0 z-50 w-72 p-3 bg-slate-900 text-slate-200 text-xs rounded-xl shadow-2xl border border-slate-700">
                                 <strong>Safe-To-Spend:</strong> The true money you can spend today without missing upcoming bills before your next paycheck, while protecting your emergency cushion.
                             </div>
@@ -799,16 +827,20 @@
     <!-- Edit Paycheck Modal -->
     <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true">
         <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button type="button" id="save-pos-edit-paycheck" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white inline-block">Edit Paycheck</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <span>Edit Paycheck</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-edit-paycheck" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
-            <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
+
+            <form id="form-edit-paycheck" class="space-y-3 text-xs pt-1">
                 <input type="hidden" id="edit-paycheck-id">
                 <div>
                     <label for="edit-paycheck-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Source / Name</label>
@@ -835,16 +867,20 @@
     <!-- Bill Modal -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
         <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
-            <button type="button" id="save-pos-bill" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <h3 class="font-bold text-lg text-slate-900 dark:text-white inline-block" id="modal-bill-title">Add Recurring Bill</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <span id="modal-bill-title">Add Recurring Bill</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-bill" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Fill in details for your recurring payment.</p>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Fill in details for your recurring payment.</p>
             <form id="form-bill" class="space-y-3 text-xs">
                 <input type="hidden" id="bill-id">
                 <div>
@@ -902,16 +938,20 @@
     <!-- Balance Modal -->
     <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-balance-title">
         <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button type="button" id="save-pos-balance" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <h3 id="modal-balance-title" class="font-bold text-lg text-slate-900 dark:text-white inline-block mb-1">Update Current Balance</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <span id="modal-balance-title">Update Current Balance</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-balance" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Enter your account's current available balance.</p>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Enter your account's current available balance.</p>
             <form id="form-balance" class="space-y-3 text-xs">
                 <div>
                     <label for="balance-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Balance ($)</label>
@@ -928,16 +968,20 @@
     <!-- Buffer Modal -->
     <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-buffer-title">
         <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button type="button" id="save-pos-buffer" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <h3 id="modal-buffer-title" class="font-bold text-lg text-slate-900 dark:text-white inline-block mb-1">Emergency Cash Buffer</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <span id="modal-buffer-title">Emergency Cash Buffer</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-buffer" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Set your minimum reserve cash floor to protect against overdrafts.</p>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Set your minimum reserve cash floor to protect against overdrafts.</p>
             <form id="form-buffer" class="space-y-3 text-xs">
                 <div>
                     <label for="buffer-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Minimum Buffer ($)</label>
@@ -954,16 +998,20 @@
     <!-- Savings Goal Modal -->
     <div id="modal-savings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
         <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
-            <button type="button" id="save-pos-savings" class="hidden absolute top-4 left-4 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-lg shadow">
-                <i class="fa-solid fa-floppy-disk"></i> Save Position
-            </button>
-            <button type="button" class="close-modal-btn absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close modal"><i class="fa-solid fa-xmark text-lg"></i></button>
-            
-            <div class="modal-drag-handle pt-4 sm:pt-0">
-                <i class="fa-solid fa-grip text-slate-400 mr-1"></i>
-                <h3 id="modal-savings-title" class="font-bold text-lg text-slate-900 dark:text-white inline-block mb-1">Set Monthly Savings Goal</h3>
+            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-grip text-slate-400"></i>
+                    <span id="modal-savings-title">Set Monthly Savings Goal</span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="save-pos-savings" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
+                        <i class="fa-solid fa-floppy-disk"></i> Save Pos
+                    </button>
+                    <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
             </div>
-            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">Specify your monthly savings target.</p>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-3">Specify your monthly savings target.</p>
             <form id="form-savings" class="space-y-3 text-xs">
                 <div>
                     <label for="savings-goal-input" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Monthly Goal ($)</label>
@@ -1146,12 +1194,9 @@
                 let isDragging = false;
                 let startX, startY, origLeft, origTop;
 
-                handle.style.cursor = 'grab';
-
                 handle.addEventListener('mousedown', (e) => {
                     if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
                     isDragging = true;
-                    handle.style.cursor = 'grabbing';
 
                     const rect = card.getBoundingClientRect();
                     startX = e.clientX;
@@ -1184,7 +1229,6 @@
                 window.addEventListener('mouseup', () => {
                     if (isDragging) {
                         isDragging = false;
-                        handle.style.cursor = 'grab';
                     }
                 });
 
@@ -1305,7 +1349,6 @@
                 }
             });
 
-            // SETTINGS & PASSWORD CHANGE
             document.getElementById('btn-settings').addEventListener('click', () => {
                 document.getElementById('form-change-password').reset();
                 openModal('modal-settings');
@@ -1353,7 +1396,6 @@
                 closeModal('modal-settings');
             });
 
-            // LOGOUT CONFIRMATION PROMPT HANDLERS
             const logoutConfirmModal = document.getElementById('modal-logout-confirm');
             document.getElementById('btn-logout').addEventListener('click', () => {
                 logoutConfirmModal.classList.remove('hidden');
@@ -1380,15 +1422,12 @@
                 showToast('Logged out successfully.');
             });
 
-            // BIOMETRIC AUTHENTICATION & SETUP HANDLERS
             document.getElementById('btn-biometric').addEventListener('click', async () => {
                 const credentialId = localStorage.getItem('flowpay_biometric_id');
-                
                 if (!window.PublicKeyCredential) {
                     showToast('Biometrics not supported on this phone browser.', 'error');
                     return;
                 }
-
                 if (!credentialId) {
                     showToast('Biometrics not set up yet. Tap "Set up Biometrics" below.', 'info');
                     return;
@@ -1414,7 +1453,6 @@
                         });
                     }
                 } catch (err) {
-                    console.warn('Biometric verify error:', err);
                     showToast('Biometric unlock failed or was cancelled.', 'error');
                 }
             });
@@ -1446,7 +1484,6 @@
                         showToast('Biometrics enabled! You can now log in using your fingerprint.');
                     }
                 } catch (err) {
-                    console.warn('Biometric registration error:', err);
                     showToast('Could not register biometrics on this phone.', 'error');
                 }
             });
@@ -1564,14 +1601,30 @@
                 if (el) el.addEventListener('input', calculatePaycheckPreview);
             });
 
-            document.getElementById('btn-add-paycheck-on-date').addEventListener('click', () => {
-                if (selectedCalendarDate) {
-                    document.getElementById('calc-pay-date').value = selectedCalendarDate;
+            // DIRECT SAVE PAYCHECK FROM CALENDAR DATE MODAL
+            document.getElementById('btn-save-paycheck-on-date').addEventListener('click', () => {
+                const nameInput = document.getElementById('modal-paycheck-name');
+                const amountInput = document.getElementById('modal-paycheck-amount');
+                const name = nameInput.value.trim() || 'Paycheck Deposit';
+                const amount = parseFloat(amountInput.value);
+
+                if (selectedCalendarDate && Number.isFinite(amount) && amount > 0) {
+                    logActivity('Added Paycheck', `Added ${formatCurrency(amount)} net deposit from ${name} for ${selectedCalendarDate}`, 'income');
+                    appState.paychecks.push({
+                        id: Date.now(),
+                        name,
+                        amount,
+                        gross: amount,
+                        date: selectedCalendarDate
+                    });
+                    saveData();
+                    updateDashboard();
+                    nameInput.value = '';
+                    amountInput.value = '';
                     closeModal('modal-expanded-date');
-                    const calcCard = document.getElementById('paycheck-calculator-card');
-                    if (calcCard) {
-                        calcCard.scrollIntoView({ behavior: 'smooth' });
-                    }
+                    showToast('Paycheck successfully added to calendar date!');
+                } else {
+                    showToast('Please enter a valid paycheck amount greater than zero.', 'error');
                 }
             });
         }
@@ -2296,11 +2349,10 @@
 
         function openExpandedDateModal(dateStr, dayProj) {
             selectedCalendarDate = dateStr;
-            const expModal = document.getElementById('modal-expanded-date');
             
             const formattedDateStr = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
             document.getElementById('modal-date-title').textContent = formattedDateStr;
-            document.getElementById('add-paycheck-date-label').textContent = dateStr;
+            document.getElementById('modal-paycheck-date-label').textContent = dateStr;
             document.getElementById('modal-date-balance').textContent = formatCurrency(dayProj.endBalance);
 
             const listContainer = document.getElementById('modal-date-events-list');
