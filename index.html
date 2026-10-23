@@ -1379,6 +1379,18 @@
                 const onPointerMove = (e) => {
                     if (!isDragging) return;
                     e.preventDefault();
+                    // Auto-scroll the page when the dragged section reaches the top/bottom edge.
+                    // This lets mobile users move sections to locations outside the current viewport.
+                    const edgeZone = Math.min(100, Math.max(64, window.innerHeight * 0.12));
+                    const edgeDistance = e.clientY < edgeZone
+                        ? e.clientY - edgeZone
+                        : (e.clientY > window.innerHeight - edgeZone
+                            ? e.clientY - (window.innerHeight - edgeZone)
+                            : 0);
+                    if (edgeDistance !== 0) {
+                        const scrollSpeed = Math.sign(edgeDistance) * Math.min(20, Math.max(4, Math.ceil(Math.abs(edgeDistance) / 3)));
+                        window.scrollBy({ top: scrollSpeed, left: 0, behavior: 'auto' });
+                    }
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
 
@@ -1490,6 +1502,18 @@
                     window.addEventListener('pointermove', (e) => {
                         if (!isDragging) return;
                         e.preventDefault();
+                        // Auto-scroll near the viewport edges so the drop target can move
+                        // beyond the currently visible part of the page on touchscreens.
+                        const edgeZone = Math.min(100, Math.max(64, window.innerHeight * 0.12));
+                        const edgeDistance = e.clientY < edgeZone
+                            ? e.clientY - edgeZone
+                            : (e.clientY > window.innerHeight - edgeZone
+                                ? e.clientY - (window.innerHeight - edgeZone)
+                                : 0);
+                        if (edgeDistance !== 0) {
+                            const scrollSpeed = Math.sign(edgeDistance) * Math.min(20, Math.max(4, Math.ceil(Math.abs(edgeDistance) / 3)));
+                            window.scrollBy({ top: scrollSpeed, left: 0, behavior: 'auto' });
+                        }
                         const dx = e.clientX - startX;
                         const dy = e.clientY - startY;
                         card.style.left = `${initialRect.left + dx}px`;
