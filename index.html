@@ -104,7 +104,7 @@
     </div>
 
     <!-- AUTHENTICATION & REGISTRATION MODAL GATE -->
-    <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+    <div id="auth-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100] flex items-center justify-center p-4">
         <div class="glass dark:bg-slate-800 rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-700 space-y-6 text-center">
             <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-600 to-violet-500 mx-auto flex items-center justify-center text-white text-2xl font-bold shadow-lg shadow-indigo-500/30">
                 <i class="fa-solid fa-wallet" aria-hidden="true"></i>
@@ -162,14 +162,14 @@
     </div>
 
     <!-- SETTINGS MODAL -->
-    <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div id="modal-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-settings" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-gear" aria-hidden="true"></i>
                     <span id="settings-title">Account Settings</span>
                 </div>
-                <button type="button" aria-label="Close settings" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
             
             <form id="form-change-password" class="space-y-3 text-xs pt-1">
@@ -195,14 +195,14 @@
     </div>
 
     <!-- SAFE TO SPEND INCLUDE NEXT MONTH BILLS MODAL -->
-    <div id="modal-safe-spend" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="safespend-modal-title">
+    <div id="modal-safe-spend" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-calculator" aria-hidden="true"></i>
                     <span id="safespend-modal-title">Include Next Month Bills</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
             
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Select early next-month bills (e.g. Rent due on the 1st) to reserve funds for them in your current Safe-to-Spend calculation without shifting their calendar due date.</p>
@@ -216,14 +216,14 @@
     </div>
 
     <!-- ACTIVE MONTH BILLS COVERAGE BREAKDOWN MODAL -->
-    <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="month-bills-modal-title">
+    <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-calculator" aria-hidden="true"></i>
                     <span id="month-bills-modal-title">Active Month Bills Coverage</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Active unpaid bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>). Paid bills are automatically removed.</p>
@@ -233,7 +233,7 @@
     </div>
 
     <!-- LOGOUT CONFIRMATION MODAL -->
-    <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="logout-title">
+    <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 text-left">
                 <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
@@ -257,14 +257,14 @@
     </div>
 
     <!-- MOBILE EXPANDED CALENDAR DATE MODAL WITH DIRECT PAYCHECK ENTRY -->
-    <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
+    <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-calendar-day" aria-hidden="true"></i>
                     <span id="modal-date-title">Date Details</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
@@ -274,10 +274,8 @@
                     <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Add Paycheck on <span id="modal-paycheck-date-label">This Date</span>
                 </h4>
                 <div class="space-y-2">
-                    <label for="modal-paycheck-name" class="sr-only">Paycheck Source</label>
                     <input type="text" id="modal-paycheck-name" placeholder="Paycheck Source (e.g. Salary, Side Gig)" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-medium">
                     <div class="flex gap-2">
-                        <label for="modal-paycheck-amount" class="sr-only">Net Amount</label>
                         <input type="number" min="0.01" step="0.01" id="modal-paycheck-amount" placeholder="Net Amount ($)" class="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-bold">
                         <button type="button" id="btn-save-paycheck-on-date" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl shadow transition">
                             Save Paycheck
@@ -294,14 +292,14 @@
     </div>
 
     <!-- SEARCHABLE ICON PICKER MODAL -->
-    <div id="modal-icon-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="icon-picker-title">
+    <div id="modal-icon-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4">
         <div id="modal-card-icon-picker" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <i class="fa-solid fa-icons" aria-hidden="true"></i>
                     <span id="icon-picker-title">Customize Bill Icon</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <div class="space-y-3 pt-2">
@@ -893,13 +891,13 @@
 
     <!-- MODALS -->
     <!-- Edit Paycheck Modal -->
-    <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-paycheck-title">
+    <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <span id="edit-paycheck-title">Edit Paycheck</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
@@ -927,13 +925,13 @@
     </div>
 
     <!-- Bill Modal -->
-    <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
+    <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <span id="modal-bill-title">Add Recurring Bill</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-bill" class="space-y-3 text-xs pt-2">
@@ -991,13 +989,13 @@
     </div>
 
     <!-- Balance Modal -->
-    <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-balance-title">
+    <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <span id="modal-balance-title">Update Current Balance</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-balance" class="space-y-3 text-xs pt-2">
@@ -1014,13 +1012,13 @@
     </div>
 
     <!-- Buffer Modal -->
-    <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-buffer-title">
+    <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <span id="modal-buffer-title">Emergency Cash Buffer</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-buffer" class="space-y-3 text-xs pt-2">
@@ -1037,13 +1035,13 @@
     </div>
 
     <!-- Savings Goal Modal -->
-    <div id="modal-savings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
+    <div id="modal-savings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
         <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
                     <span id="modal-savings-title">Set Monthly Savings Goal</span>
                 </div>
-                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-savings" class="space-y-3 text-xs pt-2">
@@ -1767,18 +1765,10 @@
         }
 
         function initModals() {
-            document.querySelectorAll('[role="dialog"]').forEach(modal => {
-                modal.addEventListener('click', (e) => {
-                    if (e.target === modal) {
-                        closeModal(modal.id);
-                    }
-                });
-            });
-
             document.querySelectorAll('.close-modal-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const modal = btn.closest('[role="dialog"]');
+                    const modal = btn.closest('.fixed');
                     if (modal) closeModal(modal.id);
                 });
             });
