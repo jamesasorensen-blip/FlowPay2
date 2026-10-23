@@ -91,10 +91,17 @@
         }
 
         .drop-placeholder {
+            display: block;
+            box-sizing: border-box;
+            min-height: 72px;
+            width: 100%;
             border: 2px dashed #6366f1;
-            background: rgba(99, 102, 241, 0.08);
+            background: rgba(99, 102, 241, 0.12);
             border-radius: 1.5rem;
-            transition: all 0.2s ease;
+            pointer-events: none;
+        }
+        #metrics-grid > .drop-placeholder {
+            min-width: 0;
         }
     </style>
 </head>
@@ -1354,6 +1361,7 @@
                     placeholder = document.createElement('div');
                     placeholder.className = 'drop-placeholder';
                     placeholder.style.height = `${initialRect.height}px`;
+                    placeholder.style.width = '100%';
                     container.insertBefore(placeholder, widget);
 
                     widget.classList.add('dragging-widget');
@@ -1487,18 +1495,45 @@
                         card.style.left = `${initialRect.left + dx}px`;
                         card.style.top = `${initialRect.top + dy}px`;
 
-                        const otherCards = Array.from(metricsGrid.querySelectorAll('[data-metric-id]')).filter(c => c !== card && c !== placeholder);
-                        let inserted = false;
-                        for (const other of otherCards) {
-                            const rect = other.getBoundingClientRect();
-                            const midX = rect.left + rect.width / 2;
-                            if (e.clientX < midX) {
-                                metricsGrid.insertBefore(placeholder, other);
-                                inserted = true;
-                                break;
+                        const otherCards = Array.from(metricsGrid.querySelectorAll('[data-metric-id]')).filter(c => c !== card);
+                        if (!otherCards.length) return;
+
+                        // On phones the metrics grid is one column, so reorder by vertical position.
+                        // On wider screens use the visual reading order (row first, then column).
+                        const gridStyle = window.getComputedStyle(metricsGrid);
+                        const columnCount = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length;
+                        let target = null;
+                        if (columnCount <= 1) {
+                            target = otherCards.find(other => {
+                                const rect = other.getBoundingClientRect();
+                                return e.clientY < rect.top + rect.height / 2;
+                            }) || null;
+                        } else {
+                            const pointerY = e.clientY;
+                            const pointerX = e.clientX;
+                            let bestDistance = Infinity;
+                            for (const other of otherCards) {
+                                const rect = other.getBoundingClientRect();
+                                const centerX = rect.left + rect.width / 2;
+                                const centerY = rect.top + rect.height / 2;
+                                const distance = Math.abs(pointerY - centerY) * 1.5 + Math.abs(pointerX - centerX);
+                                if (distance < bestDistance) {
+                                    bestDistance = distance;
+                                    target = other;
+                                }
+                            }
+                            if (target) {
+                                const rect = target.getBoundingClientRect();
+                                if (pointerY > rect.top + rect.height / 2 ||
+                                    (Math.abs(pointerY - (rect.top + rect.height / 2)) < rect.height * 0.25 && pointerX > rect.left + rect.width / 2)) {
+                                    target = target.nextElementSibling;
+                                    while (target && !target.matches('[data-metric-id]')) target = target.nextElementSibling;
+                                }
                             }
                         }
-                        if (!inserted && otherCards.length > 0) {
+                        if (target && target !== placeholder) {
+                            metricsGrid.insertBefore(placeholder, target);
+                        } else {
                             metricsGrid.appendChild(placeholder);
                         }
                     });
@@ -3406,3 +3441,5 @@
     </script>
 </body>
 </html>
+
+Can you help me fix the handle draggers in my app so that it works on mobile devices and touch screens? It currently will move along the page when you scroll instead of independently
