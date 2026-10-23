@@ -66,18 +66,12 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        .modal-drag-handle {
-            cursor: grab;
-            user-select: none;
-            touch-action: none;
-        }
-        .modal-drag-handle:active, .widget-drag-handle:active, .metric-drag-handle:active {
-            cursor: grabbing;
-        }
-
         .widget-drag-handle, .metric-drag-handle {
             cursor: grab;
             user-select: none;
+        }
+        .widget-drag-handle:active, .metric-drag-handle:active {
+            cursor: grabbing;
         }
         
         .dragging-widget {
@@ -202,19 +196,13 @@
 
     <!-- SAFE TO SPEND INCLUDE NEXT MONTH BILLS MODAL -->
     <div id="modal-safe-spend" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="safespend-modal-title">
-        <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-safe-spend" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calculator" aria-hidden="true"></i>
                     <span id="safespend-modal-title">Include Next Month Bills</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-safe-spend" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
             
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Select early next-month bills (e.g. Rent due on the 1st) to reserve funds for them in your current Safe-to-Spend calculation without shifting their calendar due date.</p>
@@ -229,19 +217,13 @@
 
     <!-- ACTIVE MONTH BILLS COVERAGE BREAKDOWN MODAL -->
     <div id="modal-active-month-bills" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="month-bills-modal-title">
-        <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-active-month-bills" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calculator" aria-hidden="true"></i>
                     <span id="month-bills-modal-title">Active Month Bills Coverage</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-active-month-bills" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Active unpaid bills listed chronologically against your current available balance (<span id="modal-curr-bal-display" class="font-bold text-slate-800 dark:text-slate-200">$0.00</span>). Paid bills are automatically removed.</p>
@@ -252,7 +234,7 @@
 
     <!-- LOGOUT CONFIRMATION MODAL -->
     <div id="modal-logout-confirm" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="logout-title">
-        <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4 transition-transform">
+        <div id="modal-card-logout-confirm" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 text-center space-y-4">
             <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 text-left">
                 <div class="flex items-center gap-2 text-rose-600 dark:text-rose-400 font-bold text-sm">
                     <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
@@ -276,19 +258,13 @@
 
     <!-- MOBILE EXPANDED CALENDAR DATE MODAL WITH DIRECT PAYCHECK ENTRY -->
     <div id="modal-expanded-date" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-date-title">
-        <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-expanded-date" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <i class="fa-solid fa-calendar-day" aria-hidden="true"></i>
                     <span id="modal-date-title">Date Details</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-expanded-date" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <p class="text-xs text-slate-500 dark:text-slate-400 pt-2">Projected End Balance: <span id="modal-date-balance" class="font-bold text-indigo-500">$0.00</span></p>
@@ -319,19 +295,13 @@
 
     <!-- SEARCHABLE ICON PICKER MODAL -->
     <div id="modal-icon-picker" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[110] hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="icon-picker-title">
-        <div id="modal-card-icon-picker" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-icon-picker" class="glass dark:bg-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <i class="fa-solid fa-icons" aria-hidden="true"></i>
                     <span id="icon-picker-title">Customize Bill Icon</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-icon-picker" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <div class="space-y-3 pt-2">
@@ -924,18 +894,12 @@
     <!-- MODALS -->
     <!-- Edit Paycheck Modal -->
     <div id="modal-edit-paycheck" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="edit-paycheck-title">
-        <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-edit-paycheck" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <span id="edit-paycheck-title">Edit Paycheck</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-edit-paycheck" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
@@ -964,18 +928,12 @@
 
     <!-- Bill Modal -->
     <div id="modal-bill" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-bill-title">
-        <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-bill" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <span id="modal-bill-title">Add Recurring Bill</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-bill" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-bill" class="space-y-3 text-xs pt-2">
@@ -1034,18 +992,12 @@
 
     <!-- Balance Modal -->
     <div id="modal-balance" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-balance-title">
-        <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-balance" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <span id="modal-balance-title">Update Current Balance</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-balance" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-balance" class="space-y-3 text-xs pt-2">
@@ -1063,18 +1015,12 @@
 
     <!-- Buffer Modal -->
     <div id="modal-buffer" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-buffer-title">
-        <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-buffer" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <span id="modal-buffer-title">Emergency Cash Buffer</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-buffer" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-buffer" class="space-y-3 text-xs pt-2">
@@ -1092,18 +1038,12 @@
 
     <!-- Savings Goal Modal -->
     <div id="modal-savings" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-savings-title">
-        <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 transition-transform">
-            <div class="modal-drag-handle flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700 bg-slate-200/50 dark:bg-slate-700/50 -mx-6 -mt-6 p-4 rounded-t-2xl">
+        <div id="modal-card-savings" class="glass dark:bg-slate-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
                 <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
-                    <i class="fa-solid fa-arrows-up-down text-slate-400 text-base" aria-hidden="true" title="Drag to reposition"></i>
                     <span id="modal-savings-title">Set Monthly Savings Goal</span>
                 </div>
-                <div class="flex items-center gap-2">
-                    <button type="button" id="save-pos-savings" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow">
-                        <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Pos
-                    </button>
-                    <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
-                </div>
+                <button type="button" aria-label="Close modal" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
             </div>
 
             <form id="form-savings" class="space-y-3 text-xs pt-2">
@@ -1186,7 +1126,6 @@
             paychecks: [],
             paidOccurrences: [],
             includedNextMonthBillIds: [],
-            modalPositions: {},
             widgetOrder: ['safespend', 'metrics', 'calculator', 'calendar', 'charts', 'bills'],
             metricOrder: ['balance', 'nextbill', 'activebills', 'savings'],
             activity: [],
@@ -1313,7 +1252,6 @@
                     })) : [],
                     paidOccurrences: Array.isArray(saved.paidOccurrences) ? saved.paidOccurrences : [],
                     includedNextMonthBillIds: Array.isArray(saved.includedNextMonthBillIds) ? saved.includedNextMonthBillIds.map(Number) : [],
-                    modalPositions: saved.modalPositions || {},
                     widgetOrder: Array.isArray(saved.widgetOrder) ? saved.widgetOrder : DEFAULT_STATE.widgetOrder,
                     metricOrder: Array.isArray(saved.metricOrder) ? saved.metricOrder : DEFAULT_STATE.metricOrder,
                     activity: Array.isArray(saved.activity) ? saved.activity : [],
@@ -1356,30 +1294,12 @@
             saveData();
         }
 
-        function applySavedModalPosition(modalCardId) {
-            const el = document.getElementById(modalCardId);
-            if (!el) return;
-            const pos = appState.modalPositions[modalCardId];
-            if (pos && typeof pos.left === 'number' && typeof pos.top === 'number') {
-                el.style.position = 'absolute';
-                el.style.left = `${pos.left}px`;
-                el.style.top = `${pos.top}px`;
-                el.style.transform = 'none';
-                el.style.margin = '0';
-            }
-        }
-
         function openModal(modalId, triggerElement = null) {
             lastFocusedElement = triggerElement || document.activeElement;
             const modal = document.getElementById(modalId);
             if (!modal) return;
             modal.classList.remove('hidden');
             modal.classList.add('flex');
-
-            const modalCard = modal.querySelector('[id^="modal-card-"]');
-            if (modalCard) {
-                applySavedModalPosition(modalCard.id);
-            }
 
             const focusableInput = modal.querySelector('input, select, button');
             if (focusableInput) focusableInput.focus();
@@ -1393,84 +1313,6 @@
             if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
                 lastFocusedElement.focus();
             }
-        }
-
-        function initDraggableModals() {
-            const modals = document.querySelectorAll('[id^="modal-card-"]');
-            modals.forEach(card => {
-                const handle = card.querySelector('.modal-drag-handle');
-                if (!handle) return;
-                const saveBtn = card.querySelector('[id^="save-pos-"]');
-                let isDragging = false;
-                let startX, startY, origLeft, origTop;
-
-                const onPointerDown = (e) => {
-                    if (e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'SELECT') return;
-                    isDragging = true;
-                    const rect = card.getBoundingClientRect();
-                    startX = e.clientX;
-                    startY = e.clientY;
-
-                    card.style.position = 'absolute';
-                    card.style.left = `${rect.left}px`;
-                    card.style.top = `${rect.top}px`;
-                    card.style.transform = 'none';
-                    card.style.margin = '0';
-                    card.style.transition = 'none';
-
-                    origLeft = rect.left;
-                    origTop = rect.top;
-
-                    try {
-                        handle.setPointerCapture(e.pointerId);
-                    } catch (err) {}
-
-                    window.addEventListener('pointermove', onPointerMove);
-                    window.addEventListener('pointerup', onPointerUp);
-                    window.addEventListener('pointercancel', onPointerUp);
-                    e.preventDefault();
-                };
-
-                const onPointerMove = (e) => {
-                    if (!isDragging) return;
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-
-                    const newLeft = Math.max(10, Math.min(window.innerWidth - card.offsetWidth - 10, origLeft + dx));
-                    const newTop = Math.max(10, Math.min(window.innerHeight - card.offsetHeight - 10, origTop + dy));
-
-                    card.style.left = `${newLeft}px`;
-                    card.style.top = `${newTop}px`;
-
-                    if (saveBtn) saveBtn.classList.remove('hidden');
-                };
-
-                const onPointerUp = (e) => {
-                    if (!isDragging) return;
-                    isDragging = false;
-                    card.style.transition = 'all 0.2s ease';
-
-                    try {
-                        handle.releasePointerCapture(e.pointerId);
-                    } catch (err) {}
-
-                    window.removeEventListener('pointermove', onPointerMove);
-                    window.removeEventListener('pointerup', onPointerUp);
-                    window.removeEventListener('pointercancel', onPointerUp);
-                };
-
-                handle.addEventListener('pointerdown', onPointerDown);
-
-                if (saveBtn) {
-                    saveBtn.addEventListener('click', () => {
-                        const rect = card.getBoundingClientRect();
-                        appState.modalPositions[card.id] = { left: rect.left, top: rect.top };
-                        saveData();
-                        saveBtn.classList.add('hidden');
-                        showToast('Modal position saved permanently!');
-                    });
-                }
-            });
         }
 
         function initDashboardWidgetReordering() {
@@ -1936,7 +1778,7 @@
             document.querySelectorAll('.close-modal-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    const modal = btn.closest('[role="dialog"], div[id^="modal-"]');
+                    const modal = btn.closest('[role="dialog"]');
                     if (modal) closeModal(modal.id);
                 });
             });
@@ -3455,7 +3297,6 @@
             initAuthHandlers();
             initInfoPopups();
             initModals();
-            initDraggableModals();
             initDashboardWidgetReordering();
             initMonthSelectors();
             initIconPickerHandlers();
