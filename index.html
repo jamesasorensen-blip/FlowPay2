@@ -275,6 +275,10 @@
                     <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Add Paycheck on <span id="modal-paycheck-date-label">This Date</span>
                 </h4>
                 <div class="space-y-2">
+                    <div class="flex gap-2">
+                        <button type="button" id="modal-type-potential-btn" class="flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-xs transition">Potential</button>
+                        <button type="button" id="modal-type-actual-btn" class="flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition">Actual</button>
+                    </div>
                     <input type="text" id="modal-paycheck-name" placeholder="Paycheck Source (e.g. Salary, Side Gig)" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-medium">
                     <div class="flex gap-2">
                         <input type="number" min="0.01" step="0.01" id="modal-paycheck-amount" placeholder="Net Amount ($)" class="flex-1 px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl text-xs font-bold">
@@ -289,6 +293,42 @@
                 <h4 class="font-bold text-xs uppercase tracking-wider text-slate-400">Scheduled Events & Obligations</h4>
                 <div id="modal-date-events-list" class="space-y-2"></div>
             </div>
+        </div>
+    </div>
+
+    <!-- MARK AS RECEIVED / ACTUAL DEPOSIT MODAL -->
+    <div id="modal-mark-received" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[120] hidden items-center justify-center p-4">
+        <div id="modal-card-mark-received" class="glass dark:bg-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl relative border border-slate-200 dark:border-slate-700 space-y-4">
+            <div class="flex items-center justify-between pb-3 mb-2 border-b border-slate-200 dark:border-slate-700">
+                <div class="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                    <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                    <span>Mark Paycheck as Received</span>
+                </div>
+                <button type="button" class="close-modal-btn text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg" aria-hidden="true"></i></button>
+            </div>
+
+            <form id="form-mark-received" class="space-y-3 text-xs pt-1">
+                <input type="hidden" id="receive-paycheck-id">
+                <div>
+                    <label class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Paycheck Source</label>
+                    <input type="text" id="receive-paycheck-name" readonly class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700/60 border-none rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="receive-paycheck-amount" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Confirmed Net Deposit ($)</label>
+                        <input type="number" min="0.01" step="0.01" id="receive-paycheck-amount" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm font-bold text-emerald-600">
+                    </div>
+                    <div>
+                        <label for="receive-paycheck-date" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Deposit Date</label>
+                        <input type="date" id="receive-paycheck-date" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
+                    </div>
+                </div>
+                <p class="text-[11px] text-slate-400 italic">Marking this as received will convert it to an actual paycheck, add it to your actual balance exactly once, and remove the potential estimate from future projections.</p>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" class="close-modal-btn px-4 py-2 rounded-xl text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700">Cancel</button>
+                    <button type="submit" class="px-4 py-2 rounded-xl text-white bg-emerald-600 hover:bg-emerald-500 font-semibold">Confirm & Deposit</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -562,6 +602,11 @@
                 </div>
 
                 <form id="form-paycheck-calc" class="space-y-4 bg-slate-100/60 dark:bg-slate-800/60 p-4 rounded-xl text-xs">
+                    <div class="flex gap-2 mb-2">
+                        <button type="button" id="calc-type-potential-btn" class="flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition">Potential Paycheck (Estimated)</button>
+                        <button type="button" id="calc-type-actual-btn" class="flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition">Actual Paycheck (Received)</button>
+                    </div>
+
                     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div>
                             <label for="calc-source-name" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Paycheck Source / Name</label>
@@ -571,7 +616,7 @@
                             <label for="calc-pay-date" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Pay Date / Horizon</label>
                             <input type="date" id="calc-pay-date" required class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
                         </div>
-                        <div>
+                        <div id="tax-option-col">
                             <label for="calc-tax-mode" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Tax Option</label>
                             <select id="calc-tax-mode" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
                                 <option value="standard" selected>Standard Taxes (Fed + State)</option>
@@ -590,7 +635,7 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <div id="calc-mode-section" class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
                         <div>
                             <label for="calc-pay-mode" class="block font-medium text-slate-600 dark:text-slate-300 mb-1">Calculation Type</label>
                             <select id="calc-pay-mode" class="w-full px-3 py-2 bg-white dark:bg-slate-700 border-none rounded-xl font-semibold focus:ring-2 focus:ring-emerald-500 text-xs">
@@ -642,7 +687,7 @@
 
                     <div class="flex justify-end gap-2">
                         <button type="submit" id="btn-submit-paycheck" class="py-2.5 px-6 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow transition flex items-center gap-1.5">
-                            <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Add Paycheck & Update Balance
+                            <i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Save Potential Paycheck
                         </button>
                     </div>
                 </form>
@@ -655,10 +700,10 @@
                             <thead>
                                 <tr class="text-slate-400 border-b border-slate-200 dark:border-slate-800 uppercase font-semibold">
                                     <th class="pb-2 pl-2">Source</th>
+                                    <th class="pb-2">Type</th>
                                     <th class="pb-2">Pay Date</th>
-                                    <th class="pb-2">Gross Pay</th>
-                                    <th class="pb-2">Estimated Net</th>
-                                    <th class="pb-2">New Balance Preview</th>
+                                    <th class="pb-2">Amount</th>
+                                    <th class="pb-2">Status</th>
                                     <th class="pb-2 text-right pr-2">Action</th>
                                 </tr>
                             </thead>
@@ -903,6 +948,10 @@
 
             <form id="form-edit-paycheck" class="space-y-3 text-xs pt-2">
                 <input type="hidden" id="edit-paycheck-id">
+                <div class="flex gap-2 mb-1">
+                    <button type="button" id="edit-type-potential-btn" class="flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition">Potential</button>
+                    <button type="button" id="edit-type-actual-btn" class="flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition">Actual</button>
+                </div>
                 <div>
                     <label for="edit-paycheck-name" class="block font-medium text-slate-700 dark:text-slate-300 mb-1">Source / Name</label>
                     <input type="text" id="edit-paycheck-name" required class="w-full px-3 py-2 bg-slate-100 dark:bg-slate-700 border-none rounded-xl text-sm">
@@ -1140,6 +1189,9 @@
         let hidePaidBills = false;
         let selectedCalendarDate = null;
         let activeEditingBillId = null;
+        let activeCalcPaycheckType = 'potential'; // 'potential' or 'actual'
+        let activeModalPaycheckType = 'potential'; // 'potential' or 'actual'
+        let activeEditPaycheckType = 'potential'; // 'potential' or 'actual'
 
         const LUCIDE_ICON_CATEGORIES = {
             'Housing': ['house', 'building', 'home', 'door-open', 'key', 'warehouse'],
@@ -1247,7 +1299,9 @@
                         name: escapeHtml(String(p.name || 'Paycheck')),
                         amount: Number(p.amount) || 0,
                         gross: Number(p.gross || p.amount) || 0,
-                        date: String(p.date || getLocalDateStr())
+                        date: String(p.date || getLocalDateStr()),
+                        status: p.status === 'actual' ? 'actual' : 'potential',
+                        convertedFromId: p.convertedFromId ? Number(p.convertedFromId) : null
                     })) : [],
                     paidOccurrences: Array.isArray(saved.paidOccurrences) ? saved.paidOccurrences : [],
                     includedNextMonthBillIds: Array.isArray(saved.includedNextMonthBillIds) ? saved.includedNextMonthBillIds.map(Number) : [],
@@ -1776,7 +1830,7 @@
 
             window.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
-                    document.querySelectorAll('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings, #modal-icon-picker').forEach(modal => {
+                    document.querySelectorAll('#modal-settings, #modal-safe-spend, #modal-active-month-bills, #modal-logout-confirm, #modal-expanded-date, #modal-edit-paycheck, #modal-bill, #modal-balance, #modal-buffer, #modal-savings, #modal-icon-picker, #modal-mark-received').forEach(modal => {
                         if (!modal.classList.contains('hidden')) {
                             closeModal(modal.id);
                         }
@@ -1830,6 +1884,71 @@
                 if (el) el.addEventListener('input', calculatePaycheckPreview);
             });
 
+            // Calculator Type Switching (Potential vs Actual)
+            const calcPotBtn = document.getElementById('calc-type-potential-btn');
+            const calcActBtn = document.getElementById('calc-type-actual-btn');
+            const calcModeSection = document.getElementById('calc-mode-section');
+            const taxOptionCol = document.getElementById('tax-option-col');
+            const stateSelectCol = document.getElementById('state-select-container');
+            const calcPreviewBox = document.getElementById('calc-preview-box');
+            const btnSubmitPaycheck = document.getElementById('btn-submit-paycheck');
+
+            if (calcPotBtn && calcActBtn) {
+                calcPotBtn.addEventListener('click', () => {
+                    activeCalcPaycheckType = 'potential';
+                    calcPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition';
+                    calcActBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                    calcModeSection.classList.remove('hidden');
+                    taxOptionCol.classList.remove('hidden');
+                    stateSelectCol.classList.remove('hidden');
+                    calcPreviewBox.classList.remove('hidden');
+                    btnSubmitPaycheck.textContent = 'Save Potential Paycheck';
+                });
+
+                calcActBtn.addEventListener('click', () => {
+                    activeCalcPaycheckType = 'actual';
+                    calcActBtn.className = 'flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-xs transition';
+                    calcPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                    calcModeSection.classList.add('hidden');
+                    taxOptionCol.classList.add('hidden');
+                    stateSelectCol.classList.add('hidden');
+                    calcPreviewBox.classList.add('hidden');
+                    btnSubmitPaycheck.textContent = 'Save Actual Deposit & Update Balance';
+                });
+            }
+
+            // Expanded Date Modal Paycheck Type Switching
+            const modalPotBtn = document.getElementById('modal-type-potential-btn');
+            const modalActBtn = document.getElementById('modal-type-actual-btn');
+            if (modalPotBtn && modalActBtn) {
+                modalPotBtn.addEventListener('click', () => {
+                    activeModalPaycheckType = 'potential';
+                    modalPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition';
+                    modalActBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                });
+                modalActBtn.addEventListener('click', () => {
+                    activeModalPaycheckType = 'actual';
+                    modalActBtn.className = 'flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-xs transition';
+                    modalPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                });
+            }
+
+            // Edit Paycheck Modal Type Switching
+            const editPotBtn = document.getElementById('edit-type-potential-btn');
+            const editActBtn = document.getElementById('edit-type-actual-btn');
+            if (editPotBtn && editActBtn) {
+                editPotBtn.addEventListener('click', () => {
+                    activeEditPaycheckType = 'potential';
+                    editPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition';
+                    editActBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                });
+                editActBtn.addEventListener('click', () => {
+                    activeEditPaycheckType = 'actual';
+                    editActBtn.className = 'flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-xs transition';
+                    editPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                });
+            }
+
             document.getElementById('btn-save-paycheck-on-date').addEventListener('click', () => {
                 const nameInput = document.getElementById('modal-paycheck-name');
                 const amountInput = document.getElementById('modal-paycheck-amount');
@@ -1837,13 +1956,24 @@
                 const amount = parseFloat(amountInput.value);
 
                 if (selectedCalendarDate && Number.isFinite(amount) && amount > 0) {
-                    logActivity('Added Paycheck', `Added ${formatCurrency(amount)} net deposit from ${name} for ${selectedCalendarDate}`, 'income');
+                    const status = activeModalPaycheckType;
+                    const id = Date.now();
+                    
+                    if (status === 'actual') {
+                        appState.balance += amount;
+                        logActivity('Actual Deposit Recorded', `Recorded confirmed deposit of ${formatCurrency(amount)} from ${name} for ${selectedCalendarDate}`, 'income');
+                    } else {
+                        logActivity('Added Potential Paycheck', `Added estimated ${formatCurrency(amount)} deposit from ${name} for ${selectedCalendarDate}`, 'income');
+                    }
+
                     appState.paychecks.push({
-                        id: Date.now(),
+                        id,
                         name,
                         amount,
                         gross: amount,
-                        date: selectedCalendarDate
+                        date: selectedCalendarDate,
+                        status,
+                        convertedFromId: null
                     });
                     sortPaychecksByDate();
                     saveData();
@@ -1851,10 +1981,52 @@
                     nameInput.value = '';
                     amountInput.value = '';
                     closeModal('modal-expanded-date');
-                    showToast('Paycheck successfully added to calendar date!');
+                    showToast(status === 'actual' ? 'Actual deposit recorded and balance updated!' : 'Potential paycheck successfully added to calendar date!');
                 } else {
                     showToast('Please enter a valid paycheck amount greater than zero.', 'error');
                 }
+            });
+
+            // Mark as Received Form Handler
+            document.getElementById('form-mark-received').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const paycheckId = parseInt(document.getElementById('receive-paycheck-id').value, 10);
+                const confirmedAmount = parseFloat(document.getElementById('receive-paycheck-amount').value);
+                const confirmedDate = document.getElementById('receive-paycheck-date').value;
+
+                if (!Number.isFinite(confirmedAmount) || confirmedAmount <= 0) {
+                    showToast('Please enter a valid confirmed deposit amount.', 'error');
+                    return;
+                }
+
+                const paycheck = appState.paychecks.find(p => p.id === paycheckId);
+                if (!paycheck) {
+                    showToast('Paycheck not found.', 'error');
+                    closeModal('modal-mark-received');
+                    return;
+                }
+
+                if (paycheck.status === 'actual') {
+                    showToast('This paycheck has already been marked as received.', 'error');
+                    closeModal('modal-mark-received');
+                    return;
+                }
+
+                // Convert potential to actual
+                paycheck.status = 'actual';
+                paycheck.amount = confirmedAmount;
+                paycheck.gross = confirmedAmount;
+                paycheck.date = confirmedDate;
+                paycheck.convertedFromId = paycheck.id;
+
+                // Increase actual balance exactly once
+                appState.balance += confirmedAmount;
+
+                logActivity('Paycheck Received', `Converted "${paycheck.name}" to actual deposit of ${formatCurrency(confirmedAmount)} on ${confirmedDate}`, 'income');
+                saveData();
+                updateDashboard();
+                closeModal('modal-mark-received');
+                showToast(`Paycheck converted to actual deposit of ${formatCurrency(confirmedAmount)}!`);
             });
         }
 
@@ -2202,6 +2374,12 @@
                 };
             }
 
+            // Only potential and actual paychecks on or after their date affect projections.
+            // Note: Actual paychecks are ALREADY added to appState.balance when saved/received.
+            // To prevent double counting in future projections starting from current balance, 
+            // if an actual paycheck is in the past or today, it's already in appState.balance. 
+            // If it's in the future, it adds to projected income.
+            // Potential paychecks ALWAYS add to future projections on or after their date because they are not yet in appState.balance.
             appState.paychecks.forEach(p => {
                 if (timeline[p.date]) {
                     timeline[p.date].income += p.amount;
@@ -2226,6 +2404,13 @@
 
             Object.keys(timeline).sort().forEach(dateStr => {
                 const dayData = timeline[dateStr];
+                // For timeline projection:
+                // If there are future actual paychecks, they will increase runningBal on their date.
+                // But wait! If an actual paycheck date is today or in the past, it's already counted in appState.balance.
+                // If it's in the future, adding it here correctly projects the future balance when received.
+                // However, if an actual paycheck is in the past, it was already added to balance. If we add it again here when iterating, it would double count!
+                // Let's filter out past actual paychecks from adding to future projections if they are already reflected in current balance, OR better yet:
+                // Define starting balance as true current balance. Future incomes add to it. Past actual paychecks are already in current balance so we don't re-add them for past dates (timeline starts from today anyway).
                 runningBal += dayData.income;
                 runningBal -= dayData.billTotal;
                 projectionDays.push({
@@ -2639,18 +2824,44 @@
             }
 
             const sortedPaychecks = [...appState.paychecks].sort((a, b) => a.date.localeCompare(b.date));
-            let runningPreviewBal = appState.balance;
             
             sortedPaychecks.forEach(p => {
-                runningPreviewBal += p.amount;
+                const isActual = p.status === 'actual';
                 const tr = document.createElement('tr');
                 tr.className = 'hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition';
 
                 tr.appendChild(createTextCell(p.name, 'py-3 pl-2 font-semibold text-slate-800 dark:text-slate-200'));
+                
+                // Type Cell
+                const typeTd = document.createElement('td');
+                typeTd.className = 'py-3';
+                const typeSpan = document.createElement('span');
+                typeSpan.className = `px-2 py-0.5 rounded text-[10px] font-semibold ${isActual ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : 'bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300'}`;
+                typeSpan.textContent = isActual ? 'Actual Deposit' : 'Potential';
+                typeTd.appendChild(typeSpan);
+                tr.appendChild(typeTd);
+
                 tr.appendChild(createTextCell(p.date, 'py-3 text-slate-500'));
-                tr.appendChild(createTextCell(formatCurrency(p.gross || p.amount), 'py-3 text-slate-600 dark:text-slate-300'));
-                tr.appendChild(createTextCell(formatCurrency(p.amount), 'py-3 font-bold text-emerald-600'));
-                tr.appendChild(createTextCell(formatCurrency(runningPreviewBal), 'py-3 font-bold text-indigo-600'));
+                tr.appendChild(createTextCell(formatCurrency(p.amount), `py-3 font-bold ${isActual ? 'text-emerald-600' : 'text-indigo-600'}`));
+
+                // Status / Action Cell
+                const statusTd = document.createElement('td');
+                statusTd.className = 'py-3';
+                if (isActual) {
+                    const statusSpan = document.createElement('span');
+                    statusSpan.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300';
+                    statusSpan.textContent = 'Received';
+                    statusTd.appendChild(statusSpan);
+                } else {
+                    const markBtn = document.createElement('button');
+                    markBtn.type = 'button';
+                    markBtn.className = 'px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-[10px] shadow transition flex items-center gap-1';
+                    markBtn.innerHTML = '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Mark as Received';
+                    markBtn.setAttribute('aria-label', `Mark paycheck ${p.name} as received`);
+                    markBtn.addEventListener('click', () => openMarkReceivedModal(p.id));
+                    statusTd.appendChild(markBtn);
+                }
+                tr.appendChild(statusTd);
 
                 const actionsTd = document.createElement('td');
                 actionsTd.className = 'py-3 text-right pr-2 space-x-2';
@@ -2674,6 +2885,18 @@
                 tr.appendChild(actionsTd);
                 tbody.appendChild(tr);
             });
+        }
+
+        function openMarkReceivedModal(paycheckId) {
+            const p = appState.paychecks.find(x => x.id === paycheckId);
+            if (!p) return;
+
+            document.getElementById('receive-paycheck-id').value = p.id;
+            document.getElementById('receive-paycheck-name').value = p.name;
+            document.getElementById('receive-paycheck-amount').value = p.amount;
+            document.getElementById('receive-paycheck-date').value = p.date;
+
+            openModal('modal-mark-received');
         }
 
         function renderActivityLog() {
@@ -2768,17 +2991,30 @@
                 });
 
                 dayProj.incomeItems.forEach(p => {
+                    const isActual = p.status === 'actual';
                     const card = document.createElement('div');
-                    card.className = 'p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 text-emerald-700 dark:text-emerald-300 flex justify-between items-center';
+                    card.className = isActual
+                        ? 'p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 text-emerald-700 dark:text-emerald-300 flex justify-between items-center'
+                        : 'p-3 rounded-xl border bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200 text-indigo-700 dark:text-indigo-300 flex justify-between items-center';
+                    
+                    let actionHtml = '';
+                    if (!isActual) {
+                        actionHtml = `<button type="button" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-[10px] font-semibold transition" onclick="openMarkReceivedModal(${p.id}); closeModal('modal-expanded-date');">Mark Received</button>`;
+                    }
+
                     card.innerHTML = `
                         <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center justify-center text-emerald-600 dark:text-emerald-400"><i data-lucide="badge-dollar-sign" class="w-4 h-4"></i></span>
+                            <span class="inline-flex items-center justify-center ${isActual ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}"><i data-lucide="badge-dollar-sign" class="w-4 h-4"></i></span>
                             <div>
                                 <span class="font-bold text-sm block">${p.name}</span>
-                                <span class="text-[10px] uppercase font-semibold opacity-75">Paycheck / Deposit</span>
+                                <span class="text-[10px] uppercase font-semibold opacity-75">${isActual ? 'Actual Deposit' : 'Potential Paycheck'}</span>
                             </div>
                         </div>
-                        <span class="font-extrabold text-sm">+${formatCurrency(p.amount)}</span>
+                        <div class="flex items-center gap-3">
+                            <span class="font-extrabold text-sm">${isActual ? '+' : '~'}${formatCurrency(p.amount)}</span>
+                            ${actionHtml}
+                            <button type="button" class="text-slate-400 hover:text-rose-500 transition" onclick="deletePaycheck(${p.id}); closeModal('modal-expanded-date');" aria-label="Delete paycheck"><i class="fa-solid fa-trash text-xs"></i></button>
+                        </div>
                     `;
                     listContainer.appendChild(card);
                 });
@@ -2927,34 +3163,61 @@
                         itemsContainer.appendChild(billBox);
                     } else {
                         const p = item.data;
+                        const isActual = p.status === 'actual';
                         const incBox = document.createElement('div');
-                        incBox.className = isPast
-                            ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between'
-                            : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-1 rounded-lg text-emerald-700 dark:text-emerald-300 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between';
+                        
+                        if (isActual) {
+                            incBox.className = isPast
+                                ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-emerald-300/40 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between'
+                                : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-700 p-1 rounded-lg text-emerald-700 dark:text-emerald-300 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between shadow-sm';
+                        } else {
+                            // Potential paycheck: distinct outlined/lighter green treatment with dashed or soft indigo/green styling per requirement 5
+                            incBox.className = isPast
+                                ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-dashed border-indigo-300/50 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between'
+                                : 'bg-indigo-50/80 dark:bg-indigo-950/30 border border-dashed border-indigo-400 dark:border-indigo-600 p-1 rounded-lg text-indigo-700 dark:text-indigo-300 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between';
+                        }
                         
                         const infoDiv = document.createElement('div');
                         infoDiv.className = 'min-w-0 flex-1 pr-1';
                         const nameP = document.createElement('p');
                         nameP.className = 'font-semibold break-words whitespace-normal leading-tight';
-                        nameP.textContent = p.name;
+                        nameP.textContent = `${p.name} ${isActual ? '✓' : '(Est)'}`;
                         const amtP = document.createElement('p');
                         amtP.className = 'text-[8px] sm:text-[9px] opacity-90 whitespace-nowrap tabular-nums';
-                        amtP.textContent = `+${formatCurrency(p.amount)}`;
+                        amtP.textContent = `${isActual ? '+' : '~'}${formatCurrency(p.amount)}`;
                         infoDiv.appendChild(nameP);
                         infoDiv.appendChild(amtP);
 
+                        const actionsBox = document.createElement('div');
+                        actionsBox.className = 'flex items-center gap-1 flex-shrink-0';
+
+                        if (!isActual) {
+                            const markBtn = document.createElement('button');
+                            markBtn.type = 'button';
+                            markBtn.className = 'text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 font-bold transition p-0.5';
+                            markBtn.title = 'Mark as Received';
+                            markBtn.setAttribute('aria-label', `Mark paycheck ${p.name} as received`);
+                            markBtn.innerHTML = '<i class="fa-solid fa-circle-check text-[9px]" aria-hidden="true"></i>';
+                            markBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                openMarkReceivedModal(p.id);
+                            });
+                            actionsBox.appendChild(markBtn);
+                        }
+
                         const delBtn = document.createElement('button');
                         delBtn.type = 'button';
-                        delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5 flex-shrink-0';
+                        delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5';
                         delBtn.setAttribute('aria-label', `Delete paycheck ${p.name}`);
                         delBtn.innerHTML = '<i class="fa-solid fa-trash text-[8px]" aria-hidden="true"></i>';
                         delBtn.addEventListener('click', (e) => {
                             e.stopPropagation();
                             deletePaycheck(p.id);
                         });
+                        actionsBox.appendChild(delBtn);
 
                         incBox.appendChild(infoDiv);
-                        incBox.appendChild(delBtn);
+                        incBox.appendChild(actionsBox);
                         itemsContainer.appendChild(incBox);
                     }
                 });
@@ -3077,16 +3340,40 @@
 
             const name = escapeHtml(document.getElementById('calc-source-name').value.trim());
             const date = document.getElementById('calc-pay-date').value;
-            const res = calculatePaycheckPreview();
+            const status = activeCalcPaycheckType; // 'potential' or 'actual'
 
-            if (name && date && res.net > 0) {
-                logActivity('Added Paycheck', `Added ${formatCurrency(res.net)} net deposit from ${name} for ${date}`, 'income');
+            let netAmount = 0;
+            let grossAmount = 0;
+
+            if (status === 'actual') {
+                const flatInput = parseFloat(document.getElementById('calc-flat-amount')?.value) || 0;
+                // If flat amount wasn't used or visible, let's look at preview net or allow user input
+                const previewNetText = document.getElementById('preview-net').textContent;
+                const parsedNet = parseFloat(previewNetText.replace(/[^0-9.-]+/g, '')) || 0;
+                netAmount = parsedNet > 0 ? parsedNet : (flatInput > 0 ? flatInput : 0);
+                grossAmount = netAmount;
+            } else {
+                const res = calculatePaycheckPreview();
+                netAmount = res.net;
+                grossAmount = res.gross;
+            }
+
+            if (name && date && netAmount > 0) {
+                if (status === 'actual') {
+                    appState.balance += netAmount;
+                    logActivity('Actual Deposit Recorded', `Recorded confirmed deposit of ${formatCurrency(netAmount)} from ${name} for ${date}`, 'income');
+                } else {
+                    logActivity('Added Potential Paycheck', `Added estimated ${formatCurrency(netAmount)} deposit from ${name} for ${date}`, 'income');
+                }
+
                 appState.paychecks.push({
                     id: Date.now(),
                     name,
-                    amount: res.net,
-                    gross: res.gross,
-                    date
+                    amount: netAmount,
+                    gross: grossAmount,
+                    date,
+                    status,
+                    convertedFromId: null
                 });
                 sortPaychecksByDate();
                 saveData();
@@ -3095,14 +3382,14 @@
                 document.getElementById('calc-standard-hours').value = '40';
                 document.getElementById('calc-overtime-hours').value = '0';
                 calculatePaycheckPreview();
-                showToast('Paycheck successfully added to log and calendar!');
+                showToast(status === 'actual' ? 'Actual deposit recorded and balance updated!' : 'Potential paycheck successfully added to log and calendar!');
             } else {
-                showToast('Please check all input fields and ensure net pay is greater than zero.', 'error');
+                showToast('Please check all input fields and ensure amount is greater than zero.', 'error');
             }
 
             setTimeout(() => {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = '<i class="fa-solid fa-plus-circle" aria-hidden="true"></i> Add Paycheck & Update Balance';
+                submitBtn.textContent = activeCalcPaycheckType === 'actual' ? 'Save Actual Deposit & Update Balance' : 'Save Potential Paycheck';
             }, 300);
         }
 
@@ -3113,6 +3400,20 @@
                 document.getElementById('edit-paycheck-name').value = p.name;
                 document.getElementById('edit-paycheck-amount').value = p.amount;
                 document.getElementById('edit-paycheck-date').value = p.date;
+                
+                activeEditPaycheckType = p.status || 'potential';
+                const editPotBtn = document.getElementById('edit-type-potential-btn');
+                const editActBtn = document.getElementById('edit-type-actual-btn');
+                if (editPotBtn && editActBtn) {
+                    if (activeEditPaycheckType === 'actual') {
+                        editActBtn.className = 'flex-1 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold text-xs transition';
+                        editPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                    } else {
+                        editPotBtn.className = 'flex-1 py-1.5 rounded-lg bg-indigo-600 text-white font-semibold text-xs transition';
+                        editActBtn.className = 'flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-xs transition';
+                    }
+                }
+
                 openModal('modal-edit-paycheck', document.activeElement);
             }
         }
@@ -3121,17 +3422,33 @@
             e.preventDefault();
             const id = document.getElementById('edit-paycheck-id').value;
             const name = escapeHtml(document.getElementById('edit-paycheck-name').value.trim());
-            const amount = parseFloat(document.getElementById('edit-paycheck-amount').value);
+            const newAmount = parseFloat(document.getElementById('edit-paycheck-amount').value);
             const date = document.getElementById('edit-paycheck-date').value;
+            const newStatus = activeEditPaycheckType;
 
-            if (id && name && Number.isFinite(amount) && amount > 0 && date) {
-                logActivity('Updated Paycheck', `Modified paycheck ${name} (${formatCurrency(amount)})`, 'info');
+            if (id && name && Number.isFinite(newAmount) && newAmount > 0 && date) {
                 const p = appState.paychecks.find(x => x.id == id);
                 if (p) {
+                    const oldAmount = p.amount;
+                    const oldStatus = p.status;
+
+                    // Adjust balance if status/amount for actual changed
+                    if (oldStatus === 'actual' && newStatus === 'actual') {
+                        const diff = newAmount - oldAmount;
+                        appState.balance += diff;
+                    } else if (oldStatus !== 'actual' && newStatus === 'actual') {
+                        appState.balance += newAmount;
+                    } else if (oldStatus === 'actual' && newStatus !== 'actual') {
+                        appState.balance -= oldAmount;
+                    }
+
                     p.name = name;
-                    p.amount = amount;
+                    p.amount = newAmount;
+                    p.gross = newAmount;
                     p.date = date;
+                    p.status = newStatus;
                 }
+                logActivity('Updated Paycheck', `Modified paycheck ${name} (${formatCurrency(newAmount)})`, 'info');
                 sortPaychecksByDate();
                 saveData();
                 updateDashboard();
@@ -3143,6 +3460,11 @@
         }
 
         function deletePaycheck(id) {
+            const p = appState.paychecks.find(x => x.id === id);
+            if (p && p.status === 'actual') {
+                // Reverse actual balance addition exactly once
+                appState.balance -= p.amount;
+            }
             logActivity('Deleted Paycheck', 'Removed income from calendar schedule', 'warn');
             appState.paychecks = appState.paychecks.filter(p => p.id !== id);
             saveData();
