@@ -3353,6 +3353,82 @@
             }, 300);
         }
 
+        // Adds independent, persistent collapse controls to selected dashboard cards.
+        function initSectionCollapseControls() {
+            const sections = [
+                { key: 'recurring-bills', title: 'Recurring Bills Schedule' },
+                { key: 'recent-activity', title: 'Recent Activity' },
+                { key: 'future-paycheck-calculator', title: 'Future Paycheck & Tax Calculator' },
+                { key: 'quick-spend', title: 'Log Quick Spend' },
+                { key: 'balance-projection', title: 'Balance Projection vs. Bills' }
+            ];
+            const storageKey = 'flowpay-section-collapse-v1';
+            let saved = {};
+            try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch (_) { saved = {}; }
+
+            function setCollapsed(card, header, collapsed) {
+                card.dataset.sectionCollapsed = collapsed ? 'true' : 'false';
+                const button = card.querySelector('.section-collapse-toggle');
+                if (button) {
+                    button.setAttribute('aria-expanded', String(!collapsed));
+                    button.innerHTML = collapsed
+                        ? '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i><span>Expand</span>'
+                        : '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i><span>Collapse</span>';
+                    button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + (button.dataset.sectionTitle || 'section'));
+                }
+
+                // Hide every branch outside the header path, leaving the section title and toggle visible.
+                function visit(node) {
+                    if (node === header) return;
+                    Array.from(node.children).forEach(child => {
+                        if (child.classList.contains('widget-drag-handle')) return;
+                        if (child === header || child.contains(header)) {
+                            visit(child);
+                        } else if (collapsed) {
+                            if (!child.hasAttribute('data-collapse-original-hidden')) {
+                                child.setAttribute('data-collapse-original-hidden', child.hidden ? 'true' : 'false');
+                            }
+                            child.hidden = true;
+                        } else if (child.hasAttribute('data-collapse-original-hidden')) {
+                            const wasHidden = child.getAttribute('data-collapse-original-hidden') === 'true';
+                            child.hidden = wasHidden;
+                            child.removeAttribute('data-collapse-original-hidden');
+                        }
+                    });
+                }
+                visit(card);
+                // Re-apply the header state after visiting so a nested layout cannot hide the toggle.
+                if (button) button.hidden = false;
+            }
+
+            sections.forEach(section => {
+                const heading = Array.from(document.querySelectorAll('h2')).find(el => el.textContent.replace(/\s+/g, ' ').trim().includes(section.title));
+                if (!heading) return;
+                const card = heading.closest('.glass');
+                if (!card || card.querySelector(':scope > .section-collapse-toggle')) return;
+
+                let header = heading.parentElement;
+                while (header && header !== card && !(header.classList.contains('justify-between') && header.contains(heading))) {
+                    header = header.parentElement;
+                }
+                if (!header || header === card) header = heading.parentElement;
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'section-collapse-toggle inline-flex items-center justify-center gap-1.5 shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 transition';
+                button.dataset.sectionTitle = section.title;
+                button.style.touchAction = 'manipulation';
+                button.addEventListener('click', () => {
+                    const collapsed = card.dataset.sectionCollapsed !== 'true';
+                    setCollapsed(card, header, collapsed);
+                    saved[section.key] = collapsed;
+                    try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch (_) {}
+                });
+                header.appendChild(button);
+                setCollapsed(card, header, saved[section.key] === true);
+            });
+        }
+
         window.addEventListener('DOMContentLoaded', () => {
             const ui = new FlowPayUI();
             ui.render();
@@ -3363,6 +3439,7 @@
             initInfoPopups();
             initModals();
             initDashboardWidgetReordering();
+            initSectionCollapseControls();
             initMonthSelectors();
             initIconPickerHandlers();
             applyTheme();
@@ -3466,3 +3543,4 @@
 </body>
 </html>
 
+Can you help me fix the handle draggers in my app so that it works on mobile devices and touch screens? It currently will move along the page when you scroll instead of independently
