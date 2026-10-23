@@ -69,9 +69,17 @@
         .widget-drag-handle, .metric-drag-handle {
             cursor: grab;
             user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            /* Reserve touch gestures on the handle for dragging, not page scrolling. */
+            touch-action: none;
+            overscroll-behavior: contain;
         }
         .widget-drag-handle:active, .metric-drag-handle:active {
             cursor: grabbing;
+        }
+        .dragging-widget {
+            touch-action: none;
         }
         
         .dragging-widget {
@@ -1335,7 +1343,9 @@
                 let initialRect = null;
 
                 const onPointerDown = (e) => {
+                    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
                     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+                    e.preventDefault();
                     isDragging = true;
                     startX = e.clientX;
                     startY = e.clientY;
@@ -1353,12 +1363,14 @@
                     widget.style.width = `${initialRect.width}px`;
                     widget.style.margin = '0';
 
-                    handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
-                    e.preventDefault();
+                    if (handle.setPointerCapture) {
+                        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+                    }
                 };
 
                 const onPointerMove = (e) => {
                     if (!isDragging) return;
+                    e.preventDefault();
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
 
@@ -1444,6 +1456,8 @@
                     let startX, startY, initialRect, placeholder;
 
                     handle.addEventListener('pointerdown', (e) => {
+                        if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
+                        e.preventDefault();
                         isDragging = true;
                         startX = e.clientX;
                         startY = e.clientY;
@@ -1460,12 +1474,14 @@
                         card.style.left = `${initialRect.left}px`;
                         card.style.top = `${initialRect.top}px`;
                         card.style.width = `${initialRect.width}px`;
-                        handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
-                        e.preventDefault();
+                        if (handle.setPointerCapture) {
+                            try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+                        }
                     });
 
                     window.addEventListener('pointermove', (e) => {
                         if (!isDragging) return;
+                        e.preventDefault();
                         const dx = e.clientX - startX;
                         const dy = e.clientY - startY;
                         card.style.left = `${initialRect.left + dx}px`;
