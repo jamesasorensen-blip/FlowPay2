@@ -31,7 +31,8 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { font-family: 'Inter', sans-serif; touch-action: manipulation; }
+        body { font-family: 'Inter', sans-serif; touch-action: manipulation; box-sizing: border-box; }
+        * { box-sizing: border-box; min-width: 0; }
         .glass {
             background: rgba(255, 255, 255, 0.75);
             backdrop-filter: blur(12px);
@@ -69,17 +70,9 @@
         .widget-drag-handle, .metric-drag-handle {
             cursor: grab;
             user-select: none;
-            -webkit-user-select: none;
-            -webkit-touch-callout: none;
-            /* Reserve touch gestures on the handle for dragging, not page scrolling. */
-            touch-action: none;
-            overscroll-behavior: contain;
         }
         .widget-drag-handle:active, .metric-drag-handle:active {
             cursor: grabbing;
-        }
-        .dragging-widget {
-            touch-action: none;
         }
         
         .dragging-widget {
@@ -91,17 +84,10 @@
         }
 
         .drop-placeholder {
-            display: block;
-            box-sizing: border-box;
-            min-height: 72px;
-            width: 100%;
             border: 2px dashed #6366f1;
-            background: rgba(99, 102, 241, 0.12);
+            background: rgba(99, 102, 241, 0.08);
             border-radius: 1.5rem;
-            pointer-events: none;
-        }
-        #metrics-grid > .drop-placeholder {
-            min-width: 0;
+            transition: all 0.2s ease;
         }
     </style>
 </head>
@@ -683,7 +669,7 @@
             </div>
 
             <!-- WIDGET 4: INTERACTIVE WALL CALENDAR WITH DYNAMIC WEEKS & MONTHS -->
-            <div id="widget-calendar" data-widget-id="calendar" class="glass rounded-2xl p-6 shadow-sm space-y-4 relative transition-all">
+            <div id="widget-calendar" data-widget-id="calendar" class="glass rounded-2xl p-4 sm:p-6 shadow-sm space-y-4 relative transition-all">
                 <div class="absolute top-3 right-3 widget-drag-handle opacity-60 hover:opacity-100 cursor-grab px-2 py-0.5 text-[10px] text-slate-500 dark:text-slate-400 bg-slate-200 dark:bg-slate-800 rounded-lg border border-slate-300 dark:border-slate-700 flex items-center gap-1 z-20">
                     <i class="fa-solid fa-arrows-up-down" aria-hidden="true"></i> Drag Calendar
                 </div>
@@ -714,9 +700,9 @@
                 </div>
 
                 <!-- Collapsible Content Wrapper -->
-                <div id="calendar-collapsible-content" class="space-y-4 pt-2">
+                <div id="calendar-collapsible-content" class="space-y-3 pt-2">
                     <!-- Day of Week Headers -->
-                    <div class="grid grid-cols-7 gap-1 sm:gap-2 text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider py-1 border-b border-slate-200 dark:border-slate-800">
+                    <div class="grid grid-cols-7 gap-1 text-center text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider py-1 border-b border-slate-200 dark:border-slate-800" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                         <div>Sun</div>
                         <div>Mon</div>
                         <div>Tue</div>
@@ -727,7 +713,7 @@
                     </div>
 
                     <!-- Calendar Grid Container -->
-                    <div class="grid grid-cols-7 gap-1 sm:gap-2 pt-1" id="financial-calendar-grid">
+                    <div class="grid grid-cols-7 gap-1 pt-1" id="financial-calendar-grid" style="grid-template-columns: repeat(7, minmax(0, 1fr));">
                         <!-- Populated dynamically -->
                     </div>
                 </div>
@@ -1350,9 +1336,7 @@
                 let initialRect = null;
 
                 const onPointerDown = (e) => {
-                    if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
                     if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
-                    e.preventDefault();
                     isDragging = true;
                     startX = e.clientX;
                     startY = e.clientY;
@@ -1361,7 +1345,6 @@
                     placeholder = document.createElement('div');
                     placeholder.className = 'drop-placeholder';
                     placeholder.style.height = `${initialRect.height}px`;
-                    placeholder.style.width = '100%';
                     container.insertBefore(placeholder, widget);
 
                     widget.classList.add('dragging-widget');
@@ -1371,26 +1354,12 @@
                     widget.style.width = `${initialRect.width}px`;
                     widget.style.margin = '0';
 
-                    if (handle.setPointerCapture) {
-                        try { handle.setPointerCapture(e.pointerId); } catch (_) {}
-                    }
+                    handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
+                    e.preventDefault();
                 };
 
                 const onPointerMove = (e) => {
                     if (!isDragging) return;
-                    e.preventDefault();
-                    // Auto-scroll the page when the dragged section reaches the top/bottom edge.
-                    // This lets mobile users move sections to locations outside the current viewport.
-                    const edgeZone = Math.min(100, Math.max(64, window.innerHeight * 0.12));
-                    const edgeDistance = e.clientY < edgeZone
-                        ? e.clientY - edgeZone
-                        : (e.clientY > window.innerHeight - edgeZone
-                            ? e.clientY - (window.innerHeight - edgeZone)
-                            : 0);
-                    if (edgeDistance !== 0) {
-                        const scrollSpeed = Math.sign(edgeDistance) * Math.min(20, Math.max(4, Math.ceil(Math.abs(edgeDistance) / 3)));
-                        window.scrollBy({ top: scrollSpeed, left: 0, behavior: 'auto' });
-                    }
                     const dx = e.clientX - startX;
                     const dy = e.clientY - startY;
 
@@ -1476,8 +1445,6 @@
                     let startX, startY, initialRect, placeholder;
 
                     handle.addEventListener('pointerdown', (e) => {
-                        if (!e.isPrimary || (e.pointerType === 'mouse' && e.button !== 0)) return;
-                        e.preventDefault();
                         isDragging = true;
                         startX = e.clientX;
                         startY = e.clientY;
@@ -1494,70 +1461,29 @@
                         card.style.left = `${initialRect.left}px`;
                         card.style.top = `${initialRect.top}px`;
                         card.style.width = `${initialRect.width}px`;
-                        if (handle.setPointerCapture) {
-                            try { handle.setPointerCapture(e.pointerId); } catch (_) {}
-                        }
+                        handle.setPointerCapture ? handle.setPointerCapture(e.pointerId) : null;
+                        e.preventDefault();
                     });
 
                     window.addEventListener('pointermove', (e) => {
                         if (!isDragging) return;
-                        e.preventDefault();
-                        // Auto-scroll near the viewport edges so the drop target can move
-                        // beyond the currently visible part of the page on touchscreens.
-                        const edgeZone = Math.min(100, Math.max(64, window.innerHeight * 0.12));
-                        const edgeDistance = e.clientY < edgeZone
-                            ? e.clientY - edgeZone
-                            : (e.clientY > window.innerHeight - edgeZone
-                                ? e.clientY - (window.innerHeight - edgeZone)
-                                : 0);
-                        if (edgeDistance !== 0) {
-                            const scrollSpeed = Math.sign(edgeDistance) * Math.min(20, Math.max(4, Math.ceil(Math.abs(edgeDistance) / 3)));
-                            window.scrollBy({ top: scrollSpeed, left: 0, behavior: 'auto' });
-                        }
                         const dx = e.clientX - startX;
                         const dy = e.clientY - startY;
                         card.style.left = `${initialRect.left + dx}px`;
                         card.style.top = `${initialRect.top + dy}px`;
 
-                        const otherCards = Array.from(metricsGrid.querySelectorAll('[data-metric-id]')).filter(c => c !== card);
-                        if (!otherCards.length) return;
-
-                        // On phones the metrics grid is one column, so reorder by vertical position.
-                        // On wider screens use the visual reading order (row first, then column).
-                        const gridStyle = window.getComputedStyle(metricsGrid);
-                        const columnCount = gridStyle.gridTemplateColumns.split(' ').filter(Boolean).length;
-                        let target = null;
-                        if (columnCount <= 1) {
-                            target = otherCards.find(other => {
-                                const rect = other.getBoundingClientRect();
-                                return e.clientY < rect.top + rect.height / 2;
-                            }) || null;
-                        } else {
-                            const pointerY = e.clientY;
-                            const pointerX = e.clientX;
-                            let bestDistance = Infinity;
-                            for (const other of otherCards) {
-                                const rect = other.getBoundingClientRect();
-                                const centerX = rect.left + rect.width / 2;
-                                const centerY = rect.top + rect.height / 2;
-                                const distance = Math.abs(pointerY - centerY) * 1.5 + Math.abs(pointerX - centerX);
-                                if (distance < bestDistance) {
-                                    bestDistance = distance;
-                                    target = other;
-                                }
-                            }
-                            if (target) {
-                                const rect = target.getBoundingClientRect();
-                                if (pointerY > rect.top + rect.height / 2 ||
-                                    (Math.abs(pointerY - (rect.top + rect.height / 2)) < rect.height * 0.25 && pointerX > rect.left + rect.width / 2)) {
-                                    target = target.nextElementSibling;
-                                    while (target && !target.matches('[data-metric-id]')) target = target.nextElementSibling;
-                                }
+                        const otherCards = Array.from(metricsGrid.querySelectorAll('[data-metric-id]')).filter(c => c !== card && c !== placeholder);
+                        let inserted = false;
+                        for (const other of otherCards) {
+                            const rect = other.getBoundingClientRect();
+                            const midX = rect.left + rect.width / 2;
+                            if (e.clientX < midX) {
+                                metricsGrid.insertBefore(placeholder, other);
+                                inserted = true;
+                                break;
                             }
                         }
-                        if (target && target !== placeholder) {
-                            metricsGrid.insertBefore(placeholder, target);
-                        } else {
+                        if (!inserted && otherCards.length > 0) {
                             metricsGrid.appendChild(placeholder);
                         }
                     });
@@ -2932,7 +2858,7 @@
                 const dayProj = projectionMap[dateStr] || { startBalance: appState.balance, endBalance: appState.balance, bills: [], incomeItems: [] };
 
                 const cell = document.createElement('div');
-                cell.className = 'border rounded-xl p-1.5 sm:p-2.5 flex flex-col justify-between space-y-1.5 text-[11px] sm:text-xs min-h-[100px] sm:min-h-[120px] transition cursor-pointer hover:ring-2 hover:ring-indigo-500/50';
+                cell.className = 'border rounded-lg sm:rounded-xl p-1 sm:p-2 flex flex-col justify-between space-y-1 text-[10px] sm:text-xs transition cursor-pointer hover:ring-2 hover:ring-indigo-500/50 min-w-0 box-border';
 
                 if (isToday) {
                     cell.className += ' bg-indigo-50/90 dark:bg-indigo-950/50 border-indigo-500 shadow-sm ring-2 ring-indigo-500/50';
@@ -2951,7 +2877,7 @@
                 const daySpan = document.createElement('span');
                 daySpan.className = isToday 
                     ? 'font-extrabold text-white bg-indigo-600 px-1.5 py-0.5 rounded-full text-[10px] sm:text-xs shadow-sm'
-                    : (isPast || !item.isCurrentMonth ? 'font-bold text-slate-400 dark:text-slate-500 text-[11px]' : 'font-bold text-slate-700 dark:text-slate-300 text-[11px]');
+                    : (isPast || !item.isCurrentMonth ? 'font-bold text-slate-400 dark:text-slate-500 text-[10px]' : 'font-bold text-slate-700 dark:text-slate-300 text-[10px]');
                 daySpan.textContent = dateObj.getDate();
 
                 const monthLabelSpan = document.createElement('span');
@@ -2962,7 +2888,9 @@
                 topRow.appendChild(monthLabelSpan);
 
                 const balDiv = document.createElement('div');
-                balDiv.className = isPast || !item.isCurrentMonth ? 'mt-0.5 text-[10px] sm:text-xs font-bold text-slate-400 dark:text-slate-500' : 'mt-0.5 text-[10px] sm:text-xs font-extrabold text-slate-900 dark:text-white';
+                balDiv.className = isPast || !item.isCurrentMonth 
+                    ? 'mt-0.5 text-[9px] sm:text-[11px] font-bold text-slate-400 dark:text-slate-500 text-center tabular-nums whitespace-nowrap' 
+                    : 'mt-0.5 text-[9px] sm:text-xs font-extrabold text-slate-900 dark:text-white text-center tabular-nums whitespace-nowrap';
                 balDiv.textContent = formatCurrency(dayProj.endBalance);
 
                 headerDiv.appendChild(topRow);
@@ -2970,62 +2898,75 @@
                 cell.appendChild(headerDiv);
 
                 const itemsContainer = document.createElement('div');
-                itemsContainer.className = 'space-y-1 overflow-hidden';
+                itemsContainer.className = 'space-y-1 min-w-0';
 
-                let hasEvents = false;
+                const allDayEvents = [];
+                dayProj.bills.forEach(b => allDayEvents.push({ type: 'bill', data: b }));
+                dayProj.incomeItems.forEach(p => allDayEvents.push({ type: 'income', data: p }));
 
-                dayProj.bills.forEach(b => {
-                    hasEvents = true;
-                    const billBox = document.createElement('div');
-                    billBox.className = isPast || b.paid 
-                        ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 line-through opacity-75 text-[9px] sm:text-[10px]'
-                        : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1 rounded-lg text-rose-700 dark:text-rose-300 text-[9px] sm:text-[10px]';
-                    
-                    const nameP = document.createElement('p');
-                    nameP.className = 'font-semibold truncate';
-                    nameP.textContent = `${b.name}${b.paid ? ' (Paid)' : ''}`;
-                    const amtP = document.createElement('p');
-                    amtP.className = 'text-[8px] sm:text-[9px] opacity-90';
-                    amtP.textContent = `-${formatCurrency(b.amount)}`;
-                    billBox.appendChild(nameP);
-                    billBox.appendChild(amtP);
-                    itemsContainer.appendChild(billBox);
+                const maxVisibleEvents = 2;
+                const visibleEvents = allDayEvents.slice(0, maxVisibleEvents);
+                const overflowCount = allDayEvents.length - maxVisibleEvents;
+
+                visibleEvents.forEach(item => {
+                    if (item.type === 'bill') {
+                        const b = item.data;
+                        const billBox = document.createElement('div');
+                        billBox.className = isPast || b.paid 
+                            ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 line-through opacity-75 text-[8px] sm:text-[10px] w-full min-w-0 box-border'
+                            : 'bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/50 p-1 rounded-lg text-rose-700 dark:text-rose-300 text-[8px] sm:text-[10px] w-full min-w-0 box-border';
+                        
+                        const nameP = document.createElement('p');
+                        nameP.className = 'font-semibold break-words whitespace-normal leading-tight';
+                        nameP.textContent = `${b.name}${b.paid ? ' (Paid)' : ''}`;
+                        const amtP = document.createElement('p');
+                        amtP.className = 'text-[8px] sm:text-[9px] opacity-90 whitespace-nowrap tabular-nums';
+                        amtP.textContent = `-${formatCurrency(b.amount)}`;
+                        billBox.appendChild(nameP);
+                        billBox.appendChild(amtP);
+                        itemsContainer.appendChild(billBox);
+                    } else {
+                        const p = item.data;
+                        const incBox = document.createElement('div');
+                        incBox.className = isPast
+                            ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between'
+                            : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-1 rounded-lg text-emerald-700 dark:text-emerald-300 text-[8px] sm:text-[10px] w-full min-w-0 box-border flex items-center justify-between';
+                        
+                        const infoDiv = document.createElement('div');
+                        infoDiv.className = 'min-w-0 flex-1 pr-1';
+                        const nameP = document.createElement('p');
+                        nameP.className = 'font-semibold break-words whitespace-normal leading-tight';
+                        nameP.textContent = p.name;
+                        const amtP = document.createElement('p');
+                        amtP.className = 'text-[8px] sm:text-[9px] opacity-90 whitespace-nowrap tabular-nums';
+                        amtP.textContent = `+${formatCurrency(p.amount)}`;
+                        infoDiv.appendChild(nameP);
+                        infoDiv.appendChild(amtP);
+
+                        const delBtn = document.createElement('button');
+                        delBtn.type = 'button';
+                        delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5 flex-shrink-0';
+                        delBtn.setAttribute('aria-label', `Delete paycheck ${p.name}`);
+                        delBtn.innerHTML = '<i class="fa-solid fa-trash text-[8px]" aria-hidden="true"></i>';
+                        delBtn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deletePaycheck(p.id);
+                        });
+
+                        incBox.appendChild(infoDiv);
+                        incBox.appendChild(delBtn);
+                        itemsContainer.appendChild(incBox);
+                    }
                 });
 
-                dayProj.incomeItems.forEach(p => {
-                    hasEvents = true;
-                    const incBox = document.createElement('div');
-                    incBox.className = isPast
-                        ? 'bg-slate-200/70 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 p-1 rounded text-slate-500 dark:text-slate-400 opacity-75 text-[9px] sm:text-[10px] flex items-center justify-between'
-                        : 'bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 p-1 rounded-lg text-emerald-700 dark:text-emerald-300 text-[9px] sm:text-[10px] flex items-center justify-between';
-                    
-                    const infoDiv = document.createElement('div');
-                    infoDiv.className = 'truncate pr-1';
-                    const nameP = document.createElement('p');
-                    nameP.className = 'font-semibold truncate';
-                    nameP.textContent = p.name;
-                    const amtP = document.createElement('p');
-                    amtP.className = 'text-[8px] sm:text-[9px] opacity-90';
-                    amtP.textContent = `+${formatCurrency(p.amount)}`;
-                    infoDiv.appendChild(nameP);
-                    infoDiv.appendChild(amtP);
+                if (overflowCount > 0) {
+                    const moreBox = document.createElement('div');
+                    moreBox.className = 'text-[8px] font-bold text-indigo-600 dark:text-indigo-400 text-center py-0.5 bg-indigo-50 dark:bg-indigo-950/60 rounded w-full min-w-0';
+                    moreBox.textContent = `+${overflowCount} more`;
+                    itemsContainer.appendChild(moreBox);
+                }
 
-                    const delBtn = document.createElement('button');
-                    delBtn.type = 'button';
-                    delBtn.className = 'text-slate-400 hover:text-rose-500 transition p-0.5';
-                    delBtn.setAttribute('aria-label', `Delete paycheck ${p.name}`);
-                    delBtn.innerHTML = '<i class="fa-solid fa-trash text-[8px]" aria-hidden="true"></i>';
-                    delBtn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        deletePaycheck(p.id);
-                    });
-
-                    incBox.appendChild(infoDiv);
-                    incBox.appendChild(delBtn);
-                    itemsContainer.appendChild(incBox);
-                });
-
-                if (!hasEvents) {
+                if (allDayEvents.length === 0) {
                     const noEventDiv = document.createElement('div');
                     noEventDiv.className = 'text-[9px] text-slate-400 italic text-center py-1';
                     noEventDiv.textContent = 'No activity';
@@ -3353,82 +3294,6 @@
             }, 300);
         }
 
-        // Adds independent, persistent collapse controls to selected dashboard cards.
-        function initSectionCollapseControls() {
-            const sections = [
-                { key: 'recurring-bills', title: 'Recurring Bills Schedule' },
-                { key: 'recent-activity', title: 'Recent Activity' },
-                { key: 'future-paycheck-calculator', title: 'Future Paycheck & Tax Calculator' },
-                { key: 'quick-spend', title: 'Log Quick Spend' },
-                { key: 'balance-projection', title: 'Balance Projection vs. Bills' }
-            ];
-            const storageKey = 'flowpay-section-collapse-v1';
-            let saved = {};
-            try { saved = JSON.parse(localStorage.getItem(storageKey) || '{}') || {}; } catch (_) { saved = {}; }
-
-            function setCollapsed(card, header, collapsed) {
-                card.dataset.sectionCollapsed = collapsed ? 'true' : 'false';
-                const button = card.querySelector('.section-collapse-toggle');
-                if (button) {
-                    button.setAttribute('aria-expanded', String(!collapsed));
-                    button.innerHTML = collapsed
-                        ? '<i class="fa-solid fa-chevron-down" aria-hidden="true"></i><span>Expand</span>'
-                        : '<i class="fa-solid fa-chevron-up" aria-hidden="true"></i><span>Collapse</span>';
-                    button.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + (button.dataset.sectionTitle || 'section'));
-                }
-
-                // Hide every branch outside the header path, leaving the section title and toggle visible.
-                function visit(node) {
-                    if (node === header) return;
-                    Array.from(node.children).forEach(child => {
-                        if (child.classList.contains('widget-drag-handle')) return;
-                        if (child === header || child.contains(header)) {
-                            visit(child);
-                        } else if (collapsed) {
-                            if (!child.hasAttribute('data-collapse-original-hidden')) {
-                                child.setAttribute('data-collapse-original-hidden', child.hidden ? 'true' : 'false');
-                            }
-                            child.hidden = true;
-                        } else if (child.hasAttribute('data-collapse-original-hidden')) {
-                            const wasHidden = child.getAttribute('data-collapse-original-hidden') === 'true';
-                            child.hidden = wasHidden;
-                            child.removeAttribute('data-collapse-original-hidden');
-                        }
-                    });
-                }
-                visit(card);
-                // Re-apply the header state after visiting so a nested layout cannot hide the toggle.
-                if (button) button.hidden = false;
-            }
-
-            sections.forEach(section => {
-                const heading = Array.from(document.querySelectorAll('h2')).find(el => el.textContent.replace(/\s+/g, ' ').trim().includes(section.title));
-                if (!heading) return;
-                const card = heading.closest('.glass');
-                if (!card || card.querySelector(':scope > .section-collapse-toggle')) return;
-
-                let header = heading.parentElement;
-                while (header && header !== card && !(header.classList.contains('justify-between') && header.contains(heading))) {
-                    header = header.parentElement;
-                }
-                if (!header || header === card) header = heading.parentElement;
-
-                const button = document.createElement('button');
-                button.type = 'button';
-                button.className = 'section-collapse-toggle inline-flex items-center justify-center gap-1.5 shrink-0 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-200 transition';
-                button.dataset.sectionTitle = section.title;
-                button.style.touchAction = 'manipulation';
-                button.addEventListener('click', () => {
-                    const collapsed = card.dataset.sectionCollapsed !== 'true';
-                    setCollapsed(card, header, collapsed);
-                    saved[section.key] = collapsed;
-                    try { localStorage.setItem(storageKey, JSON.stringify(saved)); } catch (_) {}
-                });
-                header.appendChild(button);
-                setCollapsed(card, header, saved[section.key] === true);
-            });
-        }
-
         window.addEventListener('DOMContentLoaded', () => {
             const ui = new FlowPayUI();
             ui.render();
@@ -3439,7 +3304,6 @@
             initInfoPopups();
             initModals();
             initDashboardWidgetReordering();
-            initSectionCollapseControls();
             initMonthSelectors();
             initIconPickerHandlers();
             applyTheme();
@@ -3475,8 +3339,6 @@
             const hidePaidText = document.getElementById('hide-paid-text');
             toggleHidePaidBtn.addEventListener('click', () => {
                 hidePaidBills = !hidePaidBills;
-                hidePaidText.textContent = hidePaidBills ? 'Show Paid Bills' : 'Hide Paid Bills';
-                renderBillsTable();
             });
 
             const toggleChartBtn = document.getElementById('toggle-chart-type-btn');
@@ -3542,4 +3404,3 @@
     </script>
 </body>
 </html>
-
