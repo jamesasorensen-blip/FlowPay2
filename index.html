@@ -2052,7 +2052,7 @@ function setup(){
   const label=document.createElement('span');label.className='fp-status';label.id='fp2-save-status';label.textContent='Cloud sync enabled';label.setAttribute('aria-live','polite');toolbar.append(label);
   const observer=new MutationObserver(()=>{
    const existing=[...document.querySelectorAll('[id*="sync-status"],[id*="cloud-status"]')].find(x=>x.id!=='fp2-save-status'&&x.textContent?.trim());
-   if(existing)label.textContent=existing.textContent.trim().slice(0,55);
+   if(existing){const next=existing.textContent.trim().slice(0,55);if(label.textContent!==next)label.textContent=next;}
   });
   observer.observe(document.body,{subtree:true,childList:true,characterData:true});
  }
