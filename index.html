@@ -930,8 +930,8 @@ function render(){theme();const s=safeBreakdown(),unpaid=unpaidMonth(monthKey(da
 function renderBills(){const tbody=$('bills-table-body');tbody.innerHTML='';const rows=unpaidMonth(selectedMonth).concat(billsBetween(`${selectedMonth}-01`,`${selectedMonth}-${String(new Date(Number(selectedMonth.slice(0,4)),Number(selectedMonth.slice(5,7)),0).getDate()).padStart(2,'0')}`).filter(isPaid));if(!rows.length){tbody.innerHTML='<tr><td colspan="7" class="py-5 text-center text-slate-400">No bills for this month.</td></tr>';return}for(const o of rows){const paid=isPaid(o);if(hidePaid&&paid)continue;const tr=document.createElement('tr');tr.innerHTML=`<td class="py-3 pl-2 font-semibold">${esc(o.bill.name)}</td><td>${esc(o.bill.category||'Other')}</td><td class="capitalize">${esc(o.bill.frequency)}</td><td>${esc(o.date)}</td><td class="font-bold">${money(o.bill.amount)}</td><td>${paid?'Paid':'Pending'}</td><td class="text-right whitespace-nowrap"><button class="text-indigo-600 mr-2" data-bill-action="toggle" data-key="${esc(o.key)}">${paid?'Undo':'Pay'}</button><button class="text-indigo-600 mr-2" data-bill-action="edit" data-id="${esc(o.bill.id)}">Edit</button><button class="text-rose-600" data-bill-action="delete" data-id="${esc(o.bill.id)}">Delete</button></td>`;tbody.append(tr)}}
 function renderPaychecks(){const tbody=$('paychecks-table-body');tbody.innerHTML='';if(!state.paychecks.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-5 text-slate-400">No paychecks yet.</td></tr>';return}for(const p of [...state.paychecks].sort((a,b)=>a.date.localeCompare(b.date))){const tr=document.createElement('tr');tr.innerHTML=`<td class="py-3 pl-2 font-semibold">${esc(p.name)}</td><td>${esc(p.status==='received'?'Actual':'Potential')}</td><td>${esc(p.date)}</td><td class="font-bold">${money(p.amount)}</td><td>${esc(p.status==='received'?'Received':p.status==='actual'?'Actual (unconfirmed)':'Projected')}</td><td class="text-right whitespace-nowrap"><button class="text-emerald-600 mr-2" data-pay-action="receive" data-id="${esc(p.id)}" ${p.status==='received'?'disabled':''}>Receive</button><button class="text-indigo-600 mr-2" data-pay-action="edit" data-id="${esc(p.id)}">Edit</button><button class="text-rose-600" data-pay-action="delete" data-id="${esc(p.id)}">Delete</button></td>`;tbody.append(tr)}}
 function renderActivity(){$('activity-log').innerHTML=state.activity.length?state.activity.slice(0,15).map(a=>`<div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs"><div>${esc(a.message)}</div><div class="text-slate-400 text-[10px] mt-1">${esc(new Date(a.time).toLocaleString())}</div></div>`).join(''):'<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>'}
-function renderCalendar(){const grid=$('financial-calendar-grid');grid.innerHTML='';const [y,m]=calendarMonth.split('-').map(Number),first=new Date(y,m-1,1),days=new Date(y,m,0).getDate(),offset=first.getDay(),start=day(),end=`${calendarMonth}-${String(days).padStart(2,'0')}`;let running=num(state.balance);const eventMap={};for(const o of billsBetween(start,end)){(eventMap[o.date]??=[]).push({text:`${o.bill.name} -${money(o.bill.amount)}`,kind:'bill',paid:isPaid(o)});if(!isPaid(o))eventMap[o.date].at(-1).amount=-num(o.bill.amount)}for(const p of state.paychecks)if(p.date>=start&&p.date<=end)(eventMap[p.date]??=[]).push({text:`${p.name} +${money(p.amount)}`,kind:'pay',amount:p.status==='received'?0:num(p.amount)});for(let i=0;i<offset;i++)grid.append(document.createElement('div'));for(let d=1;d<=days;d++){const s=`${calendarMonth}-${String(d).padStart(2,'0')}`;for(const e of eventMap[s]||[])running+=num(e.amount);const cell=document.createElement('button');cell.type='button';cell.dataset.calendarDate=s;cell.className=`text-left border rounded-lg p-1 sm:p-2 text-[10px] sm:text-xs bg-white dark:bg-slate-800 min-h-[80px] sm:min-h-[105px] overflow-hidden ${s===day()?'ring-2 ring-indigo-500':''}`;cell.innerHTML=`<strong>${d}</strong><div class="text-indigo-500 text-[9px] sm:text-[10px]">${money(running)}</div>${(eventMap[s]||[]).slice(0,2).map(e=>`<div class="truncate ${e.kind==='bill'?'text-rose-500':'text-emerald-600'}">${esc(e.text)}</div>`).join('')}`;if(showPast===false&&s<day())cell.classList.add('opacity-40');grid.append(cell)}}
-function renderChart(){if(typeof Chart==='undefined')return;const end=plusDays(day(),window.flowpayChartDays||60),p=projected(day(),end),ctx=$('cashFlowChart');if(chart)chart.destroy();chart=new Chart(ctx,{type:chartType,data:{labels:p.series.map(x=>x.date),datasets:[{label:'Projected balance',data:p.series.map(x=>x.balance),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.18)',fill:true,tension:.2}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:8}},y:{ticks:{callback:v=>'$'+v}}}}});$('chart-start-bal').textContent=money(effectiveBalance());$('chart-total-in').textContent=money(p.ins);$('chart-lowest-bal').textContent=money(Math.min(effectiveBalance(),...p.series.map(x=>x.balance)))}
+function renderCalendar(){const grid=$('financial-calendar-grid');grid.innerHTML='';const [y,m]=calendarMonth.split('-').map(Number),first=new Date(y,m-1,1),days=new Date(y,m,0).getDate(),offset=first.getDay(),start=day(),end=`${calendarMonth}-${String(days).padStart(2,'0')}`;let running=effectiveBalance();const eventMap={};for(const o of billsBetween(start,end)){(eventMap[o.date]??=[]).push({text:`${o.bill.name} -${money(o.bill.amount)}`,kind:'bill',paid:isPaid(o)});if(!isPaid(o))eventMap[o.date].at(-1).amount=-num(o.bill.amount)}for(const p of state.paychecks)if(p.date>=start&&p.date<=end)(eventMap[p.date]??=[]).push({text:`${p.name} +${money(p.amount)}`,kind:'pay',amount:p.status==='received'?0:num(p.amount)});for(let i=0;i<offset;i++)grid.append(document.createElement('div'));for(let d=1;d<=days;d++){const s=`${calendarMonth}-${String(d).padStart(2,'0')}`;for(const e of eventMap[s]||[])running+=num(e.amount);const cell=document.createElement('button');cell.type='button';cell.dataset.calendarDate=s;cell.className=`text-left border rounded-lg p-1 sm:p-2 text-[10px] sm:text-xs bg-white dark:bg-slate-800 min-h-[80px] sm:min-h-[105px] overflow-hidden ${s===day()?'ring-2 ring-indigo-500':''}`;cell.innerHTML=`<strong>${d}</strong><div class="text-indigo-500 text-[9px] sm:text-[10px]">${money(running)}</div>${(eventMap[s]||[]).slice(0,2).map(e=>`<div class="truncate ${e.kind==='bill'?'text-rose-500':'text-emerald-600'}">${esc(e.text)}</div>`).join('')}`;if(showPast===false&&s<day())cell.classList.add('opacity-40');grid.append(cell)}}
+function renderChart(){if(typeof Chart==='undefined')return;const end=plusDays(day(),window.flowpayChartDays||60),p=projected(day(),end),ctx=$('cashFlowChart');if(chart)chart.destroy();chart=new Chart(ctx,{type:chartType,data:{labels:p.series.map(x=>x.date),datasets:[{label:'Projected balance',data:p.series.map(x=>x.balance),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.18)',fill:true,tension:.2,pointRadius:0,pointHoverRadius:5,segment:{borderColor:ctx=>ctx.p1.parsed.y<0?'#e11d48':'#6366f1'}}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{tooltip:{callbacks:{label:context=>'Projected balance: '+money(context.parsed.y),afterBody:items=>{const item=p.series[items[0]?.dataIndex];return item?['Income: '+money(item.in),'Bills: '+money(item.out)]:[]}}}},scales:{x:{ticks:{maxTicksLimit:8}},y:{ticks:{callback:v=>'$'+v}}}}});$('chart-start-bal').textContent=money(effectiveBalance());$('chart-total-in').textContent=money(p.ins);$('chart-lowest-bal').textContent=money(Math.min(effectiveBalance(),...p.series.map(x=>x.balance)))}
 function switchPage(page){document.querySelectorAll('.app-view').forEach(e=>e.classList.toggle('hidden',e.id!==`view-${page}`));document.querySelectorAll('.nav-link').forEach(e=>{const active=e.dataset.page===page;e.classList.toggle('bg-indigo-600',active);e.classList.toggle('text-white',active)});$('header-page-title').textContent=({dashboard:'FlowPay Dashboard',calendar:'Wall Calendar & Dynamic Cash Flow',projection:'Balance Projection vs. Bills',calculator:'Future Paycheck & Tax Calculator'})[page];if(page==='projection')renderChart();if(page==='calendar')renderCalendar();closeSidebar()}
 function closeSidebar(){$('app-sidebar').classList.add('-translate-x-full');$('sidebar-overlay').classList.add('hidden')}
 function reorder(){const parent=$('view-dashboard');for(const id of state.widgetOrder){const w=parent.querySelector(`[data-widget-id="${id}"]`);if(w)parent.append(w)}}
@@ -2062,6 +2062,98 @@ function setup(){
   if(target.id==='open-add-bill-btn')return;
   if(target.matches('[data-bill-action="delete"]'))return;
  },{passive:true});
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
+
+
+<style id="fp-stage3-styles">
+#fp3-calendar-info,#fp3-forecast-info{border:1px solid #cbd5e1;border-radius:14px;padding:14px;margin-top:12px;background:rgba(99,102,241,.04)}
+.dark #fp3-calendar-info,.dark #fp3-forecast-info{border-color:#475569}
+.fp3-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#64748b}
+.dark .fp3-legend{color:#cbd5e1}
+.fp3-legend b{font-size:14px}
+.fp3-stat-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;margin-top:10px;font-size:13px}
+.fp3-warning{color:#be123c;font-weight:750}
+.dark .fp3-warning{color:#fda4af}
+.fp3-table{width:100%;font-size:12px;border-collapse:collapse;margin-top:10px}
+.fp3-table th,.fp3-table td{padding:8px 6px;text-align:left;border-bottom:1px solid #cbd5e1}
+.dark .fp3-table th,.dark .fp3-table td{border-color:#475569}
+.fp3-table td:last-child,.fp3-table th:last-child{text-align:right}
+#financial-calendar-grid [data-calendar-date][aria-pressed=true]{outline:3px solid #6366f1;outline-offset:1px}
+#fp3-forecast-info summary{cursor:pointer;font-size:13px;font-weight:700}
+</style>
+<script id="fp-stage3-script">
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const formatDate=s=>{try{return new Date(s+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}catch{return s}};
+function make(tag,text){const el=document.createElement(tag);if(text!==undefined)el.textContent=text;return el}
+function setup(){
+ const calendar=$('financial-calendar-grid'),chart=$('cashFlowChart');
+ if(!calendar||!chart)return;
+ const legend=make('div');legend.className='fp3-legend';
+ for(const [color,text] of [['#e11d48','Scheduled bills'],['#059669','Income'],['#6366f1','Projected balance']]){
+  const item=make('span');const dot=make('b','● ');dot.style.color=color;item.append(dot,document.createTextNode(text));legend.append(item);
+ }
+ calendar.parentElement.insertBefore(legend,calendar);
+ const calInfo=make('section');calInfo.id='fp3-calendar-info';calInfo.setAttribute('aria-live','polite');
+ calendar.after(calInfo);
+ function selectDate(date){
+  calendar.querySelectorAll('[data-calendar-date]').forEach(el=>el.setAttribute('aria-pressed',String(el.dataset.calendarDate===date)));
+  calInfo.replaceChildren();
+  const heading=make('h3','Daily breakdown · '+formatDate(date));heading.style.fontWeight='800';calInfo.append(heading);
+  try{
+   const bills=billsBetween(date,date);
+   const pays=state.paychecks.filter(p=>payOnDate(p)===date&&p.status!=='received');
+   const spent=bills.filter(o=>!isPaid(o)).reduce((a,o)=>a+num(o.bill.amount),0);
+   const income=pays.reduce((a,p)=>a+num(p.amount),0);
+   const row=make('div');row.className='fp3-stat-row';
+   for(const [label,val] of [['Expected income',money(income)],['Unpaid bills',money(spent)],['Net change',money(income-spent)]]){
+    const cell=make('span');const b=make('strong',val);cell.append(document.createTextNode(label+' '),b);row.append(cell)
+   }
+   calInfo.append(row);
+   const details=make('div');details.style.cssText='margin-top:10px;font-size:12px;display:grid;gap:5px';
+   for(const o of bills){const e=make('div',(isPaid(o)?'✓ ':'○ ')+o.bill.name+' · '+money(o.bill.amount)+(isPaid(o)?' (paid)':''));details.append(e)}
+   for(const p of pays)details.append(make('div','＋ '+p.name+' · '+money(p.amount)));
+   if(!bills.length&&!pays.length)details.append(make('div','No scheduled bills or income for this day.'));
+   calInfo.append(details);
+  }catch{calInfo.append(make('p','Daily details are not available yet.'))}
+ }
+ calendar.addEventListener('click',e=>{const cell=e.target.closest('[data-calendar-date]');if(cell)selectDate(cell.dataset.calendarDate)});
+ const forecast=make('section');forecast.id='fp3-forecast-info';chart.parentElement.parentElement.append(forecast);
+ const refresh=()=>{
+  forecast.replaceChildren();
+  try{
+   const days=window.flowpayChartDays||60;
+   const data=projected(day(),plusDays(day(),days)).series;
+   const low=data.reduce((a,b)=>b.balance<a.balance?b:a,data[0]);
+   const negatives=data.filter(d=>d.balance<0);
+   const heading=make('div','Forecast insights · next '+days+' days');heading.style.fontWeight='800';forecast.append(heading);
+   const stats=make('div');stats.className='fp3-stat-row';
+   for(const [label,value] of [['Lowest projected balance',money(low.balance)],['Lowest-balance date',formatDate(low.date)],['Days below $0',String(negatives.length)]]){
+    const item=make('span');item.append(document.createTextNode(label+' '),make('strong',value));stats.append(item)
+   }
+   forecast.append(stats);
+   if(negatives.length){const warning=make('p','Warning: The forecast falls below $0 starting '+formatDate(negatives[0].date)+'.');warning.className='fp3-warning';warning.style.marginTop='10px';forecast.append(warning)}
+   const details=make('details');details.style.marginTop='12px';details.append(make('summary','View daily forecast details'));
+   const table=make('table');table.className='fp3-table';
+   const head=make('thead');const tr=make('tr');
+   for(const title of ['Date','Income','Bills','Balance'])tr.append(make('th',title));head.append(tr);table.append(head);
+   const body=make('tbody');
+   for(const d of data){const row=make('tr');for(const val of [formatDate(d.date),money(d.in),money(d.out),money(d.balance)])row.append(make('td',val));body.append(row)}
+   table.append(body);details.append(table);forecast.append(details);
+  }catch{forecast.append(make('p','Forecast details will appear when your financial data loads.'))}
+ };
+ const chartControls=$('fp-chart-controls');
+ chartControls?.addEventListener('click',()=>queueMicrotask(refresh));
+ $('toggle-chart-type-btn')?.addEventListener('click',()=>queueMicrotask(refresh));
+ $('calendar-month-select')?.addEventListener('change',()=>{calInfo.textContent='Select a day to see its bills and income.'});
+ calInfo.textContent='Select a day to see its bills and income.';
+ refresh();
+ // Refresh insights when the projection page becomes visible; no changes to sync/auth state.
+ document.querySelectorAll('[data-page="projection"]').forEach(btn=>btn.addEventListener('click',()=>queueMicrotask(refresh)));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
 })();
