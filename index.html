@@ -521,7 +521,7 @@
                                 <span class="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Balance</span>
                                 <button id="open-balance-btn" class="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 text-xs font-medium"><i class="fa-solid fa-pen-to-square" aria-hidden="true"></i> Edit</button>
                             </div>
-                            <div class="mt-2"><div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div></div>
+                            <div class="mt-2"><div class="text-3xl font-extrabold text-slate-900 dark:text-white" id="display-balance">$0.00</div><div id="flowpay-balance-source" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1">Manual balance</div></div>
                             <div class="mt-3 pt-3 border-t border-slate-200/60 dark:border-slate-700/60 flex justify-between text-xs"><span class="text-slate-500">Status:</span><span class="font-medium text-amber-600">Manual Entry</span></div>
                         </div>
 
@@ -895,7 +895,7 @@ const plusDays=(s,n)=>{const d=date(s);d.setDate(d.getDate()+n);return day(d)};
 const plusMonths=(s,n)=>{const d=date(s),a=new Date(d.getFullYear(),d.getMonth()+n,1);a.setDate(Math.min(d.getDate(),new Date(a.getFullYear(),a.getMonth()+1,0).getDate()));return day(a)};
 const monthKey=s=>String(s).slice(0,7);
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
-const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],bankMatchDecisions:[],theme:'light'};
+const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],bankMatchDecisions:[],bankBalanceSettings:{mode:'manual',accountId:'',balanceType:'available'},theme:'light'};
 let state={...defaults},chart=null,chartType='line',selectedMonth=monthKey(day()),calendarMonth=selectedMonth,hidePaid=false,showPast=true,calendarCollapsed=false,selectedDate=day(),datePayType='potential',calcType='potential',priorOrder=null,authMode='login',focusBefore=null;
 function toast(message,error=false){const t=document.createElement('div');t.className=`rounded-xl p-3 text-white shadow-lg text-xs pointer-events-auto ${error?'bg-rose-600':'bg-slate-800'}`;t.textContent=message;$('toast-container').append(t);setTimeout(()=>t.remove(),3500)}
 function load(){try{const x=JSON.parse(localStorage.getItem('flowpay_state')||'{}');state={...defaults,...x};for(const k of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions'])if(!Array.isArray(state[k]))state[k]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];}catch{state={...defaults}}}
@@ -909,11 +909,24 @@ function occurrences(b,start,end){const out=[];if(!b.dueDate||!['weekly','monthl
 function billsBetween(start,end){return state.bills.flatMap(b=>occurrences(b,start,end)).sort((a,b)=>a.date.localeCompare(b.date))}
 function isPaid(o){return state.paidOccurrences.some(p=>(typeof p==='string'?p:p.key)===o.key)}
 function payOnDate(p){return p.date||day()}
-function projected(start,end){let bal=num(state.balance),series=[],ins=0,outs=0;for(let s=start;s<=end;s=plusDays(s,1)){let inc=0,exp=0;for(const p of state.paychecks)if(payOnDate(p)===s&&p.status!=='received'){inc+=num(p.amount)}for(const o of billsBetween(s,s))if(!isPaid(o))exp+=num(o.bill.amount);bal+=inc-exp;ins+=inc;outs+=exp;series.push({date:s,balance:bal,in:inc,out:exp})}return {series,ins,outs}}
+// Bank balance snapshots are kept in memory only; the user's selection is cloud-synced.
+let bankBalanceSnapshot = null;
+function selectedBankBalance(){
+  const cfg=state.bankBalanceSettings||{};
+  if(cfg.mode!=='bank'||!cfg.accountId||!bankBalanceSnapshot||bankBalanceSnapshot.userId!==window.flowpayActiveUserId||bankBalanceSnapshot.accountId!==cfg.accountId)return null;
+  const amount=cfg.balanceType==='current'?bankBalanceSnapshot.current:bankBalanceSnapshot.available;
+  return amount===null||amount===undefined||!Number.isFinite(Number(amount))?null:Number(amount);
+}
+function effectiveBalance(){const n=selectedBankBalance();return n===null?num(state.balance):n;}
+window.flowpaySetBankBalanceSnapshot=function(snapshot){
+  bankBalanceSnapshot=snapshot||null;
+  render();
+};
+function projected(start,end){let bal=effectiveBalance(),series=[],ins=0,outs=0;for(let s=start;s<=end;s=plusDays(s,1)){let inc=0,exp=0;for(const p of state.paychecks)if(payOnDate(p)===s&&p.status!=='received'){inc+=num(p.amount)}for(const o of billsBetween(s,s))if(!isPaid(o))exp+=num(o.bill.amount);bal+=inc-exp;ins+=inc;outs+=exp;series.push({date:s,balance:bal,in:inc,out:exp})}return {series,ins,outs}}
 function unpaidMonth(m){return billsBetween(`${m}-01`,`${m}-${String(new Date(Number(m.slice(0,4)),Number(m.slice(5,7)),0).getDate()).padStart(2,'0')}`).filter(o=>!isPaid(o))}
 function nextPayDate(){return state.paychecks.filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date))[0]?.date||plusDays(day(),30)}
-function safeBreakdown(){const today=day(),pay=nextPayDate();const before=billsBetween(today,pay).filter(o=>!isPaid(o)&&o.date<pay);const next=unpaidMonth(monthKey(plusMonths(today,1))).filter(o=>state.includedNextMonthBillIds.map(String).includes(String(o.bill.id))&&!before.some(x=>x.key===o.key));const billTotal=before.reduce((a,o)=>a+num(o.bill.amount),0),nextTotal=next.reduce((a,o)=>a+num(o.bill.amount),0);return {billTotal,nextTotal,safe:num(state.balance)-billTotal-nextTotal-num(state.essentialSpending)-num(state.pendingTransactions)-num(state.emergencyBuffer)}}
-function render(){theme();const s=safeBreakdown(),unpaid=unpaidMonth(monthKey(day())),total=unpaid.reduce((a,o)=>a+num(o.bill.amount),0);$('display-balance').textContent=money(state.balance);$('buffer-display-val').textContent=num(state.emergencyBuffer).toFixed(0);$('safe-to-spend-amount').textContent=money(s.safe);for(const [id,val] of Object.entries({'sts-bills':s.billTotal,'sts-next-month-bills':s.nextTotal,'sts-essentials':state.essentialSpending,'sts-pending':state.pendingTransactions,'sts-buffer':state.emergencyBuffer,'display-bills-total':total,'net-surplus-amount':num(state.balance)-total,'required-weekly-income':state.savingsGoal}))$(id).textContent=money(val);$('display-savings-goal').textContent=money(state.savingsGoal)+'/mo';$('included-next-bills-count').textContent=state.includedNextMonthBillIds.length;const badge=$('coverage-status-badge');badge.textContent=total<=num(state.balance)?'Covered':'Insufficient Balance';badge.className='px-2 py-0.5 rounded-md text-xs font-semibold '+(total<=num(state.balance)?'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700');const upcoming=billsBetween(day(),plusMonths(day(),12)).find(o=>!isPaid(o));$('next-bill-name').textContent=upcoming?.bill.name||'No upcoming bills';$('next-bill-amount').textContent=money(upcoming?.bill.amount);$('next-bill-days').textContent=upcoming?`${Math.round((date(upcoming.date)-date(day()))/86400000)} days`:'No bills';$('next-bill-status-text').textContent=upcoming?`Due ${upcoming.date}`:'Add a recurring bill';$('next-bill-progress').style.width=upcoming?Math.min(100,Math.max(0,num(state.balance)/Math.max(.01,num(upcoming.bill.amount))*100))+'%':'0%';renderBills();renderPaychecks();renderActivity();renderCalendar();if(!$('view-projection').classList.contains('hidden'))renderChart()}
+function safeBreakdown(){const today=day(),pay=nextPayDate();const before=billsBetween(today,pay).filter(o=>!isPaid(o)&&o.date<pay);const next=unpaidMonth(monthKey(plusMonths(today,1))).filter(o=>state.includedNextMonthBillIds.map(String).includes(String(o.bill.id))&&!before.some(x=>x.key===o.key));const billTotal=before.reduce((a,o)=>a+num(o.bill.amount),0),nextTotal=next.reduce((a,o)=>a+num(o.bill.amount),0);return {billTotal,nextTotal,safe:effectiveBalance()-billTotal-nextTotal-num(state.essentialSpending)-(selectedBankBalance()===null?num(state.pendingTransactions):0)-num(state.emergencyBuffer)}}
+function render(){theme();const s=safeBreakdown(),unpaid=unpaidMonth(monthKey(day())),total=unpaid.reduce((a,o)=>a+num(o.bill.amount),0);$('display-balance').textContent=money(effectiveBalance());const cfg=state.bankBalanceSettings||{};const bankAmt=selectedBankBalance();$('flowpay-balance-source').textContent=cfg.mode==='bank'?(bankAmt===null?'Bank balance unavailable — using manual balance until refreshed':'Plaid Sandbox '+(cfg.balanceType==='current'?'current':'available')+' balance · excludes manual pending deductions'):'Manual balance';$('buffer-display-val').textContent=num(state.emergencyBuffer).toFixed(0);$('safe-to-spend-amount').textContent=money(s.safe);for(const [id,val] of Object.entries({'sts-bills':s.billTotal,'sts-next-month-bills':s.nextTotal,'sts-essentials':state.essentialSpending,'sts-pending':state.pendingTransactions,'sts-buffer':state.emergencyBuffer,'display-bills-total':total,'net-surplus-amount':effectiveBalance()-total,'required-weekly-income':state.savingsGoal}))$(id).textContent=money(val);$('display-savings-goal').textContent=money(state.savingsGoal)+'/mo';$('included-next-bills-count').textContent=state.includedNextMonthBillIds.length;const badge=$('coverage-status-badge');badge.textContent=total<=effectiveBalance()?'Covered':'Insufficient Balance';badge.className='px-2 py-0.5 rounded-md text-xs font-semibold '+(total<=effectiveBalance()?'bg-emerald-100 text-emerald-700':'bg-rose-100 text-rose-700');const upcoming=billsBetween(day(),plusMonths(day(),12)).find(o=>!isPaid(o));$('next-bill-name').textContent=upcoming?.bill.name||'No upcoming bills';$('next-bill-amount').textContent=money(upcoming?.bill.amount);$('next-bill-days').textContent=upcoming?`${Math.round((date(upcoming.date)-date(day()))/86400000)} days`:'No bills';$('next-bill-status-text').textContent=upcoming?`Due ${upcoming.date}`:'Add a recurring bill';$('next-bill-progress').style.width=upcoming?Math.min(100,Math.max(0,effectiveBalance()/Math.max(.01,num(upcoming.bill.amount))*100))+'%':'0%';renderBills();renderPaychecks();renderActivity();renderCalendar();if(!$('view-projection').classList.contains('hidden'))renderChart()}
 function renderBills(){const tbody=$('bills-table-body');tbody.innerHTML='';const rows=unpaidMonth(selectedMonth).concat(billsBetween(`${selectedMonth}-01`,`${selectedMonth}-${String(new Date(Number(selectedMonth.slice(0,4)),Number(selectedMonth.slice(5,7)),0).getDate()).padStart(2,'0')}`).filter(isPaid));if(!rows.length){tbody.innerHTML='<tr><td colspan="7" class="py-5 text-center text-slate-400">No bills for this month.</td></tr>';return}for(const o of rows){const paid=isPaid(o);if(hidePaid&&paid)continue;const tr=document.createElement('tr');tr.innerHTML=`<td class="py-3 pl-2 font-semibold">${esc(o.bill.name)}</td><td>${esc(o.bill.category||'Other')}</td><td class="capitalize">${esc(o.bill.frequency)}</td><td>${esc(o.date)}</td><td class="font-bold">${money(o.bill.amount)}</td><td>${paid?'Paid':'Pending'}</td><td class="text-right whitespace-nowrap"><button class="text-indigo-600 mr-2" data-bill-action="toggle" data-key="${esc(o.key)}">${paid?'Undo':'Pay'}</button><button class="text-indigo-600 mr-2" data-bill-action="edit" data-id="${esc(o.bill.id)}">Edit</button><button class="text-rose-600" data-bill-action="delete" data-id="${esc(o.bill.id)}">Delete</button></td>`;tbody.append(tr)}}
 function renderPaychecks(){const tbody=$('paychecks-table-body');tbody.innerHTML='';if(!state.paychecks.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-5 text-slate-400">No paychecks yet.</td></tr>';return}for(const p of [...state.paychecks].sort((a,b)=>a.date.localeCompare(b.date))){const tr=document.createElement('tr');tr.innerHTML=`<td class="py-3 pl-2 font-semibold">${esc(p.name)}</td><td>${esc(p.status==='received'?'Actual':'Potential')}</td><td>${esc(p.date)}</td><td class="font-bold">${money(p.amount)}</td><td>${esc(p.status==='received'?'Received':p.status==='actual'?'Actual (unconfirmed)':'Projected')}</td><td class="text-right whitespace-nowrap"><button class="text-emerald-600 mr-2" data-pay-action="receive" data-id="${esc(p.id)}" ${p.status==='received'?'disabled':''}>Receive</button><button class="text-indigo-600 mr-2" data-pay-action="edit" data-id="${esc(p.id)}">Edit</button><button class="text-rose-600" data-pay-action="delete" data-id="${esc(p.id)}">Delete</button></td>`;tbody.append(tr)}}
 function renderActivity(){$('activity-log').innerHTML=state.activity.length?state.activity.slice(0,15).map(a=>`<div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs"><div>${esc(a.message)}</div><div class="text-slate-400 text-[10px] mt-1">${esc(new Date(a.time).toLocaleString())}</div></div>`).join(''):'<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>'}
@@ -926,8 +939,8 @@ function toggleBill(key){const index=state.paidOccurrences.findIndex(p=>(typeof 
 function editBill(id){const b=state.bills.find(x=>String(x.id)===String(id));if(!b)return;$('bill-id').value=b.id;$('bill-name').value=b.name;$('bill-amount').value=b.amount;$('bill-category').value=b.category||'Other';$('bill-frequency').value=b.frequency;$('bill-due-date').value=b.dueDate;$('modal-bill-title').textContent='Edit Recurring Bill';openModal('modal-bill')}
 function editPay(id){const p=state.paychecks.find(x=>String(x.id)===String(id));if(!p)return;$('edit-paycheck-id').value=p.id;$('edit-paycheck-name').value=p.name;$('edit-paycheck-amount').value=p.amount;$('edit-paycheck-date').value=p.date;openModal('modal-edit-paycheck')}
 function receive(id){const p=state.paychecks.find(x=>String(x.id)===String(id));if(!p||p.status==='received')return;$('receive-paycheck-id').value=p.id;$('receive-paycheck-name').value=p.name;$('receive-paycheck-amount').value=p.amount;$('receive-paycheck-date').value=p.date;openModal('modal-mark-received')}
-function openActiveMonthBillsModal(){$('modal-curr-bal-display').textContent=money(state.balance);$('month-bills-coverage-list').innerHTML=unpaidMonth(monthKey(day())).map(o=>`<div class="flex justify-between p-2 bg-slate-100 dark:bg-slate-700 rounded-lg"><span>${esc(o.bill.name)} (${esc(o.date)})</span><b>${money(o.bill.amount)}</b></div>`).join('')||'<p>No unpaid bills this month.</p>';openModal('modal-active-month-bills')}
-function openDate(s){selectedDate=s;$('modal-date-title').textContent=s;$('modal-paycheck-date-label').textContent=s;const v=projected(day(),s>=day()?s:day()).series.at(-1)?.balance??state.balance;$('modal-date-balance').textContent=money(v);const events=[...billsBetween(s,s).map(o=>`${o.bill.name}: ${money(o.bill.amount)} (${isPaid(o)?'Paid':'Unpaid'})`),...state.paychecks.filter(p=>p.date===s).map(p=>`${p.name}: ${money(p.amount)} (${p.status})`)];$('modal-date-events-list').innerHTML=events.map(x=>`<div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">${esc(x)}</div>`).join('')||'<p>No scheduled events.</p>';openModal('modal-expanded-date')}
+function openActiveMonthBillsModal(){$('modal-curr-bal-display').textContent=money(effectiveBalance());$('month-bills-coverage-list').innerHTML=unpaidMonth(monthKey(day())).map(o=>`<div class="flex justify-between p-2 bg-slate-100 dark:bg-slate-700 rounded-lg"><span>${esc(o.bill.name)} (${esc(o.date)})</span><b>${money(o.bill.amount)}</b></div>`).join('')||'<p>No unpaid bills this month.</p>';openModal('modal-active-month-bills')}
+function openDate(s){selectedDate=s;$('modal-date-title').textContent=s;$('modal-paycheck-date-label').textContent=s;const v=projected(day(),s>=day()?s:day()).series.at(-1)?.balance??effectiveBalance();$('modal-date-balance').textContent=money(v);const events=[...billsBetween(s,s).map(o=>`${o.bill.name}: ${money(o.bill.amount)} (${isPaid(o)?'Paid':'Unpaid'})`),...state.paychecks.filter(p=>p.date===s).map(p=>`${p.name}: ${money(p.amount)} (${p.status})`)];$('modal-date-events-list').innerHTML=events.map(x=>`<div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-700">${esc(x)}</div>`).join('')||'<p>No scheduled events.</p>';openModal('modal-expanded-date')}
 function setType(which,type){if(which==='calc')calcType=type;else datePayType=type;for(const t of ['potential','actual']){const b=$(`${which==='calc'?'calc':'modal'}-type-${t}-btn`);b.classList.toggle('bg-indigo-600',t===type);b.classList.toggle('text-white',t===type);b.classList.toggle('bg-slate-200',t!==type);b.classList.toggle('dark:bg-slate-700',t!==type)}}
 function calcPreview(){const hourly=$('calc-pay-mode').value==='hourly';$('mode-hourly-inputs').classList.toggle('hidden',!hourly);$('mode-flat-inputs').classList.toggle('hidden',hourly);const gross=Math.max(0,hourly?num($('calc-hourly-rate').value)*(num($('calc-standard-hours').value)+1.5*num($('calc-overtime-hours').value)):num($('calc-flat-amount').value));const exempt=$('calc-tax-mode').value==='exempt';const fica=exempt?0:gross*.0765;const federal=exempt?0:gross*.12;const stateRates={NC:.0399,CA:.06,NY:.05,NO_STATE:0};const stateTax=exempt?0:gross*(stateRates[$('calc-state-select').value]??0);const net=Math.max(0,gross-fica-federal-stateTax);$('preview-gross').textContent=money(gross);$('preview-fed-tax').textContent='-'+money(fica+federal);$('preview-state-tax').textContent='-'+money(stateTax);$('preview-net').textContent=money(net);return {gross,net}}
 async function hashSecret(value,salt){const raw=new TextEncoder().encode(salt+':'+value);const digest=await crypto.subtle.digest('SHA-256',raw);return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,'0')).join('')}
@@ -1362,6 +1375,14 @@ window.addEventListener('DOMContentLoaded',init);
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
   <div id="flowpay-plaid-status" role="status" aria-live="polite" style="font-size:12px;margin-top:9px;">Test banks only. No real accounts.</div>
   <div id="flowpay-bank-accounts" style="font-size:13px;margin-top:12px;"></div>
+  <div id="flowpay-balance-settings" style="font-size:12px;margin-top:12px;padding-top:10px;border-top:1px solid #475569">
+    <div style="font-weight:bold;margin-bottom:6px">Cash-flow starting balance</div>
+    <label for="flowpay-balance-source-select">Source</label>
+    <select id="flowpay-balance-source-select" style="display:block;width:100%;padding:7px;margin:5px 0;color:#111827;border-radius:6px"><option value="manual">Manual balance (default)</option></select>
+    <label for="flowpay-balance-type-select">Bank balance type</label>
+    <select id="flowpay-balance-type-select" style="display:block;width:100%;padding:7px;margin:5px 0;color:#111827;border-radius:6px"><option value="available">Available balance</option><option value="current">Current balance</option></select>
+    <div id="flowpay-balance-help" style="color:#cbd5e1;margin-top:5px">Manual balance stays unchanged until you choose a bank.</div>
+  </div>
   <div id="flowpay-bank-matches" style="font-size:12px;margin-top:12px;"></div>
   <div id="flowpay-bank-transactions" style="font-size:12px;margin-top:12px;"></div>
 </div>
@@ -1376,6 +1397,10 @@ window.addEventListener('DOMContentLoaded',init);
   const accountsEl = document.getElementById('flowpay-bank-accounts');
   const transactionsEl = document.getElementById('flowpay-bank-transactions');
   const matchesEl = document.getElementById('flowpay-bank-matches');
+  const sourceSelect=document.getElementById('flowpay-balance-source-select');
+  const typeSelect=document.getElementById('flowpay-balance-type-select');
+  const balanceHelp=document.getElementById('flowpay-balance-help');
+  let lastAccounts=[];
   let lastTransactions = [];
   let generation = 0;
   let currentUser = null;
@@ -1409,11 +1434,50 @@ window.addEventListener('DOMContentLoaded',init);
     refreshButton.disabled = value;
     connectButton.style.opacity = value ? '0.5' : '1';
   }
+  function renderBalanceControls(){
+    if(typeof state==='undefined')return;
+    const cfg=state.bankBalanceSettings||{mode:'manual',accountId:'',balanceType:'available'};
+    sourceSelect.replaceChildren();
+    const manual=document.createElement('option');manual.value='manual';manual.textContent='Manual balance';sourceSelect.appendChild(manual);
+    for(const account of lastAccounts){
+      if(!account.id)continue;
+      const opt=document.createElement('option');opt.value=account.id;
+      opt.textContent=(account.institution_name||'Sandbox bank')+' — '+(account.name||'Account')+' (•••• '+(account.mask||'—')+')';
+      sourceSelect.appendChild(opt);
+    }
+    const selected=cfg.mode==='bank'&&lastAccounts.some(a=>a.id===cfg.accountId);
+    sourceSelect.value=selected?cfg.accountId:'manual';
+    typeSelect.value=cfg.balanceType==='current'?'current':'available';
+    typeSelect.disabled=!selected;
+    const a=selected?lastAccounts.find(a=>a.id===cfg.accountId):null;
+    const value=a?(typeSelect.value==='current'?a.current_balance:a.available_balance):null;
+    balanceHelp.textContent=cfg.mode==='bank'&&!selected
+      ?'Saved bank is not available. Manual balance is used until the bank is refreshed.'
+      :selected?(value==null?'This bank has no reported '+typeSelect.value+' balance; manual balance is used.':'Using '+typeSelect.value+' Sandbox balance: '+money(value)+'. Refreshed '+(a.balance_updated_at||'time unavailable')+'. Pending manual deductions are excluded to avoid double counting.'): 'Manual balance remains your starting balance.';
+    window.flowpaySetBankBalanceSnapshot?.(selected?{
+      userId:currentUser,accountId:a.id,current:a.current_balance,available:a.available_balance
+    }:null);
+  }
+  sourceSelect.addEventListener('change',()=>{
+    if(!currentUser||typeof state==='undefined')return;
+    const account=lastAccounts.find(a=>a.id===sourceSelect.value);
+    state.bankBalanceSettings={mode:account?'bank':'manual',accountId:account?.id||'',balanceType:typeSelect.value};
+    change();renderBalanceControls();
+  });
+  typeSelect.addEventListener('change',()=>{
+    if(!currentUser||typeof state==='undefined')return;
+    const cfg=state.bankBalanceSettings||{};
+    state.bankBalanceSettings={...cfg,balanceType:typeSelect.value};
+    change();renderBalanceControls();
+  });
+  window.addEventListener('flowpay-financial-state-loaded',renderBalanceControls);
   async function loadBanks() {
     if (!currentUser) return;
     const gen = generation;
     const accounts = await api('/bank-accounts');
     if (gen !== generation) return;
+    lastAccounts=Array.isArray(accounts.accounts)?accounts.accounts:[];
+    renderBalanceControls();
     accountsEl.replaceChildren();
     const connections = new Map();
     if (!accounts.accounts?.length) {
@@ -1584,7 +1648,7 @@ window.addEventListener('DOMContentLoaded',init);
     generation++;
     currentUser=id || null;
     panel.style.display=currentUser ? 'block' : 'none';
-    accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];
+    accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
     setBusy(false);
     if(currentUser){
       setStatus('Loading Sandbox bank connections…');
