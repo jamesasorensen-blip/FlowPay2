@@ -882,6 +882,7 @@
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -993,6 +994,136 @@ window.addEventListener('DOMContentLoaded',init);
 
     </script>
     
+<!-- Supabase Auth integration: fill in PUBLIC project URL and publishable key below. -->
+<script>
+(function () {
+  'use strict';
+  const SUPABASE_URL = https://sdiovjwtphqvfjlyoxeq.supabase.co;
+  const SUPABASE_PUBLISHABLE_KEY = sb_publishable_rt8itouJe2nsO1wofOqROQ_-6aJ4zlM;
+  const configured = !SUPABASE_PUBLISHABLE_KEY.startsWith('PASTE_') && !SUPABASE_URL.startsWith('PASTE_');
+  let client = null;
+  let activeUser = null;
+  const $auth = id => document.getElementById(id);
+  const notify = (message, error = false) => {
+    const area = $auth('supabase-auth-message');
+    if (area) { area.textContent = message; area.style.color = error ? '#fda4af' : '#a5b4fc'; }
+  };
+  const gate = user => {
+    activeUser = user || null;
+    const modal = $auth('auth-modal');
+    if (modal) modal.classList.toggle('hidden', !!activeUser);
+    const bank = $auth('flowpay-plaid-panel');
+    if (bank) bank.style.display = activeUser ? '' : 'none';
+    const warning = $auth('flowpay-local-storage-warning');
+    if (warning) warning.style.display = activeUser ? '' : 'none';
+  };
+  // Override the legacy local-session gate without removing or modifying legacy data.
+  showAuth = function () { gate(activeUser); };
+  setAuthMode = function (mode) {
+    authMode = mode;
+    const register = mode === 'register';
+    $auth('register-name-field').classList.toggle('hidden', !register);
+    $auth('auth-title').textContent = register ? 'Create FlowPay Account' : 'Welcome to FlowPay';
+    $auth('auth-subtitle').textContent = 'Sign in securely with Supabase';
+    $auth('auth-submit-btn').textContent = register ? 'Create Account' : 'Sign In';
+    $auth('tab-register').classList.toggle('bg-white', register);
+    $auth('tab-login').classList.toggle('bg-white', !register);
+    $auth('auth-password').autocomplete = register ? 'new-password' : 'current-password';
+  };
+  document.addEventListener('DOMContentLoaded', async function () {
+    const username = $auth('auth-username');
+    const label = document.querySelector('label[for="auth-username"]');
+    if (label) label.textContent = 'Email address';
+    username.type = 'email'; username.placeholder = 'you@example.com'; username.autocomplete = 'email';
+    const pin = $auth('mfa-container'); if (pin) pin.style.display = 'none';
+    $auth('auth-mfa').required = false;
+    const biometric = $auth('biometric-login-btn'); if (biometric) biometric.style.display = 'none';
+    const biometricHint = $auth('biometric-auth-hint'); if (biometricHint) biometricHint.style.display = 'none';
+    const remember = $auth('remember-me-checkbox')?.closest('label');
+    if (remember) remember.parentElement.style.display = 'none';
+    const recovery = $auth('form-recover-password'); if (recovery) recovery.style.display = 'none';
+    const google = document.createElement('button');
+    google.type = 'button'; google.id = 'supabase-google-signin';
+    google.className = 'w-full py-3 rounded-xl bg-white text-slate-900 font-semibold border border-slate-300 hover:bg-slate-100';
+    google.textContent = 'Continue with Google';
+    $auth('form-auth').after(google);
+    const msg = document.createElement('p'); msg.id = 'supabase-auth-message';
+    msg.setAttribute('role', 'status'); msg.className = 'text-xs text-indigo-300';
+    google.after(msg);
+    const localWarning = document.createElement('div');
+    localWarning.id = 'flowpay-local-storage-warning';
+    localWarning.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:8000;max-width:310px;padding:10px 12px;border-radius:10px;background:#1e293b;color:white;font:12px Arial;box-shadow:0 4px 15px #0005';
+    localWarning.textContent = 'Financial records remain in this browser, not your Supabase account. They are not yet isolated between users or cloud-synced.';
+    document.body.append(localWarning);
+    gate(null);
+    // Capture these events before the old browser-local login handlers run.
+    $auth('tab-register').addEventListener('click', e => { e.stopImmediatePropagation(); setAuthMode('register'); }, true);
+    $auth('tab-login').addEventListener('click', e => { e.stopImmediatePropagation(); setAuthMode('login'); }, true);
+    $auth('form-auth').addEventListener('submit', async e => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!client) { notify('Supabase is not configured yet. Add your project URL and publishable key in index.html.', true); return; }
+      const email = username.value.trim(), password = $auth('auth-password').value;
+      const submit = $auth('auth-submit-btn'); submit.disabled = true;
+      try {
+        if (authMode === 'register') {
+          const name = $auth('auth-fullname').value.trim();
+          const { data, error } = await client.auth.signUp({email, password, options:{data:{full_name:name}, emailRedirectTo:location.origin + '/'}});
+          if (error) throw error;
+          if (data.session) { gate(data.user); notify('Account created and signed in.'); }
+          else notify('Check your email for a confirmation link, then sign in.');
+        } else {
+          const { data, error } = await client.auth.signInWithPassword({email, password});
+          if (error) throw error;
+          gate(data.user); notify('Signed in successfully.');
+        }
+      } catch(err) { notify(err.message || 'Authentication failed.', true); }
+      finally { submit.disabled = false; }
+    }, true);
+    google.addEventListener('click', async () => {
+      if (!client) { notify('Add your Supabase publishable key first.', true); return; }
+      const { error } = await client.auth.signInWithOAuth({provider:'google', options:{redirectTo:location.origin + '/'}});
+      if (error) notify(error.message, true);
+    });
+    $auth('forgot-password-btn').addEventListener('click', async e => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!client) { notify('Configure Supabase first.', true); return; }
+      const email = username.value.trim() || prompt('Enter the email address for your FlowPay account:');
+      if (!email) return;
+      const {error} = await client.auth.resetPasswordForEmail(email, {redirectTo:location.origin + '/'});
+      notify(error ? error.message : 'If this email is registered, you will receive a password reset link.', !!error);
+    }, true);
+    $auth('btn-confirm-logout').addEventListener('click', async e => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (client) await client.auth.signOut();
+      $auth('modal-logout-confirm').classList.add('hidden');
+      gate(null);
+    }, true);
+    // Hide obsolete local-only password/security settings; do not falsely present them as Supabase controls.
+    const changePassword = $auth('form-change-password');
+    if (changePassword) changePassword.style.display = 'none';
+    for (const id of ['biometric-enroll-btn','biometric-remove-btn','generate-recovery-btn','copy-recovery-btn']) {
+      const el = $auth(id); if (el) el.style.display = 'none';
+    }
+    if (!configured) { notify('Setup required: paste your Supabase project URL and publishable key into index.html.', true); return; }
+    if (!window.supabase?.createClient) { notify('Supabase library could not load. Check your internet connection.', true); return; }
+    try {
+      client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      client.auth.onAuthStateChange((_event, session) => gate(session?.user || null));
+      const {data, error} = await client.auth.getSession();
+      if (error) throw error;
+      gate(data.session?.user || null);
+      // Supabase recovery links may land on the home page with recovery session.
+      const url = new URL(location.href);
+      if (url.searchParams.get('type') === 'recovery' || location.hash.includes('type=recovery')) {
+        const pw = prompt('Enter your new FlowPay password (at least 8 characters):');
+        if (pw) { const {error:resetError} = await client.auth.updateUser({password:pw}); notify(resetError ? resetError.message : 'Password updated.', !!resetError); }
+      }
+    } catch(err) { gate(null); notify('Supabase setup error: ' + err.message, true); }
+  });
+})();
+</script>
+<!-- End Supabase Auth integration -->
+
 <!-- FlowPay Plaid Sandbox Bank Connection -->
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 
