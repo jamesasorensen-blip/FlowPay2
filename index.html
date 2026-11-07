@@ -992,5 +992,115 @@ const storageNotice=document.querySelector('#widget-bills .text-center span');if
 window.addEventListener('DOMContentLoaded',init);
 
     </script>
+    
+<!-- FlowPay Plaid Sandbox Bank Connection -->
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+<div id="flowpay-plaid-panel"
+     style="position:fixed;bottom:20px;right:20px;z-index:9000;
+            background:#1e293b;color:white;padding:14px;
+            border-radius:14px;box-shadow:0 5px 25px #0005;
+            max-width:290px;font-family:Arial,sans-serif;">
+  <div style="font-weight:bold;margin-bottom:8px;">
+    Bank Connections (Sandbox)
+  </div>
+
+  <button id="flowpay-connect-bank"
+          type="button"
+          style="background:#6366f1;color:white;border:0;
+                 padding:11px 16px;border-radius:8px;
+                 cursor:pointer;font-weight:bold;">
+    Connect Test Bank
+  </button>
+
+  <div id="flowpay-plaid-status"
+       role="status"
+       aria-live="polite"
+       style="font-size:12px;margin-top:9px;">
+    Test banks only. No real accounts.
+  </div>
+</div>
+
+<script>
+(function () {
+  const API =
+    "https://flowpay-plaid-api.james-a-sorensen.workers.dev";
+
+  const button = document.getElementById(
+    "flowpay-connect-bank"
+  );
+
+  const status = document.getElementById(
+    "flowpay-plaid-status"
+  );
+
+  button.addEventListener("click", async function () {
+    button.disabled = true;
+    status.textContent = "Connecting to Plaid Sandbox...";
+
+    try {
+      if (!window.Plaid) {
+        throw new Error("Plaid Link could not load.");
+      }
+
+      const response = await fetch(API + "/link-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.link_token) {
+        throw new Error(
+          data.error || "Unable to create Link token."
+        );
+      }
+
+      const handler = Plaid.create({
+        token: data.link_token,
+
+        onSuccess: function (publicToken, metadata) {
+          // Sandbox demonstration only.
+          // Do not save or log publicToken.
+          status.textContent =
+            "Test bank selected successfully! " +
+            "Account syncing is not enabled yet.";
+        },
+
+        onExit: function (error) {
+          if (error) {
+            status.textContent =
+              "Plaid error: " +
+              (error.display_message ||
+               error.error_message ||
+               "Connection failed.");
+          } else {
+            status.textContent =
+              "Bank connection window closed.";
+          }
+        },
+
+        onLoad: function () {
+          status.textContent =
+            "Plaid is ready. Select a test bank.";
+        }
+      });
+
+      handler.open();
+
+    } catch (error) {
+      status.textContent =
+        "Connection error: " + error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+<!-- End FlowPay Plaid Sandbox -->
+
 </body>
 </html>
