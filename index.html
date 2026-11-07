@@ -2159,5 +2159,152 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+
+<style id="fp4-style">
+#fp4-notification-drawer{position:fixed;z-index:9999;inset:0;display:none;background:rgba(2,6,23,.48);justify-content:flex-end}
+#fp4-notification-drawer.fp4-open{display:flex}
+#fp4-notification-panel{width:min(440px,100%);height:100%;overflow:auto;background:#fff;color:#0f172a;padding:22px;box-shadow:-10px 0 40px #0003}
+.fp4-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px}
+.fp4-head h2{font-size:22px;font-weight:800}
+.fp4-btn{border:1px solid #cbd5e1;border-radius:10px;padding:8px 11px;font-weight:700;font-size:12px;cursor:pointer}
+.fp4-btn:hover{background:#eef2ff}
+.fp4-notice{padding:14px;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:9px;display:flex;gap:10px;align-items:flex-start}
+.fp4-notice.fp4-read{opacity:.65}
+.fp4-notice-icon{font-size:18px;min-width:24px}
+.fp4-notice-body{flex:1;min-width:0}
+.fp4-notice-title{font-weight:800;font-size:13px}
+.fp4-notice-desc{font-size:12px;color:#475569;margin-top:4px}
+.fp4-notice-actions{display:flex;gap:6px;margin-top:10px}
+.fp4-merchant-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:38px;height:38px;border-radius:12px;background:#eef2ff;color:#4338ca;font-size:17px;font-weight:800}
+.fp4-merchant-icon[data-kind="income"]{background:#dcfce7;color:#166534}
+.fp4-merchant-icon[data-kind="dining"]{background:#ffedd5;color:#9a3412}
+.fp4-merchant-icon[data-kind="transport"]{background:#e0f2fe;color:#075985}
+.fp4-merchant-icon[data-kind="shopping"]{background:#fce7f3;color:#9d174d}
+#fp4-shortcuts{font-size:12px;color:#64748b;margin:8px 0}
+#fp4-shortcuts kbd{border:1px solid #cbd5e1;padding:2px 5px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){#fp4-notification-drawer *{animation:none!important;transition:none!important}}
+</style>
+<div id="fp4-notification-drawer" role="presentation">
+ <section id="fp4-notification-panel" role="dialog" aria-modal="true" aria-labelledby="fp4-notification-title" tabindex="-1">
+  <div class="fp4-head"><h2 id="fp4-notification-title">Notification center</h2><button type="button" class="fp4-btn" id="fp4-notification-close" aria-label="Close notifications">✕</button></div>
+  <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;margin-bottom:12px">
+   <span id="fp4-notification-count" style="font-size:12px;color:#64748b"></span>
+   <button type="button" class="fp4-btn" id="fp4-mark-read">Mark all as read</button>
+  </div>
+  <div id="fp4-notification-items"></div>
+  <p style="font-size:11px;color:#64748b;margin-top:18px">These alerts are calculated from your FlowPay data. They are not push notifications.</p>
+ </section>
+</div>
+<script id="fp4-script">
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+const drawer=$('fp4-notification-drawer'),panel=$('fp4-notification-panel');
+let priorFocus=null;
+const el=(tag,text)=>{const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node};
+const userKey=()=>String(window.flowpayActiveUserId||'guest');
+const readKey=()=>`flowpay_stage4_read_${userKey()}`;
+function readSet(){try{const x=JSON.parse(localStorage.getItem(readKey())||'[]');return new Set(Array.isArray(x)?x:[])}catch{return new Set()}}
+function writeRead(set){try{localStorage.setItem(readKey(),JSON.stringify([...set].slice(-300)))}catch{}}
+function notifyItems(){
+ const result=[];
+ if(!window.flowpayActiveUserId)return [{id:'sign-in',title:'Sign in to view your alerts',desc:'Your reminders will appear once your financial data loads.',icon:'🔐',action:null}];
+ try{
+  const now=day(),week=plusDays(now,7);
+  const due=billsBetween(now,week).filter(o=>!isPaid(o));
+  for(const o of due.slice(0,20)){
+   const name=String(o.bill?.name||'Bill'),amount=money(o.bill?.amount||0);
+   result.push({id:'bill:'+o.id,title:name+' is coming up',desc:`Due ${o.date||'soon'} · ${amount}`,icon:'🧾',action:'bills'});
+  }
+  const p=projected(now,plusDays(now,30));
+  const first=p.series.find(x=>x.balance<0);
+  if(first)result.push({id:'low:'+first.date,title:'Potential negative balance',desc:`Projected ${money(first.balance)} on ${first.date}. Review your forecast.`,icon:'⚠️',action:'projection'});
+  const recent=Array.isArray(state.activity)?state.activity.slice(0,8):[];
+  for(let i=0;i<recent.length;i++){
+   const a=recent[i],msg=String(a.message||'Recent financial activity');
+   result.push({id:'activity:'+String(a.id||a.date||i)+':'+msg.slice(0,60),title:'Recent activity',desc:msg,icon:'🔔',action:'dashboard'});
+  }
+ }catch(e){result.push({id:'loading',title:'Alerts are loading',desc:'Try again once your financial information has loaded.',icon:'⏳',action:null})}
+ return result;
+}
+function navigate(target){
+ close();
+ if(target==='bills'){document.querySelector('[data-fp-go="bills"]')?.click();return}
+ if(target==='projection'||target==='dashboard'){
+  const button=document.querySelector(`[data-page="${target}"]`);
+  if(button)button.click();else if(typeof switchPage==='function')switchPage(target);
+ }
+}
+function renderNotices(){
+ const items=notifyItems(),read=readSet(),list=$('fp4-notification-items');list.replaceChildren();
+ const unread=items.filter(x=>!read.has(x.id)).length;
+ $('fp4-notification-count').textContent=unread+' unread · '+items.length+' total';
+ $('fp4-mark-read').disabled=unread===0;
+ if(!items.length){const empty=el('p','No upcoming alerts. You’re all caught up.');empty.style.cssText='padding:24px;text-align:center;color:#64748b';list.append(empty)}
+ for(const item of items){
+  const card=el('article');card.className='fp4-notice'+(read.has(item.id)?' fp4-read':'');
+  const icon=el('span',item.icon);icon.className='fp4-notice-icon';icon.setAttribute('aria-hidden','true');
+  const body=el('div');body.className='fp4-notice-body';
+  const title=el('div',item.title);title.className='fp4-notice-title';
+  const desc=el('div',item.desc);desc.className='fp4-notice-desc';body.append(title,desc);
+  const actions=el('div');actions.className='fp4-notice-actions';
+  if(item.action){const go=el('button','View');go.className='fp4-btn';go.type='button';go.addEventListener('click',()=>navigate(item.action));actions.append(go)}
+  if(!read.has(item.id)){const mark=el('button','Mark read');mark.className='fp4-btn';mark.type='button';mark.addEventListener('click',()=>{const r=readSet();r.add(item.id);writeRead(r);renderNotices()});actions.append(mark)}
+  body.append(actions);card.append(icon,body);list.append(card);
+ }
+}
+function open(){
+ priorFocus=document.activeElement;renderNotices();drawer.classList.add('fp4-open');panel.focus();document.body.style.setProperty('--fp4-drawer-open','1');
+}
+function close(){drawer.classList.remove('fp4-open');if(priorFocus?.isConnected)priorFocus.focus()}
+function iconFor(name,category){
+ const s=(name+' '+category).toLowerCase();
+ if(/income|payroll|deposit|salary|wages/.test(s))return ['income','fa-money-bill-transfer'];
+ if(/restaurant|cafe|coffee|pizza|dining|grill|doordash|ubereats/.test(s))return ['dining','fa-utensils'];
+ if(/gas|fuel|uber|lyft|transport|parking|auto/.test(s))return ['transport','fa-car'];
+ if(/grocery|market|food lion|aldi|kroger/.test(s))return ['shopping','fa-basket-shopping'];
+ if(/shopping|store|amazon|walmart|target/.test(s))return ['shopping','fa-bag-shopping'];
+ if(/rent|housing|mortgage/.test(s))return ['other','fa-house'];
+ if(/utility|electric|water|internet|phone/.test(s))return ['other','fa-bolt'];
+ if(/health|pharmacy|medical/.test(s))return ['other','fa-heart-pulse'];
+ if(/subscription|netflix|spotify|entertainment/.test(s))return ['other','fa-play'];
+ return ['other','fa-store'];
+}
+function decorateTransactions(){
+ const list=$('flowpay-tx-list');if(!list)return;
+ for(const row of list.children){
+  if(row.dataset.fp4IconDone==='1'||!row.querySelector('select'))continue;
+  const detail=row.firstElementChild;if(!detail)continue;
+  const name=detail.firstElementChild?.textContent||'';
+  const category=row.querySelector('select')?.value||'';
+  const [kind,icon]=iconFor(name,category);
+  const badge=el('span');badge.className='fp4-merchant-icon';badge.dataset.kind=kind;
+  const i=el('i');i.className='fa-solid '+icon;i.setAttribute('aria-hidden','true');badge.append(i);
+  badge.setAttribute('aria-label',category||'Merchant');
+  row.insertBefore(badge,detail);row.dataset.fp4IconDone='1';
+ }
+}
+function setup(){
+ // Keep the existing Supabase authentication, financial engine, and transaction rendering untouched.
+ $('fp4-notification-close').addEventListener('click',close);
+ $('fp4-mark-read').addEventListener('click',()=>{const r=readSet();for(const x of notifyItems())r.add(x.id);writeRead(r);renderNotices()});
+ drawer.addEventListener('click',e=>{if(e.target===drawer)close()});
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&drawer.classList.contains('fp4-open')){e.preventDefault();e.stopPropagation();close()}
+  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&e.key.toLowerCase()==='b'&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){e.preventDefault();open()}
+ },true);
+ // Capture the Stage 1 notification button before its old popover handler runs.
+ const toolbar=$('fp-toolbar');
+ const bell=[...(toolbar?.querySelectorAll('button')||[])].find(b=>b.getAttribute('aria-label')==='Notifications');
+ if(bell)bell.addEventListener('click',e=>{e.stopImmediatePropagation();$('fp-popover').hidden=true;open()},true);
+ const tx=$('flowpay-tx-list');
+ if(tx){const observer=new MutationObserver(()=>decorateTransactions());observer.observe(tx,{childList:true});decorateTransactions()}
+ const shortcut=el('div');shortcut.id='fp4-shortcuts';shortcut.append('Shortcuts: ',el('kbd','Alt + N'),' Quick Add · ',el('kbd','Alt + B'),' Notifications');
+ toolbar?.parentElement?.append(shortcut);
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
+
 </body>
 </html>
