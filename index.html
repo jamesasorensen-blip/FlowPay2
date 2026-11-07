@@ -895,10 +895,10 @@ const plusDays=(s,n)=>{const d=date(s);d.setDate(d.getDate()+n);return day(d)};
 const plusMonths=(s,n)=>{const d=date(s),a=new Date(d.getFullYear(),d.getMonth()+n,1);a.setDate(Math.min(d.getDate(),new Date(a.getFullYear(),a.getMonth()+1,0).getDate()));return day(a)};
 const monthKey=s=>String(s).slice(0,7);
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
-const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],theme:'light'};
+const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],bankMatchDecisions:[],theme:'light'};
 let state={...defaults},chart=null,chartType='line',selectedMonth=monthKey(day()),calendarMonth=selectedMonth,hidePaid=false,showPast=true,calendarCollapsed=false,selectedDate=day(),datePayType='potential',calcType='potential',priorOrder=null,authMode='login',focusBefore=null;
 function toast(message,error=false){const t=document.createElement('div');t.className=`rounded-xl p-3 text-white shadow-lg text-xs pointer-events-auto ${error?'bg-rose-600':'bg-slate-800'}`;t.textContent=message;$('toast-container').append(t);setTimeout(()=>t.remove(),3500)}
-function load(){try{const x=JSON.parse(localStorage.getItem('flowpay_state')||'{}');state={...defaults,...x};for(const k of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity'])if(!Array.isArray(state[k]))state[k]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];}catch{state={...defaults}}}
+function load(){try{const x=JSON.parse(localStorage.getItem('flowpay_state')||'{}');state={...defaults,...x};for(const k of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions'])if(!Array.isArray(state[k]))state[k]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];}catch{state={...defaults}}}
 function save(){try{if(window.flowpayActiveUserId)localStorage.setItem('flowpay_state_user_'+window.flowpayActiveUserId,JSON.stringify(state));window.flowpayCloudChanged?.()}catch{toast('Unable to save browser data. Check storage settings.',true)}}
 function log(message){state.activity.unshift({id:uid(),message,time:new Date().toISOString()});state.activity=state.activity.slice(0,80)}
 function change(){save();render()}
@@ -1168,7 +1168,7 @@ window.addEventListener('DOMContentLoaded',init);
   const isSample = data => !!(data && data.flowpay_test === true && data.message === 'Cloud storage is working');
   const normalized = data => {
     const next = {...defaults, ...data};
-    for (const key of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity'])
+    for (const key of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions'])
       if (!Array.isArray(next[key])) next[key] = [];
     if (!Array.isArray(next.widgetOrder)) next.widgetOrder = [...defaults.widgetOrder];
     return next;
@@ -1178,6 +1178,7 @@ window.addEventListener('DOMContentLoaded',init);
     state = normalized(data);
     localStorage.setItem(cacheKey(id), JSON.stringify(state));
     theme(); render();
+    window.dispatchEvent(new Event('flowpay-financial-state-loaded'));
   };
   const request = async (method, payload) => {
     const token = await window.flowpayGetAccessToken();
@@ -1361,6 +1362,7 @@ window.addEventListener('DOMContentLoaded',init);
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
   <div id="flowpay-plaid-status" role="status" aria-live="polite" style="font-size:12px;margin-top:9px;">Test banks only. No real accounts.</div>
   <div id="flowpay-bank-accounts" style="font-size:13px;margin-top:12px;"></div>
+  <div id="flowpay-bank-matches" style="font-size:12px;margin-top:12px;"></div>
   <div id="flowpay-bank-transactions" style="font-size:12px;margin-top:12px;"></div>
 </div>
 <script>
@@ -1373,6 +1375,8 @@ window.addEventListener('DOMContentLoaded',init);
   const status = document.getElementById('flowpay-plaid-status');
   const accountsEl = document.getElementById('flowpay-bank-accounts');
   const transactionsEl = document.getElementById('flowpay-bank-transactions');
+  const matchesEl = document.getElementById('flowpay-bank-matches');
+  let lastTransactions = [];
   let generation = 0;
   let currentUser = null;
   let busy = false;
@@ -1445,10 +1449,78 @@ window.addEventListener('DOMContentLoaded',init);
     }
     await loadTransactions();
   }
+  // Sandbox-only suggestions. Nothing is marked paid without explicit approval.
+  function renderMatches() {
+    matchesEl.replaceChildren();
+    label(matchesEl, 'div', 'Suggested bill-payment matches', 'font-weight:bold;margin-bottom:6px');
+    if (!currentUser || typeof state === 'undefined') return;
+    const decisions = Array.isArray(state.bankMatchDecisions) ? state.bankMatchDecisions : [];
+    const handled = new Set(decisions.map(d => d.transactionId));
+    const matchedOccurrences = new Set(decisions.filter(d => d.action === 'approved').map(d => d.occurrenceKey));
+    const eligible = lastTransactions.filter(t =>
+      !t.pending && Number(t.amount) > 0 &&
+      /^\d{4}-\d{2}-\d{2}$/.test(t.transaction_date || '') &&
+      !handled.has(t.id)
+    );
+    const used = new Set();
+    let suggestions = 0;
+    for (const tx of eligible) {
+      const txDate = date(tx.transaction_date);
+      const start = day(new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()-7));
+      const end = day(new Date(txDate.getFullYear(), txDate.getMonth(), txDate.getDate()+7));
+      const merchant = String(tx.merchant_name || tx.description || '').toLowerCase();
+      const candidates = billsBetween(start, end).filter(o =>
+        !isPaid(o) && !matchedOccurrences.has(o.key) && !used.has(o.key) &&
+        Math.abs(Math.round(Number(o.bill.amount)*100)-Math.round(Number(tx.amount)*100)) <= 1
+      ).map(o => {
+        const billWords = String(o.bill.name).toLowerCase().split(/[^a-z0-9]+/).filter(w => w.length >= 4);
+        const nameMatch = billWords.some(w => merchant.includes(w));
+        const distance = Math.abs(Math.round((date(o.date)-txDate)/86400000));
+        return {o, nameMatch, distance};
+      }).sort((a,b) => Number(b.nameMatch)-Number(a.nameMatch) || a.distance-b.distance);
+      if (!candidates.length) continue;
+      const best = candidates[0];
+      used.add(best.o.key);
+      suggestions++;
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:9px 0;border-top:1px solid #475569';
+      label(item,'div',`${best.o.bill.name} — ${money(best.o.bill.amount)}`,'font-weight:bold');
+      label(item,'div',`Bill due ${best.o.date} · Bank transaction ${tx.transaction_date}`);
+      label(item,'div',`Merchant: ${tx.merchant_name || tx.description || 'Unknown'}`);
+      label(item,'div',best.nameMatch ? 'Amount and merchant name match' : 'Amount/date match only — verify carefully', 'color:#fbbf24');
+      const approve = label(item,'button','Mark bill paid','background:#0d9488;color:white;border:0;padding:7px;border-radius:6px;cursor:pointer;margin:5px 5px 0 0');
+      const dismiss = label(item,'button','Dismiss','background:#475569;color:white;border:0;padding:7px;border-radius:6px;cursor:pointer;margin-top:5px');
+      approve.type = dismiss.type = 'button';
+      const decide = action => {
+        if (!currentUser || !window.flowpayActiveUserId || currentUser !== window.flowpayActiveUserId) return;
+        if (!Array.isArray(state.bankMatchDecisions)) state.bankMatchDecisions = [];
+        if (state.bankMatchDecisions.some(d => d.transactionId === tx.id)) return;
+        if (action === 'approved') {
+          if (isPaid(best.o)) return;
+          // Record the approval and paid occurrence in one cloud-state change.
+          state.paidOccurrences.push(best.o.key);
+          log('Approved bank match: '+best.o.bill.name+' ('+tx.transaction_date+')');
+        }
+        state.bankMatchDecisions.push({transactionId:tx.id, occurrenceKey:best.o.key, action, decidedAt:new Date().toISOString()});
+        change();
+        renderMatches();
+        setStatus(action === 'approved' ? 'Bill marked paid. Cloud sync will save the change.' : 'Suggestion dismissed.');
+      };
+      approve.addEventListener('click',() => decide('approved'));
+      dismiss.addEventListener('click',() => decide('dismissed'));
+      matchesEl.appendChild(item);
+      if (suggestions >= 12) break;
+    }
+    if (!suggestions) label(matchesEl,'div','No new matches found. Add bills and sync transactions to check again.');
+    label(matchesEl,'div','Suggestions only. Verify each payment before approving.','color:#cbd5e1;margin-top:6px');
+  }
+  window.addEventListener('flowpay-financial-state-loaded', renderMatches);
   async function loadTransactions() {
     const gen=generation;
     const result=await api('/bank-transactions');
     if(gen !== generation) return;
+    lastTransactions = result.transactions || [];
+    renderMatches();
     transactionsEl.replaceChildren();
     label(transactionsEl,'div','Imported test transactions','font-weight:bold;margin-bottom:6px');
     if (!result.transactions?.length) {
@@ -1512,7 +1584,7 @@ window.addEventListener('DOMContentLoaded',init);
     generation++;
     currentUser=id || null;
     panel.style.display=currentUser ? 'block' : 'none';
-    accountsEl.replaceChildren();transactionsEl.replaceChildren();
+    accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];
     setBusy(false);
     if(currentUser){
       setStatus('Loading Sandbox bank connections…');
