@@ -69,6 +69,20 @@
             from { opacity: 0; transform: translateY(-4px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
+        /* Keep the authentication dialog accessible at 100% browser zoom.
+           Short viewports scroll instead of clipping the top or bottom. */
+        #auth-modal {
+            overflow-x: hidden;
+            overflow-y: auto;
+            align-items: safe center;
+            overscroll-behavior-y: contain;
+        }
+        #auth-modal > div {
+            flex-shrink: 0;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-100 min-h-full transition-colors duration-200">
