@@ -931,7 +931,7 @@ function renderBills(){const tbody=$('bills-table-body');tbody.innerHTML='';cons
 function renderPaychecks(){const tbody=$('paychecks-table-body');tbody.innerHTML='';if(!state.paychecks.length){tbody.innerHTML='<tr><td colspan="6" class="text-center py-5 text-slate-400">No paychecks yet.</td></tr>';return}for(const p of [...state.paychecks].sort((a,b)=>a.date.localeCompare(b.date))){const tr=document.createElement('tr');tr.innerHTML=`<td class="py-3 pl-2 font-semibold">${esc(p.name)}</td><td>${esc(p.status==='received'?'Actual':'Potential')}</td><td>${esc(p.date)}</td><td class="font-bold">${money(p.amount)}</td><td>${esc(p.status==='received'?'Received':p.status==='actual'?'Actual (unconfirmed)':'Projected')}</td><td class="text-right whitespace-nowrap"><button class="text-emerald-600 mr-2" data-pay-action="receive" data-id="${esc(p.id)}" ${p.status==='received'?'disabled':''}>Receive</button><button class="text-indigo-600 mr-2" data-pay-action="edit" data-id="${esc(p.id)}">Edit</button><button class="text-rose-600" data-pay-action="delete" data-id="${esc(p.id)}">Delete</button></td>`;tbody.append(tr)}}
 function renderActivity(){$('activity-log').innerHTML=state.activity.length?state.activity.slice(0,15).map(a=>`<div class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs"><div>${esc(a.message)}</div><div class="text-slate-400 text-[10px] mt-1">${esc(new Date(a.time).toLocaleString())}</div></div>`).join(''):'<p class="text-xs text-slate-400 italic text-center py-4">No recent activity.</p>'}
 function renderCalendar(){const grid=$('financial-calendar-grid');grid.innerHTML='';const [y,m]=calendarMonth.split('-').map(Number),first=new Date(y,m-1,1),days=new Date(y,m,0).getDate(),offset=first.getDay(),start=day(),end=`${calendarMonth}-${String(days).padStart(2,'0')}`;let running=num(state.balance);const eventMap={};for(const o of billsBetween(start,end)){(eventMap[o.date]??=[]).push({text:`${o.bill.name} -${money(o.bill.amount)}`,kind:'bill',paid:isPaid(o)});if(!isPaid(o))eventMap[o.date].at(-1).amount=-num(o.bill.amount)}for(const p of state.paychecks)if(p.date>=start&&p.date<=end)(eventMap[p.date]??=[]).push({text:`${p.name} +${money(p.amount)}`,kind:'pay',amount:p.status==='received'?0:num(p.amount)});for(let i=0;i<offset;i++)grid.append(document.createElement('div'));for(let d=1;d<=days;d++){const s=`${calendarMonth}-${String(d).padStart(2,'0')}`;for(const e of eventMap[s]||[])running+=num(e.amount);const cell=document.createElement('button');cell.type='button';cell.dataset.calendarDate=s;cell.className=`text-left border rounded-lg p-1 sm:p-2 text-[10px] sm:text-xs bg-white dark:bg-slate-800 min-h-[80px] sm:min-h-[105px] overflow-hidden ${s===day()?'ring-2 ring-indigo-500':''}`;cell.innerHTML=`<strong>${d}</strong><div class="text-indigo-500 text-[9px] sm:text-[10px]">${money(running)}</div>${(eventMap[s]||[]).slice(0,2).map(e=>`<div class="truncate ${e.kind==='bill'?'text-rose-500':'text-emerald-600'}">${esc(e.text)}</div>`).join('')}`;if(showPast===false&&s<day())cell.classList.add('opacity-40');grid.append(cell)}}
-function renderChart(){if(typeof Chart==='undefined')return;const end=plusDays(day(),60),p=projected(day(),end),ctx=$('cashFlowChart');if(chart)chart.destroy();chart=new Chart(ctx,{type:chartType,data:{labels:p.series.map(x=>x.date),datasets:[{label:'Projected balance',data:p.series.map(x=>x.balance),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.18)',fill:true,tension:.2}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:8}},y:{ticks:{callback:v=>'$'+v}}}}});$('chart-start-bal').textContent=money(state.balance);$('chart-total-in').textContent=money(p.ins);$('chart-lowest-bal').textContent=money(Math.min(num(state.balance),...p.series.map(x=>x.balance)))}
+function renderChart(){if(typeof Chart==='undefined')return;const end=plusDays(day(),window.flowpayChartDays||60),p=projected(day(),end),ctx=$('cashFlowChart');if(chart)chart.destroy();chart=new Chart(ctx,{type:chartType,data:{labels:p.series.map(x=>x.date),datasets:[{label:'Projected balance',data:p.series.map(x=>x.balance),borderColor:'#6366f1',backgroundColor:'rgba(99,102,241,.18)',fill:true,tension:.2}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{maxTicksLimit:8}},y:{ticks:{callback:v=>'$'+v}}}}});$('chart-start-bal').textContent=money(effectiveBalance());$('chart-total-in').textContent=money(p.ins);$('chart-lowest-bal').textContent=money(Math.min(effectiveBalance(),...p.series.map(x=>x.balance)))}
 function switchPage(page){document.querySelectorAll('.app-view').forEach(e=>e.classList.toggle('hidden',e.id!==`view-${page}`));document.querySelectorAll('.nav-link').forEach(e=>{const active=e.dataset.page===page;e.classList.toggle('bg-indigo-600',active);e.classList.toggle('text-white',active)});$('header-page-title').textContent=({dashboard:'FlowPay Dashboard',calendar:'Wall Calendar & Dynamic Cash Flow',projection:'Balance Projection vs. Bills',calculator:'Future Paycheck & Tax Calculator'})[page];if(page==='projection')renderChart();if(page==='calendar')renderCalendar();closeSidebar()}
 function closeSidebar(){$('app-sidebar').classList.add('-translate-x-full');$('sidebar-overlay').classList.add('hidden')}
 function reorder(){const parent=$('view-dashboard');for(const id of state.widgetOrder){const w=parent.querySelector(`[data-widget-id="${id}"]`);if(w)parent.append(w)}}
@@ -1801,6 +1801,166 @@ window.addEventListener('DOMContentLoaded',init);
 })();
 </script>
 <!-- End FlowPay Plaid Sandbox -->
+
+
+<style id="flowpay-ui-refresh-style">
+:root{--fp-accent:#4f46e5}
+#fp-toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fp-ui-btn{border:1px solid rgba(148,163,184,.35);border-radius:11px;padding:9px 12px;font-size:12px;font-weight:700;background:rgba(99,102,241,.10);color:inherit;cursor:pointer}
+.fp-ui-btn:hover,.fp-ui-btn:focus-visible{outline:2px solid #818cf8;outline-offset:2px}
+.fp-primary{background:#4f46e5;color:white;border-color:#4f46e5}
+.fp-dot{display:inline-block;min-width:17px;padding:1px 4px;border-radius:9px;background:#e11d48;color:white;font-size:10px}
+#fp-dock{position:fixed;bottom:0;left:0;right:0;z-index:95;display:none;background:rgba(15,23,42,.97);color:#f8fafc;padding:8px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 25px #0003}
+#fp-dock button{flex:1;font-size:10px;padding:7px 3px;display:flex;align-items:center;flex-direction:column;gap:4px;border-radius:8px}
+#fp-dock button:focus-visible{outline:2px solid #a5b4fc}
+#fp-dock .fp-dock-plus{background:#4f46e5;border-radius:14px;max-width:58px}
+#fp-popover{position:fixed;z-index:150;right:18px;top:78px;width:min(360px,calc(100vw - 28px));max-height:70vh;overflow:auto;background:#fff;color:#0f172a;border:1px solid #cbd5e1;border-radius:16px;padding:16px;box-shadow:0 20px 70px #0005}
+#fp-popover[hidden],#fp-welcome[hidden]{display:none!important}
+#fp-popover button{display:block;width:100%;text-align:left;padding:10px;border-radius:9px}
+#fp-popover button:hover{background:#eef2ff}
+#fp-welcome{position:fixed;z-index:145;inset:0;background:#020617b8;display:flex;align-items:center;justify-content:center;padding:16px}
+#fp-welcome-inner{max-width:490px;width:100%;background:white;color:#0f172a;border-radius:18px;padding:24px;box-shadow:0 15px 65px #0005}
+.fp-status{font-size:11px;opacity:.8;white-space:nowrap}
+#fp-chart-controls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+#fp-chart-controls button[aria-pressed=true]{background:#4f46e5;color:white}
+.fp-hide{display:none!important}
+@media(max-width:767px){#fp-dock{display:flex}body{padding-bottom:72px}#fp-toolbar{gap:5px}#fp-toolbar .fp-label{display:none}}
+@media(prefers-reduced-motion:reduce){#fp-dock *,#fp-toolbar *{transition:none!important}}
+</style>
+<div id="fp-dock" role="navigation" aria-label="Main mobile navigation">
+  <button type="button" data-fp-go="dashboard"><i class="fa-solid fa-house"></i>Home</button>
+  <button type="button" data-fp-go="bills"><i class="fa-solid fa-receipt"></i>Bills</button>
+  <button type="button" class="fp-dock-plus" data-fp-action="add" aria-label="Quick add"><i class="fa-solid fa-plus"></i>Add</button>
+  <button type="button" data-fp-go="calendar"><i class="fa-solid fa-calendar-days"></i>Calendar</button>
+  <button type="button" data-fp-go="transactions"><i class="fa-solid fa-arrow-right-arrow-left"></i>Activity</button>
+</div>
+<div id="fp-popover" hidden role="dialog" aria-label="FlowPay quick actions"></div>
+<div id="fp-welcome" hidden role="dialog" aria-modal="true" aria-label="FlowPay setup guide">
+ <div id="fp-welcome-inner">
+  <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">Welcome to FlowPay</h2>
+  <p style="font-size:13px;color:#475569;margin-bottom:16px">Get started in a few steps. Your existing data will not be changed.</p>
+  <div id="fp-welcome-steps" style="font-size:14px;display:grid;gap:10px;margin-bottom:20px"></div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+   <button class="fp-ui-btn" id="fp-welcome-later">Maybe later</button>
+   <button class="fp-ui-btn fp-primary" id="fp-welcome-finish">Got it</button>
+  </div>
+ </div>
+</div>
+<script id="flowpay-ui-refresh-script">
+(()=>{
+'use strict';
+const $id=id=>document.getElementById(id);
+const mk=(tag,txt,cls)=>{const n=document.createElement(tag);if(txt!==undefined)n.textContent=txt;if(cls)n.className=cls;return n};
+const pop=$id('fp-popover');
+const view=(page)=>{
+ pop.hidden=true;
+ if(page==='bills'){switchPage('dashboard');$id('widget-bills')?.scrollIntoView({behavior:'smooth',block:'start'});return}
+ if(page==='transactions'){
+   const btn=$id('flowpay-open-transactions');
+   if(btn)btn.click();else toast('Connect a Sandbox bank to view transactions.',true);
+   return;
+ }
+ if(page==='settings'){$id('btn-settings')?.click();return}
+ switchPage(page);
+ window.scrollTo({top:0,behavior:'smooth'});
+};
+const togglePopover=(title,actions)=>{
+ pop.replaceChildren();
+ const heading=mk('h2',title);heading.style.cssText='font-weight:800;font-size:16px;margin-bottom:12px';pop.append(heading);
+ for(const [label,fn] of actions){
+  const b=mk('button',label);b.type='button';b.addEventListener('click',()=>{pop.hidden=true;fn()});pop.append(b);
+ }
+ pop.hidden=!pop.hidden;
+};
+const quickAdd=()=>togglePopover('Quick Add',[
+ ['＋ New recurring bill',()=>$id('open-add-bill-btn')?.click()],
+ ['＋ Income / paycheck',()=>{view('calendar');toast('Choose a date in the calendar to add a paycheck.')}],
+ ['＋ Manual balance update',()=>{if(typeof openModal==='function')openModal('modal-balance')}],
+ ['↗ Bank transactions',()=>view('transactions')]
+]);
+const notices=()=>{
+ const rows=[];
+ try{
+  const now=day(),end=plusDays(now,7);
+  const due=billsBetween(now,end).filter(o=>!state.paidOccurrences.some(p=>(typeof p==='string'?p:p?.id)===o.id));
+  if(due.length)rows.push([`${due.length} scheduled bill(s) within 7 days`,()=>view('bills')]);
+  const p=projected(now,plusDays(now,30));
+  if(p.series.some(x=>x.balance<0))rows.push(['Projected balance may fall below $0 within 30 days',()=>view('projection')]);
+  const activity=Array.isArray(state.activity)?state.activity.slice(0,6):[];
+  for(const item of activity)rows.push([item.message||'Recent activity',()=>view('dashboard')]);
+ }catch(e){rows.push(['Financial alerts will appear once your data loads.',()=>{}])}
+ if(!rows.length)rows.push(['You are all caught up.',()=>{}]);
+ togglePopover('Notifications',rows);
+};
+function onboarding(){
+ const root=$id('fp-welcome');
+ const id=window.flowpayActiveUserId;
+ if(!id)return;
+ const key='flowpay_ui_welcome_'+id;
+ if(localStorage.getItem(key)==='done')return;
+ const steps=$id('fp-welcome-steps');steps.replaceChildren();
+ const items=[
+ ['Review your starting balance',()=>view('dashboard')],
+ ['Add your recurring bills',()=>view('bills')],
+ ['Add your income schedule',()=>view('calendar')],
+ ['Connect a bank (optional)',()=>{$id('app-sidebar')?.classList.remove('-translate-x-full');$id('sidebar-overlay')?.classList.remove('hidden')}]
+ ];
+ for(const [label,fn] of items){
+  const b=mk('button','○  '+label,'fp-ui-btn');b.style.textAlign='left';b.addEventListener('click',()=>{root.hidden=true;fn()});steps.append(b);
+ }
+ const dismiss=()=>{localStorage.setItem(key,'done');root.hidden=true};
+ $id('fp-welcome-later').onclick=()=>root.hidden=true;
+ $id('fp-welcome-finish').onclick=dismiss;
+ root.hidden=false;
+}
+function setup(){
+ const header=$id('header-page-title')?.closest('header');
+ if(!header)return;
+ const controls=mk('div',undefined);controls.id='fp-toolbar';
+ const makeBtn=(label,icon,action)=>{
+  const b=mk('button',undefined,'fp-ui-btn');b.type='button';b.setAttribute('aria-label',label);
+  const i=mk('i');i.className='fa-solid '+icon;i.setAttribute('aria-hidden','true');b.append(i,mk('span',' '+label,'fp-label'));
+  b.addEventListener('click',action);controls.append(b);return b;
+ };
+ makeBtn('Quick Add','fa-plus',quickAdd).classList.add('fp-primary');
+ makeBtn('Notifications','fa-bell',notices);
+ makeBtn('Help','fa-circle-question',onboarding);
+ header.append(controls);
+ const chart=$id('cashFlowChart');
+ if(chart){
+  const target=chart.parentElement?.parentElement;
+  const toolbar=mk('div',undefined);toolbar.id='fp-chart-controls';
+  for(const days of [7,30,60,90]){
+   const b=mk('button',`${days} days`,'fp-ui-btn');b.type='button';b.setAttribute('aria-pressed',String(days===60));
+   b.addEventListener('click',()=>{
+    window.flowpayChartDays=days;
+    toolbar.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',String(x===b)));
+    renderChart();
+   });
+   toolbar.append(b);
+  }
+  target?.insertBefore(toolbar,target.firstChild);
+ }
+ document.querySelectorAll('[data-fp-go]').forEach(b=>b.addEventListener('click',()=>view(b.dataset.fpGo)));
+ document.querySelectorAll('[data-fp-action=add]').forEach(b=>b.addEventListener('click',quickAdd));
+ document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){pop.hidden=true;return}
+  if(e.altKey&&!e.ctrlKey&&!e.metaKey&&!/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName||'')){
+   if(e.key==='1'){e.preventDefault();view('dashboard')}
+   if(e.key==='2'){e.preventDefault();view('bills')}
+   if(e.key==='3'){e.preventDefault();view('calendar')}
+   if(e.key==='4'){e.preventDefault();view('transactions')}
+   if(e.key.toLowerCase()==='n'){e.preventDefault();quickAdd()}
+  }
+ });
+ document.addEventListener('click',e=>{if(!pop.hidden&&!pop.contains(e.target)&&!e.target.closest('#fp-toolbar')&&!e.target.closest('#fp-dock'))pop.hidden=true});
+ // Do not auto-open onboarding for existing users. New accounts can access it via Help.
+ const newUser=window.flowpayActiveUserId&&Array.isArray(state.bills)&&state.bills.length===0&&Array.isArray(state.paychecks)&&state.paychecks.length===0;
+ if(newUser)onboarding();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
 
 </body>
 </html>
