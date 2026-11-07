@@ -995,7 +995,7 @@ function init(){state={...defaults};theme();monthOptions('bills-month-select',se
 bind('forgot-password-btn','click',()=>{$('form-auth').classList.add('hidden');$('form-recover-password').classList.remove('hidden');$('forgot-password-btn').classList.add('hidden')});bind('recovery-cancel','click',()=>{$('form-auth').classList.remove('hidden');$('form-recover-password').classList.add('hidden');$('forgot-password-btn').classList.remove('hidden')});bind('form-recover-password','submit',resetPasswordWithCode);bind('generate-recovery-btn','click',generateRecovery);bind('copy-recovery-btn','click',()=>navigator.clipboard?.writeText($('recovery-code-display').textContent).then(()=>toast('Recovery code copied')).catch(()=>toast('Select and copy the displayed code.')));bind('biometric-login-btn','click',signInBiometric);bind('biometric-enroll-btn','click',enrollBiometric);bind('biometric-remove-btn','click',()=>{localStorage.removeItem(biometricKey);updateBiometricUI();toast('Device sign-in disabled')});bind('btn-settings','click',()=>{updateBiometricUI();openModal('modal-settings')});bind('btn-logout','click',()=>openModal('modal-logout-confirm'));bind('btn-cancel-logout','click',()=>closeModal('modal-logout-confirm'));bind('btn-confirm-logout','click',()=>{sessionStorage.removeItem('flowpay_session_active');localStorage.removeItem('flowpay_stay_logged_in');closeModal('modal-logout-confirm');$('auth-modal').classList.remove('hidden')});bind('form-change-password','submit',async e=>{e.preventDefault();const a=account(),old=$('settings-current-pass').value,pass=$('settings-new-pass').value;if(!a||pass.length<8){toast('New password must have at least 8 characters.',true);return}const ok=a.hash?await hashSecret(old,a.salt)===a.hash:old===a.password;if(!ok){toast('Current password incorrect.',true);return}const salt=a.salt||uid();localStorage.setItem('flowpay_user_account',JSON.stringify({...a,password:undefined,salt,hash:await hashSecret(pass,salt),pinHash:a.pinHash||await hashSecret(a.mfaPin||'',salt),mfaPin:undefined}));toast('Password updated');updateBiometricUI();closeModal('modal-settings')});
 bind('hamburger-menu-btn','click',()=>{$('app-sidebar').classList.remove('-translate-x-full');$('sidebar-overlay').classList.remove('hidden')});bind('close-sidebar-btn','click',closeSidebar);bind('sidebar-overlay','click',closeSidebar);document.querySelectorAll('.nav-link').forEach(e=>e.addEventListener('click',()=>switchPage(e.dataset.page)));document.querySelectorAll('.close-modal-btn').forEach(e=>e.addEventListener('click',()=>closeModal(e.closest('[id^="modal-"]').id)));document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('[id^="modal-"].flex').forEach(m=>closeModal(m.id))});bind('theme-toggle-btn','click',()=>{state.theme=state.theme==='dark'?'light':'dark';change()});
 bind('open-balance-btn','click',()=>{$('balance-input').value=state.balance;openModal('modal-balance')});bind('form-balance','submit',e=>{e.preventDefault();state.balance=num($('balance-input').value);log('Balance manually updated');change();closeModal('modal-balance')});bind('open-buffer-btn','click',()=>{$('buffer-input').value=state.emergencyBuffer;openModal('modal-buffer')});bind('form-buffer','submit',e=>{e.preventDefault();state.emergencyBuffer=Math.max(0,num($('buffer-input').value));change();closeModal('modal-buffer')});bind('open-savings-btn','click',()=>{$('savings-goal-input').value=state.savingsGoal;openModal('modal-savings')});bind('form-savings','submit',e=>{e.preventDefault();state.savingsGoal=Math.max(0,num($('savings-goal-input').value));change();closeModal('modal-savings')});
-bind('open-add-bill-btn','click',()=>{$('form-bill').reset();$('bill-id').value='';$('bill-due-date').value=day();$('modal-bill-title').textContent='Add Recurring Bill';openModal('modal-bill')});bind('form-bill','submit',e=>{e.preventDefault();const id=$('bill-id').value,b={id:id||uid(),name:$('bill-name').value.trim(),amount:num($('bill-amount').value),category:$('bill-category').value,frequency:$('bill-frequency').value,dueDate:$('bill-due-date').value};if(!b.name||b.amount<=0||!b.dueDate){toast('Enter valid bill details.',true);return}const i=state.bills.findIndex(x=>String(x.id)===String(id));if(i>=0)state.bills[i]=b;else state.bills.push(b);log(`${i>=0?'Updated':'Added'} bill: ${b.name}`);change();closeModal('modal-bill')});bind('bills-month-select','change',e=>{selectedMonth=e.target.value;renderBills()});bind('toggle-hide-paid-btn','click',()=>{hidePaid=!hidePaid;$('hide-paid-text').textContent=hidePaid?'Show Paid Bills':'Hide Paid Bills';renderBills()});bind('bills-table-body','click',e=>{const b=e.target.closest('[data-bill-action]');if(!b)return;const id=b.dataset.id;if(b.dataset.billAction==='toggle')toggleBill(b.dataset.key);if(b.dataset.billAction==='edit')editBill(id);if(b.dataset.billAction==='delete'&&confirm('Delete this recurring bill and all its future occurrences?')){state.bills=state.bills.filter(x=>String(x.id)!==id);state.paidOccurrences=state.paidOccurrences.filter(x=>!String(typeof x==='string'?x:x.key).startsWith(id+'|'));log('Recurring bill deleted');change()}});
+bind('open-add-bill-btn','click',()=>{$('form-bill').reset();$('bill-id').value='';$('bill-due-date').value=day();$('modal-bill-title').textContent='Add Recurring Bill';openModal('modal-bill')});bind('form-bill','submit',e=>{e.preventDefault();const id=$('bill-id').value,b={id:id||uid(),name:$('bill-name').value.trim(),amount:num($('bill-amount').value),category:$('bill-category').value,frequency:$('bill-frequency').value,dueDate:$('bill-due-date').value};if(!b.name||b.amount<=0||!b.dueDate){toast('Enter valid bill details.',true);return}const i=state.bills.findIndex(x=>String(x.id)===String(id));if(i>=0)state.bills[i]=b;else state.bills.push(b);log(`${i>=0?'Updated':'Added'} bill: ${b.name}`);change();closeModal('modal-bill')});bind('bills-month-select','change',e=>{selectedMonth=e.target.value;renderBills()});bind('toggle-hide-paid-btn','click',()=>{hidePaid=!hidePaid;$('hide-paid-text').textContent=hidePaid?'Show Paid Bills':'Hide Paid Bills';renderBills()});bind('bills-table-body','click',e=>{const b=e.target.closest('[data-bill-action]');if(!b)return;const id=b.dataset.id;if(b.dataset.billAction==='toggle'){toggleBill(b.dataset.key);window.flowpayStage2UndoBill?.(b.dataset.key);}if(b.dataset.billAction==='edit')editBill(id);if(b.dataset.billAction==='delete'&&confirm('Delete this recurring bill and all its future occurrences?')){state.bills=state.bills.filter(x=>String(x.id)!==id);state.paidOccurrences=state.paidOccurrences.filter(x=>!String(typeof x==='string'?x:x.key).startsWith(id+'|'));log('Recurring bill deleted');change()}});
 bind('paychecks-table-body','click',e=>{const b=e.target.closest('[data-pay-action]');if(!b)return;const id=b.dataset.id;if(b.dataset.payAction==='receive')receive(id);if(b.dataset.payAction==='edit')editPay(id);if(b.dataset.payAction==='delete'&&confirm('Delete this paycheck?')){state.paychecks=state.paychecks.filter(x=>String(x.id)!==id);log('Paycheck deleted');change()}});bind('form-edit-paycheck','submit',e=>{e.preventDefault();const p=state.paychecks.find(x=>String(x.id)===$('edit-paycheck-id').value);if(!p)return;p.name=$('edit-paycheck-name').value.trim();p.amount=num($('edit-paycheck-amount').value);p.date=$('edit-paycheck-date').value;change();closeModal('modal-edit-paycheck')});bind('form-mark-received','submit',e=>{e.preventDefault();const p=state.paychecks.find(x=>String(x.id)===$('receive-paycheck-id').value);if(!p||p.status==='received')return;const amount=num($('receive-paycheck-amount').value);if(amount<=0){toast('Enter a positive deposit.',true);return}p.amount=amount;p.date=$('receive-paycheck-date').value;p.status='received';state.balance+=amount;log(`Received ${p.name}: ${money(amount)}; added to current balance`);change();closeModal('modal-mark-received')});
 for(const id of ['calc-hourly-rate','calc-standard-hours','calc-overtime-hours','calc-flat-amount','calc-pay-mode','calc-tax-mode','calc-state-select'])bind(id,'input',calcPreview);bind('calc-type-potential-btn','click',()=>setType('calc','potential'));bind('calc-type-actual-btn','click',()=>setType('calc','actual'));bind('form-paycheck-calc','submit',e=>{e.preventDefault();const p=calcPreview();if(p.net<=0){toast('Calculated net pay must be positive.',true);return}state.paychecks.push({id:uid(),name:$('calc-source-name').value.trim(),date:$('calc-pay-date').value,amount:p.net,status:calcType});log('Paycheck saved');change();toast('Paycheck saved');switchPage('dashboard')});
 bind('calendar-month-select','change',e=>{calendarMonth=e.target.value;renderCalendar()});bind('financial-calendar-grid','click',e=>{const c=e.target.closest('[data-calendar-date]');if(c)openDate(c.dataset.calendarDate)});bind('modal-type-potential-btn','click',()=>setType('date','potential'));bind('modal-type-actual-btn','click',()=>setType('date','actual'));bind('btn-save-paycheck-on-date','click',()=>{const name=$('modal-paycheck-name').value.trim(),amount=num($('modal-paycheck-amount').value);if(!name||amount<=0){toast('Enter paycheck name and amount.',true);return}state.paychecks.push({id:uid(),name,amount,date:selectedDate,status:datePayType});log('Paycheck added on calendar');change();openDate(selectedDate);$('modal-paycheck-name').value='';$('modal-paycheck-amount').value=''});bind('toggle-past-weeks-btn','click',()=>{showPast=!showPast;$('toggle-past-weeks-text').textContent=showPast?'Hide Previous Weeks':'Show Previous Weeks';renderCalendar()});bind('calendar-toggle-btn','click',()=>{calendarCollapsed=!calendarCollapsed;$('calendar-collapsible-content').classList.toggle('hidden',calendarCollapsed);$('calendar-toggle-text').textContent=calendarCollapsed?'Expand':'Collapse'});bind('toggle-chart-type-btn','click',()=>{chartType=chartType==='line'?'bar':'line';$('chart-type-text').textContent=chartType==='line'?'Switch to Bar Chart':'Switch to Line Chart';renderChart()});
@@ -1874,8 +1874,8 @@ const togglePopover=(title,actions)=>{
 };
 const quickAdd=()=>togglePopover('Quick Add',[
  ['＋ New recurring bill',()=>$id('open-add-bill-btn')?.click()],
- ['＋ Income / paycheck',()=>{view('calendar');toast('Choose a date in the calendar to add a paycheck.')}],
- ['＋ Manual balance update',()=>{if(typeof openModal==='function')openModal('modal-balance')}],
+ ['＋ Income / paycheck',()=>view('calculator')],
+ ['＋ Manual balance update',()=>$id('open-balance-btn')?.click()],
  ['↗ Bank transactions',()=>view('transactions')]
 ]);
 const notices=()=>{
@@ -1957,6 +1957,111 @@ function setup(){
  // Do not auto-open onboarding for existing users. New accounts can access it via Help.
  const newUser=window.flowpayActiveUserId&&Array.isArray(state.bills)&&state.bills.length===0&&Array.isArray(state.paychecks)&&state.paychecks.length===0;
  if(newUser)onboarding();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
+})();
+</script>
+
+
+<style id="fp-stage2-styles">
+#fp-stage2-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:20px}
+.fp2-card{background:#fff;border:1px solid #e2e8f0;border-radius:17px;padding:17px;box-shadow:0 4px 16px rgba(15,23,42,.035)}
+.dark .fp2-card{background:#1e293b;border-color:#334155}
+.fp2-card .fp2-label{font-size:11px;letter-spacing:.02em;color:#64748b;font-weight:650}
+.dark .fp2-card .fp2-label{color:#cbd5e1}
+.fp2-card .fp2-number{font-size:clamp(18px,2vw,27px);font-weight:800;margin:6px 0;color:#0f172a;font-variant-numeric:tabular-nums}
+.dark .fp2-card .fp2-number{color:#f8fafc}
+.fp2-card .fp2-detail{font-size:11px;color:#64748b}
+.dark .fp2-card .fp2-detail{color:#cbd5e1}
+#fp2-toast-region{position:fixed;bottom:82px;right:16px;z-index:250;display:grid;gap:8px;max-width:min(400px,calc(100vw - 32px))}
+.fp2-toast{background:#0f172a;color:white;border:1px solid #475569;border-radius:13px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;gap:15px;box-shadow:0 8px 32px #0003;font-size:13px}
+.fp2-toast button{color:#c7d2fe;text-decoration:underline;font-weight:800;white-space:nowrap}
+.fp2-toast.error{background:#9f1239}
+.fp2-card:focus-visible{outline:2px solid #6366f1;outline-offset:2px}
+.fp2-skeleton{animation:fp2-pulse 1.2s ease-in-out infinite;background:linear-gradient(90deg,#e2e8f0,#f8fafc,#e2e8f0);background-size:200% 100%;border-radius:8px}
+@keyframes fp2-pulse{to{background-position-x:-200%}}
+@media(max-width:1024px){#fp-stage2-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:460px){#fp-stage2-summary{gap:8px}.fp2-card{padding:12px}.fp2-card .fp2-number{font-size:19px}}
+</style>
+<script id="fp-stage2-script">
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id);
+let toastTimer;
+const toastRegion=document.createElement('div');toastRegion.id='fp2-toast-region';toastRegion.setAttribute('aria-live','polite');document.body.append(toastRegion);
+function notice(message,{undo=null,error=false,timeout=6500}={}){
+ const el=document.createElement('div');el.className='fp2-toast'+(error?' error':'');el.setAttribute('role',error?'alert':'status');
+ const text=document.createElement('span');text.textContent=message;el.append(text);
+ if(undo){const btn=document.createElement('button');btn.type='button';btn.textContent='Undo';btn.addEventListener('click',()=>{if(!el.isConnected)return;el.remove();undo()});el.append(btn)}
+ toastRegion.append(el);
+ setTimeout(()=>el.remove(),timeout);
+}
+let lastUndo=null;
+window.flowpayStage2UndoBill=(key)=>{
+ const token={key,revision:window.flowpayStage2ChangeCount||0};
+ lastUndo=token;
+ notice('Bill payment status updated.',{undo:()=>{
+  if(lastUndo!==token||token.revision!==(window.flowpayStage2ChangeCount||0)){notice('Another change was made. Undo is no longer available.',{error:true});return}
+  if(typeof toggleBill==='function'){toggleBill(key);notice('Bill payment change reversed.')}
+  lastUndo=null;
+ },timeout:8000});
+};
+// Watch only actual state changes; don't count re-renders, and don't change persistence.
+if(typeof change==='function'){
+ const originalChange=change;
+ change=function(...args){window.flowpayStage2ChangeCount=(window.flowpayStage2ChangeCount||0)+1;return originalChange(...args)};
+}
+function summary(){
+ const dashboard=$('view-dashboard');if(!dashboard)return;
+ const wrap=document.createElement('section');wrap.id='fp-stage2-summary';wrap.setAttribute('aria-label','Financial overview');
+ const cards=[
+  ['Bank / manual balance','fp2-balance','Current starting balance'],
+  ['Safe to spend','fp2-safe','After planned obligations'],
+  ['Next bill','fp2-next','Next upcoming payment'],
+  ['Next paycheck','fp2-pay','Next scheduled income']
+ ];
+ for(const [label,id,detail] of cards){
+  const card=document.createElement('article');card.className='fp2-card';
+  const a=document.createElement('div');a.className='fp2-label';a.textContent=label;
+  const b=document.createElement('div');b.className='fp2-number';b.id=id;b.textContent='—';
+  const c=document.createElement('div');c.className='fp2-detail';c.textContent=detail;
+  card.append(a,b,c);wrap.append(card);
+ }
+ dashboard.insertBefore(wrap,dashboard.firstChild);
+ const update=()=>{
+  try{
+   $('fp2-balance').textContent=money(effectiveBalance());
+   $('fp2-safe').textContent=money(safeBreakdown().safe);
+   const next=billsBetween(day(),plusMonths(day(),12)).find(o=>!isPaid(o));
+   $('fp2-next').textContent=next?money(next.bill.amount):'None';
+   const pay=state.paychecks.filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date))[0];
+   $('fp2-pay').textContent=pay?money(pay.amount):'None';
+  }catch(e){/* Keep the original dashboard operational if summary data is unavailable. */}
+ };
+ update();
+ if(typeof render==='function'){
+  const original=render;
+  render=function(...args){const result=original(...args);update();return result};
+ }
+}
+function setup(){
+ summary();
+ // Add a clear cloud sync state label without modifying the sync engine.
+ const toolbar=$('fp-toolbar');
+ if(toolbar){
+  const label=document.createElement('span');label.className='fp-status';label.id='fp2-save-status';label.textContent='Cloud sync enabled';label.setAttribute('aria-live','polite');toolbar.append(label);
+  const observer=new MutationObserver(()=>{
+   const existing=[...document.querySelectorAll('[id*="sync-status"],[id*="cloud-status"]')].find(x=>x.id!=='fp2-save-status'&&x.textContent?.trim());
+   if(existing)label.textContent=existing.textContent.trim().slice(0,55);
+  });
+  observer.observe(document.body,{subtree:true,childList:true,characterData:true});
+ }
+ // Use the existing notification system for all non-destructive actions.
+ document.addEventListener('click',event=>{
+  const target=event.target.closest('button');if(!target)return;
+  if(target.id==='open-add-bill-btn')return;
+  if(target.matches('[data-bill-action="delete"]'))return;
+ },{passive:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',setup,{once:true});else setup();
 })();
