@@ -1355,122 +1355,173 @@ window.addEventListener('DOMContentLoaded',init);
 
 <!-- FlowPay Plaid Sandbox Bank Connection -->
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
-
-<div id="flowpay-plaid-panel"
-     style="position:fixed;bottom:20px;right:20px;z-index:9000;
-            background:#1e293b;color:white;padding:14px;
-            border-radius:14px;box-shadow:0 5px 25px #0005;
-            max-width:290px;font-family:Arial,sans-serif;">
-  <div style="font-weight:bold;margin-bottom:8px;">
-    Bank Connections (Sandbox)
-  </div>
-
-  <button id="flowpay-connect-bank"
-          type="button"
-          style="background:#6366f1;color:white;border:0;
-                 padding:11px 16px;border-radius:8px;
-                 cursor:pointer;font-weight:bold;">
-    Connect Test Bank
-  </button>
-
-  <div id="flowpay-plaid-status"
-       role="status"
-       aria-live="polite"
-       style="font-size:12px;margin-top:9px;">
-    Test banks only. No real accounts.
-  </div>
+<div id="flowpay-plaid-panel" style="position:fixed;bottom:20px;right:20px;z-index:9000;background:#1e293b;color:white;padding:14px;border-radius:14px;box-shadow:0 5px 25px #0005;max-width:330px;max-height:75vh;overflow:auto;font-family:Arial,sans-serif;display:none;">
+  <div style="font-weight:bold;margin-bottom:8px;">Bank Connections (Sandbox)</div>
+  <button id="flowpay-connect-bank" type="button" style="background:#6366f1;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;">Connect Test Bank</button>
+  <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
+  <div id="flowpay-plaid-status" role="status" aria-live="polite" style="font-size:12px;margin-top:9px;">Test banks only. No real accounts.</div>
+  <div id="flowpay-bank-accounts" style="font-size:13px;margin-top:12px;"></div>
+  <div id="flowpay-bank-transactions" style="font-size:12px;margin-top:12px;"></div>
 </div>
-
 <script>
 (function () {
-  const API =
-    "https://flowpay-plaid-api.james-a-sorensen.workers.dev";
-
-  const button = document.getElementById(
-    "flowpay-connect-bank"
-  );
-
-  const status = document.getElementById(
-    "flowpay-plaid-status"
-  );
-
-  button.addEventListener("click", async function () {
-    button.disabled = true;
-    status.textContent = "Connecting to Plaid Sandbox...";
-
-    try {
-      if (!window.Plaid) {
-        throw new Error("Plaid Link could not load.");
-      }
-
-      const accessToken = await window.flowpayGetAccessToken();
-      // Verify the Worker recognizes the signed-in Supabase user first.
-      const identityResponse = await fetch(API + "/me", {
-        method: "GET",
-        headers: { "Authorization": "Bearer " + accessToken }
-      });
-      const identity = await identityResponse.json();
-      if (!identityResponse.ok || !identity.success || !identity.user?.id) {
-        throw new Error(identity.error || "Worker authentication failed. Check your Supabase JWT signing configuration.");
-      }
-      status.textContent = "Authenticated. Opening Plaid Sandbox...";
-
-      const response = await fetch(API + "/link-token", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + accessToken
-        },
-        body: JSON.stringify({})
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.link_token) {
-        throw new Error(
-          data.error || "Unable to create Link token."
-        );
-      }
-
-      const handler = Plaid.create({
-        token: data.link_token,
-
-        onSuccess: function (publicToken, metadata) {
-          // Sandbox demonstration only.
-          // Do not save or log publicToken.
-          status.textContent =
-            "Test bank selected successfully! " +
-            "Account syncing is not enabled yet.";
-        },
-
-        onExit: function (error) {
-          if (error) {
-            status.textContent =
-              "Plaid error: " +
-              (error.display_message ||
-               error.error_message ||
-               "Connection failed.");
-          } else {
-            status.textContent =
-              "Bank connection window closed.";
-          }
-        },
-
-        onLoad: function () {
-          status.textContent =
-            "Plaid is ready. Select a test bank.";
-        }
-      });
-
-      handler.open();
-
-    } catch (error) {
-      status.textContent =
-        "Connection error: " + error.message;
-    } finally {
-      button.disabled = false;
+  'use strict';
+  const API = 'https://flowpay-plaid-api.james-a-sorensen.workers.dev';
+  const panel = document.getElementById('flowpay-plaid-panel');
+  const connectButton = document.getElementById('flowpay-connect-bank');
+  const refreshButton = document.getElementById('flowpay-refresh-banks');
+  const status = document.getElementById('flowpay-plaid-status');
+  const accountsEl = document.getElementById('flowpay-bank-accounts');
+  const transactionsEl = document.getElementById('flowpay-bank-transactions');
+  let generation = 0;
+  let currentUser = null;
+  let busy = false;
+  const setStatus = message => { status.textContent = message; };
+  const money = n => n == null ? 'Unavailable' : new Intl.NumberFormat('en-US', {style:'currency',currency:'USD'}).format(Number(n));
+  const label = (parent, tag, value, style) => {
+    const element = document.createElement(tag);
+    element.textContent = value;
+    if (style) element.style.cssText = style;
+    parent.appendChild(element);
+    return element;
+  };
+  async function api(path, method='GET', payload) {
+    if (!currentUser) throw new Error('Sign in to FlowPay first.');
+    const token = await window.flowpayGetAccessToken();
+    const response = await fetch(API + path, {
+      method,
+      headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      ...(payload === undefined ? {} : {body:JSON.stringify(payload)})
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok || result.success === false) {
+      throw new Error(result.error || 'Bank API failed ('+response.status+')');
     }
+    return result;
+  }
+  function setBusy(value) {
+    busy = value;
+    connectButton.disabled = value;
+    refreshButton.disabled = value;
+    connectButton.style.opacity = value ? '0.5' : '1';
+  }
+  async function loadBanks() {
+    if (!currentUser) return;
+    const gen = generation;
+    const accounts = await api('/bank-accounts');
+    if (gen !== generation) return;
+    accountsEl.replaceChildren();
+    const connections = new Map();
+    if (!accounts.accounts?.length) {
+      label(accountsEl,'div','No test bank accounts connected yet.');
+    }
+    for (const account of accounts.accounts || []) {
+      if (account.connection_id) connections.set(account.connection_id, true);
+      const item = document.createElement('div');
+      item.style.cssText='padding:9px 0;border-top:1px solid #475569';
+      label(item,'div',(account.institution_name || 'Test bank')+' — '+(account.name || 'Account'),'font-weight:bold');
+      label(item,'div','•••• '+(account.mask || '—')+' · Current: '+money(account.current_balance));
+      label(item,'div','Available: '+money(account.available_balance));
+      accountsEl.appendChild(item);
+    }
+    if (connections.size) {
+      label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
+      for (const id of connections.keys()) {
+        const button = label(accountsEl,'button','Sync transactions','background:#0d9488;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
+        button.type='button';
+        button.addEventListener('click',async () => {
+          if (busy) return;
+          setBusy(true); button.disabled=true;
+          setStatus('Syncing Sandbox transactions…');
+          try {
+            const r = await api('/sync-transactions','POST',{connection_id:id});
+            if (gen !== generation) return;
+            setStatus('Sync complete: '+r.added+' added, '+r.modified+' updated, '+r.removed+' removed.');
+            await loadTransactions();
+          } catch(e) { if(gen === generation) setStatus('Sync failed: '+e.message); }
+          finally {setBusy(false);button.disabled=false;}
+        });
+      }
+    }
+    await loadTransactions();
+  }
+  async function loadTransactions() {
+    const gen=generation;
+    const result=await api('/bank-transactions');
+    if(gen !== generation) return;
+    transactionsEl.replaceChildren();
+    label(transactionsEl,'div','Imported test transactions','font-weight:bold;margin-bottom:6px');
+    if (!result.transactions?.length) {
+      label(transactionsEl,'div','No transactions imported yet.');
+      return;
+    }
+    for (const tx of result.transactions.slice(0,25)) {
+      const item=document.createElement('div');
+      item.style.cssText='padding:6px 0;border-top:1px solid #475569';
+      label(item,'div',(tx.transaction_date || '')+' · '+(tx.merchant_name || tx.description || 'Transaction'));
+      label(item,'div',money(tx.amount)+(tx.pending ? ' · Pending' : ''));
+      transactionsEl.appendChild(item);
+    }
+    if (result.transactions.length>25) label(transactionsEl,'div','Showing 25 most recent of '+result.transactions.length+' returned.');
+  }
+  connectButton.addEventListener('click',async () => {
+    if(busy || !currentUser) return;
+    setBusy(true);
+    setStatus('Opening Plaid Sandbox…');
+    try {
+      if(!window.Plaid) throw new Error('Plaid Link library did not load.');
+      const data=await api('/link-token','POST',{});
+      if(!data.link_token) throw new Error('Missing Link token.');
+      const gen=generation;
+      const handler=window.Plaid.create({
+        token:data.link_token,
+        onSuccess:async (publicToken,metadata) => {
+          if(gen !== generation) return;
+          setStatus('Saving encrypted test bank connection…');
+          try {
+            const result=await api('/exchange-token','POST',{
+              public_token:publicToken,
+              institution_name:metadata?.institution?.name || 'Sandbox bank'
+            });
+            if(gen !== generation) return;
+            setStatus('Test bank saved ('+(result.accounts_saved ?? 0)+' accounts). Loading accounts…');
+            await loadBanks();
+            if(gen === generation) setStatus('Test bank connected. Select Sync transactions to import activity.');
+          } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
+          finally {setBusy(false);}
+        },
+        onExit:(error) => {
+          if(gen !== generation) return;
+          if(error) setStatus('Plaid: '+(error.display_message || error.error_message || 'Link error'));
+          else setStatus('Bank connection window closed.');
+          setBusy(false);
+        },
+        onLoad:() => {if(gen === generation) setStatus('Choose a Sandbox test bank.');}
+      });
+      handler.open();
+    } catch(e) {setStatus('Connection error: '+e.message);setBusy(false);}
   });
+  refreshButton.addEventListener('click',async () => {
+    if(busy || !currentUser) return;
+    setBusy(true);setStatus('Loading linked test banks…');
+    try {await loadBanks();setStatus('Test bank list refreshed.');}
+    catch(e){setStatus('Refresh failed: '+e.message);}
+    finally{setBusy(false);}
+  });
+  function authChanged(id) {
+    generation++;
+    currentUser=id || null;
+    panel.style.display=currentUser ? 'block' : 'none';
+    accountsEl.replaceChildren();transactionsEl.replaceChildren();
+    setBusy(false);
+    if(currentUser){
+      setStatus('Loading Sandbox bank connections…');
+      loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
+        .catch(e=>setStatus('Bank loading failed: '+e.message));
+    }
+  }
+  window.addEventListener('flowpay-auth-user-changed',e=>authChanged(e.detail.userId));
+  if(window.flowpayActiveUserId) authChanged(window.flowpayActiveUserId);
 })();
 </script>
 <!-- End FlowPay Plaid Sandbox -->
