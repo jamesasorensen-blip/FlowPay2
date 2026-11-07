@@ -1387,6 +1387,17 @@ window.addEventListener('DOMContentLoaded',init);
   <button id="flowpay-open-transactions" type="button" style="background:#0d9488;color:white;border:0;padding:10px;border-radius:8px;margin-top:12px;width:100%;font-weight:bold;cursor:pointer">Open Bank Transactions & Income Detection</button>
   <div id="flowpay-bank-transactions" style="font-size:12px;margin-top:12px;"></div>
 </div>
+<div id="flowpay-transactions-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,.8);overflow:auto;padding:24px 12px;font-family:Arial,sans-serif">
+  <div style="max-width:1000px;margin:auto;background:#f8fafc;color:#0f172a;border-radius:14px;padding:22px;box-shadow:0 10px 40px #0005">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h2 style="font-size:23px;font-weight:bold">Bank Transactions (Sandbox)</h2><button type="button" id="flowpay-close-transactions" style="padding:9px 14px;background:#334155;color:white;border:0;border-radius:8px">Close</button></div>
+    <p style="margin:8px 0 14px;color:#475569;font-size:13px">Imported transactions only. Categories are saved to FlowPay cloud data; bank records remain unchanged.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"><input id="flowpay-tx-search" placeholder="Search merchant or description" aria-label="Search transactions" style="flex:2;min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:8px"><select id="flowpay-tx-filter" aria-label="Filter transactions" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All transactions</option><option value="income">Deposits</option><option value="expense">Expenses</option><option value="pending">Pending</option></select><select id="flowpay-tx-category-filter" aria-label="Filter by category" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All categories</option></select></div>
+    <div id="flowpay-tx-count" style="font-size:13px;margin-bottom:7px"></div><div id="flowpay-tx-list" style="max-height:410px;overflow:auto;border:1px solid #e2e8f0;border-radius:9px"></div>
+    <h3 style="font-size:19px;font-weight:bold;margin:22px 0 6px">Recurring income suggestions</h3>
+    <p style="font-size:13px;color:#475569;margin-bottom:10px">Requires at least three similar deposits from the same payer with a consistent interval. Suggestions never automatically add income.</p>
+    <div id="flowpay-income-suggestions"></div>
+  </div>
+</div>
 <script>
 (function () {
   'use strict';
@@ -1789,17 +1800,6 @@ window.addEventListener('DOMContentLoaded',init);
   if(window.flowpayActiveUserId) authChanged(window.flowpayActiveUserId);
 })();
 </script>
-<div id="flowpay-transactions-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,.8);overflow:auto;padding:24px 12px;font-family:Arial,sans-serif">
-  <div style="max-width:1000px;margin:auto;background:#f8fafc;color:#0f172a;border-radius:14px;padding:22px;box-shadow:0 10px 40px #0005">
-    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h2 style="font-size:23px;font-weight:bold">Bank Transactions (Sandbox)</h2><button type="button" id="flowpay-close-transactions" style="padding:9px 14px;background:#334155;color:white;border:0;border-radius:8px">Close</button></div>
-    <p style="margin:8px 0 14px;color:#475569;font-size:13px">Imported transactions only. Categories are saved to FlowPay cloud data; bank records remain unchanged.</p>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"><input id="flowpay-tx-search" placeholder="Search merchant or description" aria-label="Search transactions" style="flex:2;min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:8px"><select id="flowpay-tx-filter" aria-label="Filter transactions" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All transactions</option><option value="income">Deposits</option><option value="expense">Expenses</option><option value="pending">Pending</option></select><select id="flowpay-tx-category-filter" aria-label="Filter by category" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All categories</option></select></div>
-    <div id="flowpay-tx-count" style="font-size:13px;margin-bottom:7px"></div><div id="flowpay-tx-list" style="max-height:410px;overflow:auto;border:1px solid #e2e8f0;border-radius:9px"></div>
-    <h3 style="font-size:19px;font-weight:bold;margin:22px 0 6px">Recurring income suggestions</h3>
-    <p style="font-size:13px;color:#475569;margin-bottom:10px">Requires at least three similar deposits from the same payer with a consistent interval. Suggestions never automatically add income.</p>
-    <div id="flowpay-income-suggestions"></div>
-  </div>
-</div>
 <!-- End FlowPay Plaid Sandbox -->
 
 </body>
