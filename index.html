@@ -1003,6 +1003,17 @@ window.addEventListener('DOMContentLoaded',init);
   const configured = !SUPABASE_PUBLISHABLE_KEY.startsWith('PASTE_') && !SUPABASE_URL.startsWith('PASTE_');
   let client = null;
   let activeUser = null;
+  // Access tokens are retrieved from the active Supabase session on demand.
+  // Never persist these tokens in FlowPay's own localStorage keys.
+  window.flowpayGetAccessToken = async function () {
+    if (!client) throw new Error('Supabase authentication is not ready.');
+    const { data, error } = await client.auth.getSession();
+    if (error) throw error;
+    if (!data.session?.access_token) {
+      throw new Error('Please sign in to FlowPay before connecting a test bank.');
+    }
+    return data.session.access_token;
+  };
   const $auth = id => document.getElementById(id);
   const notify = (message, error = false) => {
     const area = $auth('supabase-auth-message');
@@ -1174,10 +1185,23 @@ window.addEventListener('DOMContentLoaded',init);
         throw new Error("Plaid Link could not load.");
       }
 
+      const accessToken = await window.flowpayGetAccessToken();
+      // Verify the Worker recognizes the signed-in Supabase user first.
+      const identityResponse = await fetch(API + "/me", {
+        method: "GET",
+        headers: { "Authorization": "Bearer " + accessToken }
+      });
+      const identity = await identityResponse.json();
+      if (!identityResponse.ok || !identity.success || !identity.user?.id) {
+        throw new Error(identity.error || "Worker authentication failed. Check your Supabase JWT signing configuration.");
+      }
+      status.textContent = "Authenticated. Opening Plaid Sandbox...";
+
       const response = await fetch(API + "/link-token", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + accessToken
         },
         body: JSON.stringify({})
       });
