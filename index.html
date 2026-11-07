@@ -1151,12 +1151,19 @@ window.addEventListener('DOMContentLoaded',init);
   notice.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9100;background:#172033;color:#fff;padding:12px;border-radius:12px;max-width:300px;font:13px Arial,sans-serif;box-shadow:0 4px 20px #0005;display:none';
   notice.innerHTML = '<div id="flowpay-sync-status" role="status">Checking cloud storage…</div><button id="flowpay-import-legacy" type="button" style="display:none;margin-top:10px;background:#6366f1;color:white;padding:9px;border-radius:7px">Back up and import this browser’s old data</button>';
   document.body.appendChild(notice);
+  const freshButton = document.createElement('button');
+  freshButton.id = 'flowpay-start-fresh';
+  freshButton.type = 'button';
+  freshButton.textContent = 'Start Fresh (empty account)';
+  freshButton.style.cssText = 'display:none;margin-top:10px;background:#0d9488;color:white;padding:9px;border-radius:7px;cursor:pointer';
+  notice.appendChild(freshButton);
   const status = notice.querySelector('#flowpay-sync-status');
   const importButton = notice.querySelector('#flowpay-import-legacy');
   const cacheKey = id => 'flowpay_state_user_' + id;
-  const setStatus = (msg, showImport=false) => {
+  const setStatus = (msg, showImport=false, showFresh=false) => {
     status.textContent = msg;
     importButton.style.display = showImport ? 'block' : 'none';
+    freshButton.style.display = showFresh ? 'block' : 'none';
   };
   const isSample = data => !!(data && data.flowpay_test === true && data.message === 'Cloud storage is working');
   const normalized = data => {
@@ -1256,8 +1263,8 @@ window.addEventListener('DOMContentLoaded',init);
         // Never overwrite the existing test record or import legacy data automatically.
         paused = true;
         setStatus(remoteIsSample
-          ? 'Cloud contains the earlier test record. Import your old browser data to replace it, or leave it unchanged.'
-          : 'No cloud financial data yet. Import your old browser data to start syncing.',true);
+          ? 'Cloud contains the earlier test record. You can start fresh with an empty account, or import old browser data.'
+          : 'No cloud financial data yet. Import your old browser data or start fresh.',true,true);
       }
     } catch (err) {
       if (gen !== generation) return;
@@ -1267,6 +1274,54 @@ window.addEventListener('DOMContentLoaded',init);
       setStatus('Cloud unavailable: '+err.message+'. Saving is paused; browser data has not been deleted.');
     }
   }
+  freshButton.addEventListener('click', async () => {
+    if (!activeId || !paused || !(revision === 0 || remoteIsSample)) return;
+    const id = activeId, gen = generation;
+    // Never silently discard data previously saved for this account in this browser.
+    const cached = localStorage.getItem(cacheKey(id));
+    if (cached) {
+      let cachedData;
+      try { cachedData = JSON.parse(cached); } catch {
+        setStatus('Existing browser data could not be read. Start Fresh is blocked to protect it.',true,true);
+        return;
+      }
+      if (JSON.stringify(normalized(cachedData)) !== JSON.stringify(normalized({}))) {
+        setStatus('Existing account data was found in this browser. Start Fresh is blocked to protect it. Export or review that data first.',true,true);
+        return;
+      }
+    }
+    if (!confirm('Start with an EMPTY FlowPay account? This will replace ONLY the earlier cloud test record (if present), and enable automatic cloud sync. Do not continue if you have financial data to preserve.')) return;
+    freshButton.disabled = true;
+    importButton.disabled = true;
+    setStatus('Checking cloud record before initializing…');
+    try {
+      // Recheck to avoid replacing actual financial data or a newer revision.
+      const current = await request('GET');
+      if (gen !== generation || id !== activeId) return;
+      if (!current.res.ok) throw new Error(current.body.error || 'Cloud read failed');
+      if (current.body.exists && !isSample(current.body.data)) {
+        setStatus('Cloud now contains financial data. Start Fresh stopped without changes. Reload to review it.');
+        return;
+      }
+      if ((current.body.revision || 0) !== revision) {
+        setStatus('Cloud record changed. Start Fresh stopped without changes. Reload the page.');
+        return;
+      }
+      const empty = normalized({});
+      const {res,body} = await request('PUT',{revision,data:empty});
+      if (gen !== generation || id !== activeId) return;
+      if (!res.ok) throw new Error(body.error || 'Initialization failed ('+res.status+')');
+      revision = body.revision;
+      useState(empty,id);
+      paused = false; ready = true; remoteIsSample = false; dirty = false;
+      setStatus('Empty account created. Automatic cloud sync enabled.');
+    } catch (err) {
+      if (gen === generation) setStatus('Start Fresh failed: '+err.message+'. No local data was deleted. Reload and try again.',true,true);
+    } finally {
+      freshButton.disabled = false;
+      importButton.disabled = false;
+    }
+  });
   importButton.addEventListener('click',async () => {
     if (!activeId || !paused || !(revision === 0 || remoteIsSample)) return;
     let legacy;
