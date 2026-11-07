@@ -895,10 +895,10 @@ const plusDays=(s,n)=>{const d=date(s);d.setDate(d.getDate()+n);return day(d)};
 const plusMonths=(s,n)=>{const d=date(s),a=new Date(d.getFullYear(),d.getMonth()+n,1);a.setDate(Math.min(d.getDate(),new Date(a.getFullYear(),a.getMonth()+1,0).getDate()));return day(a)};
 const monthKey=s=>String(s).slice(0,7);
 const uid=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
-const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],bankMatchDecisions:[],bankBalanceSettings:{mode:'manual',accountId:'',balanceType:'available'},theme:'light'};
+const defaults={balance:500,emergencyBuffer:75,essentialSpending:100,pendingTransactions:0,savingsGoal:200,bills:[],paychecks:[],paidOccurrences:[],includedNextMonthBillIds:[],widgetOrder:['safespend','metrics','bills'],activity:[],bankMatchDecisions:[],bankBalanceSettings:{mode:'manual',accountId:'',balanceType:'available'},bankTransactionCategories:{},incomePatternDecisions:[],theme:'light'};
 let state={...defaults},chart=null,chartType='line',selectedMonth=monthKey(day()),calendarMonth=selectedMonth,hidePaid=false,showPast=true,calendarCollapsed=false,selectedDate=day(),datePayType='potential',calcType='potential',priorOrder=null,authMode='login',focusBefore=null;
 function toast(message,error=false){const t=document.createElement('div');t.className=`rounded-xl p-3 text-white shadow-lg text-xs pointer-events-auto ${error?'bg-rose-600':'bg-slate-800'}`;t.textContent=message;$('toast-container').append(t);setTimeout(()=>t.remove(),3500)}
-function load(){try{const x=JSON.parse(localStorage.getItem('flowpay_state')||'{}');state={...defaults,...x};for(const k of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions'])if(!Array.isArray(state[k]))state[k]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];}catch{state={...defaults}}}
+function load(){try{const x=JSON.parse(localStorage.getItem('flowpay_state')||'{}');state={...defaults,...x};for(const k of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions','incomePatternDecisions'])if(!Array.isArray(state[k]))state[k]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];}catch{state={...defaults}}}
 function save(){try{if(window.flowpayActiveUserId)localStorage.setItem('flowpay_state_user_'+window.flowpayActiveUserId,JSON.stringify(state));window.flowpayCloudChanged?.()}catch{toast('Unable to save browser data. Check storage settings.',true)}}
 function log(message){state.activity.unshift({id:uid(),message,time:new Date().toISOString()});state.activity=state.activity.slice(0,80)}
 function change(){save();render()}
@@ -1181,7 +1181,7 @@ window.addEventListener('DOMContentLoaded',init);
   const isSample = data => !!(data && data.flowpay_test === true && data.message === 'Cloud storage is working');
   const normalized = data => {
     const next = {...defaults, ...data};
-    for (const key of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions'])
+    for (const key of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions','incomePatternDecisions'])
       if (!Array.isArray(next[key])) next[key] = [];
     if (!Array.isArray(next.widgetOrder)) next.widgetOrder = [...defaults.widgetOrder];
     return next;
@@ -1384,6 +1384,7 @@ window.addEventListener('DOMContentLoaded',init);
     <div id="flowpay-balance-help" style="color:#cbd5e1;margin-top:5px">Manual balance stays unchanged until you choose a bank.</div>
   </div>
   <div id="flowpay-bank-matches" style="font-size:12px;margin-top:12px;"></div>
+  <button id="flowpay-open-transactions" type="button" style="background:#0d9488;color:white;border:0;padding:10px;border-radius:8px;margin-top:12px;width:100%;font-weight:bold;cursor:pointer">Open Bank Transactions & Income Detection</button>
   <div id="flowpay-bank-transactions" style="font-size:12px;margin-top:12px;"></div>
 </div>
 <script>
@@ -1585,6 +1586,7 @@ window.addEventListener('DOMContentLoaded',init);
     if(gen !== generation) return;
     lastTransactions = result.transactions || [];
     renderMatches();
+    if(txOverlay.style.display==='block')renderTransactionExplorer();
     transactionsEl.replaceChildren();
     label(transactionsEl,'div','Imported test transactions','font-weight:bold;margin-bottom:6px');
     if (!result.transactions?.length) {
@@ -1600,6 +1602,133 @@ window.addEventListener('DOMContentLoaded',init);
     }
     if (result.transactions.length>25) label(transactionsEl,'div','Showing 25 most recent of '+result.transactions.length+' returned.');
   }
+  // Searchable, categorized transaction view. Plaid amounts: positive=outflow, negative=inflow.
+  const txOverlay=document.getElementById('flowpay-transactions-overlay');
+  const txSearch=document.getElementById('flowpay-tx-search');
+  const txFilter=document.getElementById('flowpay-tx-filter');
+  const txCategoryFilter=document.getElementById('flowpay-tx-category-filter');
+  const txList=document.getElementById('flowpay-tx-list');
+  const txCount=document.getElementById('flowpay-tx-count');
+  const incomeList=document.getElementById('flowpay-income-suggestions');
+  const categories=['Uncategorized','Income','Transfer','Groceries','Dining','Transportation','Housing','Utilities','Subscriptions','Shopping','Healthcare','Entertainment','Other'];
+  const txCategory=t=>(state.bankTransactionCategories||{})[t.id]||'Uncategorized';
+  function categorizeHeuristic(t){
+    const name=String(t.merchant_name||t.description||'').toLowerCase();
+    if(/transfer|zelle|venmo|cash app|paypal transfer/.test(name))return 'Transfer';
+    if(Number(t.amount)<0)return 'Income';
+    if(/grocery|market|food lion|walmart|aldi|kroger/.test(name))return 'Groceries';
+    if(/restaurant|pizza|cafe|coffee|grill/.test(name))return 'Dining';
+    if(/netflix|spotify|subscription/.test(name))return 'Subscriptions';
+    if(/electric|water bill|internet|utility/.test(name))return 'Utilities';
+    if(/gas station|shell|exxon|uber|lyft/.test(name))return 'Transportation';
+    return 'Uncategorized';
+  }
+  function renderTransactionExplorer(){
+    if(!txList||typeof state==='undefined')return;
+    txList.replaceChildren();txCategoryFilter.replaceChildren();
+    for(const cat of ['all',...categories]){const o=document.createElement('option');o.value=cat;o.textContent=cat==='all'?'All categories':cat;txCategoryFilter.appendChild(o)}
+    txCategoryFilter.value=window.flowpaySelectedTxCategory||'all';
+    const query=txSearch.value.trim().toLowerCase(),type=txFilter.value,category=txCategoryFilter.value;
+    const filtered=lastTransactions.filter(t=>{
+      const amt=Number(t.amount);
+      const text=(String(t.merchant_name||'')+' '+String(t.description||'')).toLowerCase();
+      return (!query||text.includes(query))&&(type==='all'||(type==='income'&&amt<0)||(type==='expense'&&amt>0)||(type==='pending'&&!!t.pending))&&(category==='all'||txCategory(t)===category);
+    });
+    txCount.textContent=filtered.length+' of '+lastTransactions.length+' imported transactions (API returns up to 200).';
+    if(!filtered.length){label(txList,'div','No transactions match your filters.','padding:16px');}
+    for(const t of filtered){
+      const item=document.createElement('div');item.style.cssText='display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:11px;border-bottom:1px solid #e2e8f0';
+      const details=document.createElement('div');details.style.cssText='flex:2;min-width:175px';
+      label(details,'div',t.merchant_name||t.description||'Unknown merchant','font-weight:bold');
+      label(details,'div',(t.transaction_date||'Unknown date')+(t.pending?' · Pending':''),'font-size:12px;color:#64748b');
+      item.appendChild(details);
+      label(item,'div',(Number(t.amount)<0?'+':'−')+money(Math.abs(Number(t.amount))),'min-width:85px;font-weight:bold;color:'+(Number(t.amount)<0?'#047857':'#b91c1c'));
+      const select=document.createElement('select');select.setAttribute('aria-label','Category for '+(t.merchant_name||t.description||'transaction'));
+      select.style.cssText='padding:8px;border:1px solid #cbd5e1;border-radius:6px;background:white;color:#0f172a';
+      for(const cat of categories){const o=document.createElement('option');o.value=cat;o.textContent=cat;select.appendChild(o)}
+      select.value=txCategory(t);
+      select.addEventListener('change',()=>{
+        if(!currentUser||currentUser!==window.flowpayActiveUserId)return;
+        if(!state.bankTransactionCategories||typeof state.bankTransactionCategories!=='object')state.bankTransactionCategories={};
+        if(select.value==='Uncategorized')delete state.bankTransactionCategories[t.id];else state.bankTransactionCategories[t.id]=select.value;
+        change();renderTransactionExplorer();
+      });
+      item.appendChild(select);txList.appendChild(item);
+    }
+    renderIncomeSuggestions();
+  }
+  const dateUTC=s=>Date.parse(s+'T12:00:00Z');
+  const plusDaysISO=(s,days)=>new Date(dateUTC(s)+days*86400000).toISOString().slice(0,10);
+  function detectIncomePatterns(){
+    const groups=new Map();
+    for(const t of lastTransactions){
+      if(t.pending||Number(t.amount)>=0||!/^\d{4}-\d{2}-\d{2}$/.test(t.transaction_date||''))continue;
+      const name=String(t.merchant_name||t.description||'').trim();
+      if(!name||/transfer|zelle|venmo|cash app|refund|reversal|interest|paypal/i.test(name))continue;
+      if(txCategory(t)==='Transfer')continue;
+      const key=name.toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,60);
+      if(!key)continue;
+      if(!groups.has(key))groups.set(key,[]);
+      groups.get(key).push(t);
+    }
+    const found=[];
+    for(const [key,items] of groups){
+      const unique=[...new Map(items.map(t=>[t.transaction_date,t])).values()].sort((a,b)=>a.transaction_date.localeCompare(b.transaction_date));
+      if(unique.length<3)continue;
+      const amounts=unique.map(t=>Math.abs(Number(t.amount)));
+      const avg=amounts.reduce((a,b)=>a+b,0)/amounts.length;
+      if(!Number.isFinite(avg)||avg<=0||amounts.some(n=>Math.abs(n-avg)>Math.max(5,avg*.1)))continue;
+      const gaps=unique.slice(1).map((t,i)=>Math.round((dateUTC(t.transaction_date)-dateUTC(unique[i].transaction_date))/86400000));
+      const intervals=[{days:7,name:'weekly'},{days:14,name:'biweekly'},{days:15,name:'semimonthly (approx.)'},{days:30,name:'monthly'}];
+      const matched=intervals.find(p=>gaps.every(g=>Math.abs(g-p.days)<=(p.days>=15?4:2)));
+      if(!matched)continue;
+      const last=unique.at(-1);
+      let next=plusDaysISO(last.transaction_date,matched.days);
+      const today=new Date().toISOString().slice(0,10);
+      while(next<today)next=plusDaysISO(next,matched.days);
+      found.push({key,name:last.merchant_name||last.description||'Deposit',amount:Math.round(avg*100)/100,frequency:matched.name,days:matched.days,next,count:unique.length,lastDate:last.transaction_date});
+    }
+    return found;
+  }
+  function renderIncomeSuggestions(){
+    incomeList.replaceChildren();
+    if(!currentUser)return;
+    const patterns=detectIncomePatterns();
+    const decisions=Array.isArray(state.incomePatternDecisions)?state.incomePatternDecisions:[];
+    let visible=0;
+    for(const p of patterns){
+      if(decisions.some(d=>d.key===p.key))continue;
+      visible++;
+      const item=document.createElement('div');item.style.cssText='border:1px solid #cbd5e1;border-radius:9px;padding:13px;margin:9px 0';
+      label(item,'div',p.name+' · '+money(p.amount),'font-weight:bold');
+      label(item,'div',p.count+' similar deposits · '+p.frequency+' · next estimated '+p.next,'font-size:13px;margin:6px 0');
+      label(item,'div','Estimate only. Confirm the payer, amount and next payment date.','font-size:12px;color:#92400e;margin-bottom:8px');
+      const approve=label(item,'button','Add next paycheck','background:#0d9488;color:white;border:0;padding:8px;border-radius:7px;margin-right:7px;cursor:pointer');
+      const dismiss=label(item,'button','Dismiss','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer');
+      const decide=action=>{
+        if(!currentUser||currentUser!==window.flowpayActiveUserId)return;
+        if(!Array.isArray(state.incomePatternDecisions))state.incomePatternDecisions=[];
+        if(state.incomePatternDecisions.some(d=>d.key===p.key))return;
+        if(action==='approved'){
+          if(!confirm('Add a projected paycheck of '+money(p.amount)+' from '+p.name+' on '+p.next+'? This adds only ONE future paycheck, not a recurring series.'))return;
+          state.paychecks.push({id:uid(),name:p.name+' (bank suggestion)',amount:p.amount,date:p.next,status:'potential'});
+          log('Added projected paycheck from bank suggestion: '+p.name);
+        }
+        state.incomePatternDecisions.push({key:p.key,action,decidedAt:new Date().toISOString()});
+        change();renderTransactionExplorer();
+      };
+      approve.addEventListener('click',()=>decide('approved'));
+      dismiss.addEventListener('click',()=>decide('dismissed'));
+      incomeList.appendChild(item);
+    }
+    if(!visible)label(incomeList,'div','No new recurring-income patterns detected. At least three consistent deposits are needed.','padding:12px;background:#e2e8f0;border-radius:8px;font-size:13px');
+  }
+  document.getElementById('flowpay-open-transactions').addEventListener('click',()=>{txOverlay.style.display='block';renderTransactionExplorer()});
+  document.getElementById('flowpay-close-transactions').addEventListener('click',()=>{txOverlay.style.display='none'});
+  txSearch.addEventListener('input',renderTransactionExplorer);
+  txFilter.addEventListener('change',renderTransactionExplorer);
+  txCategoryFilter.addEventListener('change',()=>{window.flowpaySelectedTxCategory=txCategoryFilter.value;renderTransactionExplorer()});
+  window.addEventListener('flowpay-financial-state-loaded',()=>{if(txOverlay.style.display==='block')renderTransactionExplorer()});
   connectButton.addEventListener('click',async () => {
     if(busy || !currentUser) return;
     setBusy(true);
@@ -1648,7 +1777,7 @@ window.addEventListener('DOMContentLoaded',init);
     generation++;
     currentUser=id || null;
     panel.style.display=currentUser ? 'block' : 'none';
-    accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
+    accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];txOverlay.style.display='none';window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
     setBusy(false);
     if(currentUser){
       setStatus('Loading Sandbox bank connections…');
@@ -1660,6 +1789,17 @@ window.addEventListener('DOMContentLoaded',init);
   if(window.flowpayActiveUserId) authChanged(window.flowpayActiveUserId);
 })();
 </script>
+<div id="flowpay-transactions-overlay" style="display:none;position:fixed;inset:0;z-index:9998;background:rgba(15,23,42,.8);overflow:auto;padding:24px 12px;font-family:Arial,sans-serif">
+  <div style="max-width:1000px;margin:auto;background:#f8fafc;color:#0f172a;border-radius:14px;padding:22px;box-shadow:0 10px 40px #0005">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><h2 style="font-size:23px;font-weight:bold">Bank Transactions (Sandbox)</h2><button type="button" id="flowpay-close-transactions" style="padding:9px 14px;background:#334155;color:white;border:0;border-radius:8px">Close</button></div>
+    <p style="margin:8px 0 14px;color:#475569;font-size:13px">Imported transactions only. Categories are saved to FlowPay cloud data; bank records remain unchanged.</p>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px"><input id="flowpay-tx-search" placeholder="Search merchant or description" aria-label="Search transactions" style="flex:2;min-width:180px;padding:10px;border:1px solid #cbd5e1;border-radius:8px"><select id="flowpay-tx-filter" aria-label="Filter transactions" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All transactions</option><option value="income">Deposits</option><option value="expense">Expenses</option><option value="pending">Pending</option></select><select id="flowpay-tx-category-filter" aria-label="Filter by category" style="padding:10px;border:1px solid #cbd5e1;border-radius:8px"><option value="all">All categories</option></select></div>
+    <div id="flowpay-tx-count" style="font-size:13px;margin-bottom:7px"></div><div id="flowpay-tx-list" style="max-height:410px;overflow:auto;border:1px solid #e2e8f0;border-radius:9px"></div>
+    <h3 style="font-size:19px;font-weight:bold;margin:22px 0 6px">Recurring income suggestions</h3>
+    <p style="font-size:13px;color:#475569;margin-bottom:10px">Requires at least three similar deposits from the same payer with a consistent interval. Suggestions never automatically add income.</p>
+    <div id="flowpay-income-suggestions"></div>
+  </div>
+</div>
 <!-- End FlowPay Plaid Sandbox -->
 
 </body>
