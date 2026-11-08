@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 import manage_staging as manager
@@ -15,7 +17,7 @@ SHA = "a" * 40
 
 
 def version():
-    return {"id": OLD, "metadata": {"annotations": {"workers/commit_sha": SHA}},
+    return {"id": OLD, "metadata": {"source": "api"}, "annotations": {"workers/commit_sha": SHA},
         "resources": {"script_runtime": {"compatibility_date": "2026-11-07"},
             "bindings": [
                 {"name": "DB", "type": "d1", "id": DATABASE},
@@ -54,6 +56,18 @@ class FakeAPI:
 
 
 class ManagementTests(unittest.TestCase):
+    def test_ancestor_with_identical_source_is_accepted(self):
+        with patch.object(manager.subprocess, "run", side_effect=[SimpleNamespace(), SimpleNamespace(stdout=b"same")]):
+            self.assertTrue(manager.reviewed_source_matches("b" * 40, SHA, b"same"))
+
+    def test_ancestor_with_changed_source_is_rejected(self):
+        with patch.object(manager.subprocess, "run", side_effect=[SimpleNamespace(), SimpleNamespace(stdout=b"old")]):
+            self.assertFalse(manager.reviewed_source_matches("b" * 40, SHA, b"new"))
+
+    def test_nonancestor_is_rejected(self):
+        with patch.object(manager.subprocess, "run", side_effect=manager.subprocess.CalledProcessError(1, "git")):
+            self.assertFalse(manager.reviewed_source_matches("b" * 40, SHA, b"same"))
+
     def test_inspect_only_reads(self):
         api = FakeAPI()
         result = manager.manage(api, "inspect", "", commit=SHA)
@@ -84,6 +98,20 @@ class ManagementTests(unittest.TestCase):
         result = manager.manage(api, "promote", OLD, NEW, SHA)
         self.assertEqual(result["deployed_version"], NEW)
         self.assertEqual(api.current, NEW)
+
+    def test_missing_annotations_block_all_writes(self):
+        api = FakeAPI()
+        del api.versions[NEW]["annotations"]
+        with self.assertRaises(CheckFailed):
+            manager.manage(api, "promote", OLD, NEW, SHA)
+        self.assertTrue(all(method == "GET" for _, method, _ in api.calls))
+
+    def test_nested_metadata_annotation_is_not_accepted(self):
+        api = FakeAPI()
+        api.versions[NEW]["metadata"]["annotations"] = api.versions[NEW].pop("annotations")
+        with self.assertRaises(CheckFailed):
+            manager.manage(api, "promote", OLD, NEW, SHA)
+        self.assertTrue(all(method == "GET" for _, method, _ in api.calls))
 
     def test_stale_active_version_blocks_writes(self):
         api = FakeAPI()

@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import re
+import subprocess
 import urllib.error
 import urllib.request
 import uuid
@@ -17,6 +18,24 @@ from check_staging import ACCOUNT, WORKER, CheckFailed, NoRedirect, summarize
 BASE = f"https://api.cloudflare.com/client/v4/accounts/{ACCOUNT}/workers/scripts/{WORKER}"
 SOURCE = Path(__file__).parents[1] / "staging-worker.mjs"
 UUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$")
+
+
+def reviewed_source_matches(candidate_commit, commit, source):
+    if candidate_commit == commit:
+        return True
+    if not isinstance(candidate_commit, str) or not re.fullmatch(r"[0-9a-f]{40}", candidate_commit):
+        return False
+    if not source:
+        return False
+    root = SOURCE.parents[1]
+    try:
+        subprocess.run(["git", "merge-base", "--is-ancestor", candidate_commit, commit],
+                       cwd=root, check=True, capture_output=True, timeout=15)
+        previous = subprocess.run(["git", "show", candidate_commit + ":cloudflare/staging-worker.mjs"],
+                                  cwd=root, check=True, capture_output=True, timeout=15).stdout
+    except (subprocess.SubprocessError, OSError):
+        return False
+    return previous == source
 
 
 def version_id(value):
@@ -165,8 +184,8 @@ def manage(api, operation, expected_active, candidate="", commit="", source=b"")
     candidate = version_id(candidate)
     detail = api.call("/versions/" + candidate)
     settings = configuration(detail)
-    annotations = detail.get("metadata", {}).get("annotations", {})
-    if annotations.get("workers/commit_sha") != commit:
+    annotations = detail.get("annotations", {})
+    if not reviewed_source_matches(annotations.get("workers/commit_sha"), commit, source):
         raise CheckFailed("Candidate is not annotated with the selected reviewed commit.")
     if fingerprint(settings) != fingerprint(original):
         raise CheckFailed("Candidate bindings or runtime settings differ from active staging.")
