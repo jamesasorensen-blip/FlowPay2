@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 import sys
 import unittest
+from unittest.mock import patch
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).parents[1] / "scripts"))
 import manage_staging as manager
@@ -54,6 +56,18 @@ class FakeAPI:
 
 
 class ManagementTests(unittest.TestCase):
+    def test_ancestor_with_identical_source_is_accepted(self):
+        with patch.object(manager.subprocess, "run", side_effect=[SimpleNamespace(), SimpleNamespace(stdout=b"same")]):
+            self.assertTrue(manager.reviewed_source_matches("b" * 40, SHA, b"same"))
+
+    def test_ancestor_with_changed_source_is_rejected(self):
+        with patch.object(manager.subprocess, "run", side_effect=[SimpleNamespace(), SimpleNamespace(stdout=b"old")]):
+            self.assertFalse(manager.reviewed_source_matches("b" * 40, SHA, b"new"))
+
+    def test_nonancestor_is_rejected(self):
+        with patch.object(manager.subprocess, "run", side_effect=manager.subprocess.CalledProcessError(1, "git")):
+            self.assertFalse(manager.reviewed_source_matches("b" * 40, SHA, b"same"))
+
     def test_inspect_only_reads(self):
         api = FakeAPI()
         result = manager.manage(api, "inspect", "", commit=SHA)
