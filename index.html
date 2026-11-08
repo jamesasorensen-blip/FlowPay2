@@ -1779,9 +1779,10 @@ window.addEventListener('DOMContentLoaded',init);
     setStatus('Opening Plaid Sandbox…');
     try {
       if(!window.Plaid) throw new Error('Plaid Link library did not load.');
+      const userCheckedConsent = consentCheck.checked;
       await refreshConsent();
       if (!consentActive) {
-        if (!consentCheck.checked) throw new Error('Read the test bank data notice and check the agreement box first.');
+        if (!userCheckedConsent) throw new Error('Read the test bank data notice and check the agreement box first.');
         await api('/consent','POST',{agreed:true,consent_type:'bank_connection',policy_version:'staging-test-v1'});
         await refreshConsent();
         if (!consentActive) throw new Error('Could not verify recorded permission.');
