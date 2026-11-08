@@ -1018,12 +1018,15 @@ window.addEventListener('DOMContentLoaded',init);
   let activeUser = null;
   // Access tokens are retrieved from the active Supabase session on demand.
   // Never persist these tokens in FlowPay's own localStorage keys.
-  window.flowpayGetAccessToken = async function () {
+  window.flowpayGetAccessToken = async function (expectedUserId = activeUser?.id || null) {
     if (!client) throw new Error('Supabase authentication is not ready.');
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     if (!data.session?.access_token) {
       throw new Error('Please sign in to FlowPay before connecting a test bank.');
+    }
+    if (!expectedUserId || activeUser?.id !== expectedUserId || data.session.user?.id !== expectedUserId) {
+      throw new Error('Signed-in account changed. Retry from the current account.');
     }
     return data.session.access_token;
   };
@@ -1194,13 +1197,17 @@ window.addEventListener('DOMContentLoaded',init);
     window.dispatchEvent(new Event('flowpay-financial-state-loaded'));
   };
   const request = async (method, payload) => {
-    const token = await window.flowpayGetAccessToken();
+    const id = activeId, gen = generation;
+    if (!id) throw new Error('Sign in to FlowPay first.');
+    const token = await window.flowpayGetAccessToken(id);
+    if (id !== activeId || gen !== generation) throw new Error('Signed-in account changed. Request cancelled.');
     const res = await fetch(API, {
       method, headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
       ...(payload === undefined ? {} : {body:JSON.stringify(payload)})
     });
     let body;
     try { body = await res.json(); } catch { throw new Error('Unexpected cloud response ('+res.status+')'); }
+    if (id !== activeId || gen !== generation) throw new Error('Signed-in account changed. Response discarded.');
     return {res,body};
   };
   const backup = (data, name) => {
@@ -1234,8 +1241,10 @@ window.addEventListener('DOMContentLoaded',init);
         setStatus('Cloud sync paused: '+err.message+'. Changes remain in this browser. Do not clear site data.');
       }
     } finally {
-      writing = false;
-      if (gen === generation && dirty && !paused) schedule();
+      if (gen === generation) {
+        writing = false;
+        if (dirty && !paused) schedule();
+      }
     }
   };
   const schedule = () => {clearTimeout(timer);timer=setTimeout(flush,900)};
@@ -1427,14 +1436,17 @@ window.addEventListener('DOMContentLoaded',init);
     return element;
   };
   async function api(path, method='GET', payload) {
-    if (!currentUser) throw new Error('Sign in to FlowPay first.');
-    const token = await window.flowpayGetAccessToken();
+    const id = currentUser, gen = generation;
+    if (!id) throw new Error('Sign in to FlowPay first.');
+    const token = await window.flowpayGetAccessToken(id);
+    if (id !== currentUser || gen !== generation) throw new Error('Signed-in account changed. Request cancelled.');
     const response = await fetch(API + path, {
       method,
       headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
       ...(payload === undefined ? {} : {body:JSON.stringify(payload)})
     });
     const result = await response.json().catch(() => ({}));
+    if (id !== currentUser || gen !== generation) throw new Error('Signed-in account changed. Response discarded.');
     if (!response.ok || result.success === false) {
       throw new Error(result.error || 'Bank API failed ('+response.status+')');
     }
@@ -1744,11 +1756,12 @@ window.addEventListener('DOMContentLoaded',init);
     if(busy || !currentUser) return;
     setBusy(true);
     setStatus('Opening Plaid Sandbox…');
+    const gen=generation;
     try {
       if(!window.Plaid) throw new Error('Plaid Link library did not load.');
       const data=await api('/link-token','POST',{});
       if(!data.link_token) throw new Error('Missing Link token.');
-      const gen=generation;
+      if(gen !== generation) return;
       const handler=window.Plaid.create({
         token:data.link_token,
         onSuccess:async (publicToken,metadata) => {
