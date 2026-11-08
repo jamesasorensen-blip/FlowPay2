@@ -165,7 +165,7 @@ def manage(api, operation, expected_active, candidate="", commit="", source=b"")
     candidate = version_id(candidate)
     detail = api.call("/versions/" + candidate)
     settings = configuration(detail)
-    annotations = detail.get("metadata", {}).get("annotations", {})
+    annotations = detail.get("annotations", {})
     if annotations.get("workers/commit_sha") != commit:
         raise CheckFailed("Candidate is not annotated with the selected reviewed commit.")
     if fingerprint(settings) != fingerprint(original):

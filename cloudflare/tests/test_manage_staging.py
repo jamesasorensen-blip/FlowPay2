@@ -15,7 +15,7 @@ SHA = "a" * 40
 
 
 def version():
-    return {"id": OLD, "metadata": {"annotations": {"workers/commit_sha": SHA}},
+    return {"id": OLD, "metadata": {"source": "api"}, "annotations": {"workers/commit_sha": SHA},
         "resources": {"script_runtime": {"compatibility_date": "2026-11-07"},
             "bindings": [
                 {"name": "DB", "type": "d1", "id": DATABASE},
@@ -84,6 +84,20 @@ class ManagementTests(unittest.TestCase):
         result = manager.manage(api, "promote", OLD, NEW, SHA)
         self.assertEqual(result["deployed_version"], NEW)
         self.assertEqual(api.current, NEW)
+
+    def test_missing_annotations_block_all_writes(self):
+        api = FakeAPI()
+        del api.versions[NEW]["annotations"]
+        with self.assertRaises(CheckFailed):
+            manager.manage(api, "promote", OLD, NEW, SHA)
+        self.assertTrue(all(method == "GET" for _, method, _ in api.calls))
+
+    def test_nested_metadata_annotation_is_not_accepted(self):
+        api = FakeAPI()
+        api.versions[NEW]["metadata"]["annotations"] = api.versions[NEW].pop("annotations")
+        with self.assertRaises(CheckFailed):
+            manager.manage(api, "promote", OLD, NEW, SHA)
+        self.assertTrue(all(method == "GET" for _, method, _ in api.calls))
 
     def test_stale_active_version_blocks_writes(self):
         api = FakeAPI()
