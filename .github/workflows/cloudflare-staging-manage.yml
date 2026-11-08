@@ -1,0 +1,72 @@
+name: Manage Cloudflare staging version
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Inspect staging, upload an undeployed version, or promote a reviewed version
+        type: choice
+        options: [inspect, upload, promote]
+        default: inspect
+        required: true
+      approved_commit:
+        description: Full main commit SHA reviewed and approved for this operation
+        type: string
+        required: true
+      expected_active_version:
+        description: Full current staging version UUID (required for upload/promote)
+        type: string
+        required: false
+      candidate_version:
+        description: Full uploaded version UUID (required for promote only)
+        type: string
+        required: false
+      confirmation:
+        description: Type flowpay-plaid-api-staging
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-staging-management
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - run: node --check cloudflare/staging-worker.mjs
+      - run: python3 -m unittest discover -s cloudflare/tests -v
+      - name: Verify explicitly approved commit
+        env:
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+        run: |
+          test "$APPROVED_COMMIT" = "$GITHUB_SHA"
+          test "$CONFIRMATION" = "flowpay-plaid-api-staging"
+
+  manage-staging:
+    needs: validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: cloudflare-staging
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Perform approved staging operation
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          APPROVED_COMMIT: ${{ inputs.approved_commit }}
+          CONFIRMATION: ${{ inputs.confirmation }}
+          OPERATION: ${{ inputs.operation }}
+          EXPECTED_ACTIVE_VERSION: ${{ inputs.expected_active_version }}
+          CANDIDATE_VERSION: ${{ inputs.candidate_version }}
+        run: python3 cloudflare/scripts/manage_staging.py
