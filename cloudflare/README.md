@@ -30,10 +30,52 @@ accept arbitrary account names, Worker names, API paths or commands. Treat write
 access to workflows/scripts as security-sensitive because the credential is broad.
 The token expires December 8, 2026 and must be renewed or revoked deliberately.
 
-A separate reviewed deployment workflow is still needed. No deployment command
-is included in this initial connection check. Obtain explicit approval before
-adding/running deployment or data-mutation operations. Do not place credentials
-in this repository or overwrite live settings with an incomplete Wrangler config.
+## Approved staging version management
+
+`Manage Cloudflare staging version` is manually dispatched on main only, with
+the same protected environment. It has three separate operations:
+
+- `inspect` (default): reads the active version ID and sanitized configuration.
+- `upload`: uploads the checked-in Worker as a version without routing traffic
+  to it. Requires the exact main commit SHA and current active version UUID.
+- `promote`: routes 100% of staging traffic to an explicitly selected previously
+  uploaded version annotated with that reviewed commit. Requires another run
+  and environment approval. It refuses different bindings or runtime metadata.
+
+Every run requires the full reviewed main commit SHA and the confirmation text
+`flowpay-plaid-api-staging`. Upload and promote need the full active version UUID
+from inspect. Promote additionally needs the full uploaded candidate UUID.
+Workflow input values are passed through environment variables, not shell code.
+
+No push or PR event can invoke either workflow. Required reviewers and main-only
+environment deployment branches must remain enabled in GitHub Settings. The
+workflow cannot enforce account-wide security against a repository administrator
+who changes its code or environment rules.
+
+Upload uses the Workers Versions API `keep_bindings` for plain-text, encrypted
+secret and D1 bindings, preserving their existing values. It refuses pending
+undeployed versions and additional binding types, and verifies the uploaded
+binding metadata before any promotion. It retains compatibility date/flags and
+usage model where returned. Additional runtime limits, placement, cache settings
+or exports cause a stop for review. Raw responses and binding values stay private.
+
+Cloudflare mutation requests are not automatically retried. A failed/timeout run
+can leave an undeployed version or an unknown promotion result: inspect before
+retrying. Version/deployment checks reduce accidental concurrent changes, but
+the API offers no atomic compare-and-swap here; avoid dashboard edits while a
+run is in progress. Secret values are opaque, so metadata comparisons cannot
+prove two versions contain identical secret values. Do not rotate secrets
+between upload and promotion.
+
+These new upload/promotion operations have only been tested with mocked API
+responses. Their first approved live use must verify Cloudflare response shapes
+and deployment behavior. No Worker code, bindings, D1 data or production resource
+is changed by merging the workflow files themselves. The repository also has
+GitHub Pages builds triggered by merges; confirm hosting impact before merging.
+Obtain explicit approval before running upload/promotion or data-mutation work.
+Do not place credentials in this repository or overwrite live settings with an
+incomplete Wrangler config. No schema migrations or destructive D1 actions are
+included in this workflow.
 
 Remaining Worker concerns include cross-user isolation testing, audit retention,
 rate limiting and live last-bank disconnection testing. Audit writes for connect,
