@@ -24,3 +24,49 @@ The staging Cloudflare Worker verifies JWT signatures and claims, then (when `RE
 - An Edge Function deployed into the shared Supabase project is a live project change even when staging-only; confirm all secrets and allowlist restrictions before deploying.
 - Supabase MFA recovery execution is still a design with injected trusted verification, one-time claim, audit, and session-revocation callbacks. These callbacks are **not** operational services.
 - Do not claim mandatory MFA is live or account recovery is available until all activation gates are independently verified.
+
+## Restricted database credential plan (reviewed, NOT APPLIED)
+
+Read-only verification on the shared Supabase project confirms PostgreSQL 17.11 and that neither `authenticated` nor `service_role` currently has SELECT on `auth.sessions`. Do **not** grant either client role that permission.
+
+Use a dedicated `LOGIN` role with a separately generated strong password. Have a database administrator execute the following **only after a change review**, ideally on an isolated Supabase development branch first. This is an example for manual review, not an automatic migration:
+
+```sql
+-- Execute using a privileged database administrator; replace the password
+-- through a secure SQL session, never in GitHub, chat, or SQL editor history.
+begin;
+create role flowpay_session_lookup LOGIN NOINHERIT
+  NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION
+  PASSWORD '<GENERATE_AND_INSERT_SECURELY>';
+grant usage on schema auth to flowpay_session_lookup;
+grant select (id, user_id, not_after) on auth.sessions
+  to flowpay_session_lookup;
+commit;
+```
+
+Use a Postgres connection string with **this role**, not `postgres` or `service_role`, as the Edge Function's server-only `SUPABASE_DB_URL`. Select the connection endpoint and pooler mode using the Supabase dashboard's Connect instructions, and verify connectivity without logging credentials. The deployed function additionally restricts queries to the single staging test user. Do not run the example SQL until a staging branch or reviewed maintenance window exists.
+
+Permission acceptance queries (run as database administrator; do not display credentials):
+
+```sql
+select
+  has_schema_privilege('flowpay_session_lookup','auth','USAGE') as can_use_auth,
+  has_column_privilege('flowpay_session_lookup','auth.sessions','id','SELECT') as can_read_id,
+  has_column_privilege('flowpay_session_lookup','auth.sessions','user_id','SELECT') as can_read_user_id,
+  has_column_privilege('flowpay_session_lookup','auth.sessions','not_after','SELECT') as can_read_expiry,
+  has_column_privilege('flowpay_session_lookup','auth.sessions','factor_id','SELECT') as can_read_other_column;
+```
+
+The first four results must be true and the last must be false **if that extra column exists**; choose an actual other column from `information_schema.columns` if necessary. Also verify the role cannot read `auth.users`, `auth.mfa_factors`, or unrelated financial tables. An actual connection as the role must successfully execute the three-column lookup and be denied when attempting to select unauthorized columns/tables. These checks are not yet executed because the role is not created.
+
+## Secret configuration (ready for operator entry, NOT SET)
+
+1. Generate a fresh random value of at least 32 bytes using a local password manager's cryptographically secure generator. **Never share it in chat or commit it.**
+2. In Supabase Dashboard → Edge Functions → Secrets, create `FLOWPAY_SESSION_LOOKUP_SECRET` with that value. This is a project-level Edge Function secret: do not reuse a Plaid or production API key.
+3. In **staging Cloudflare Worker only**, add `SESSION_LOOKUP_SECRET` with the exact same value. Do not set this on the production Worker.
+4. Add `FLOWPAY_STAGING_TEST_USER_ID` to Supabase Edge Function secrets using the already-approved test account UUID. Never put production user IDs here.
+5. Add `SUPABASE_DB_URL` to Supabase Edge Function secrets **only after** the dedicated restricted database role has been provisioned and verified.
+6. Configure `SESSION_LOOKUP_URL` in the staging Worker as `https://<project-ref>.supabase.co/functions/v1/flowpay-session-lookup`. Keep `REQUIRE_ACTIVE_SESSION` and `REQUIRE_MFA_AAL2` disabled until live tests pass.
+7. Deploy the uniquely named function and test unauthorized, revoked, active, wrong-user, and outage behavior. Because this Supabase project is shared with production, deployment must be explicitly reviewed before activation.
+
+The secret name and handling plan are finalized. The credential and role are **not** created, the secret is **not** set, and the Edge Function is **not** deployed.
