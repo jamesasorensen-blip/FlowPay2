@@ -16,15 +16,24 @@ export function createMfaController(supabase) {
       unwrap(mfa.getAuthenticatorAssuranceLevel())
     ]);
     const verified = (factors.totp || []).filter(f => f.status === "verified");
+    const pending = (factors.all || factors.totp || []).filter(f => f.factor_type === "totp" || f.factorType === "totp" || (factors.totp || []).some(t => t.id === f.id)).filter(f => f.status === "unverified");
     const state = assurance.currentLevel === "aal2" && verified.length ? "ready" :
       verified.length ? "challenge-required" : "enrollment-required";
-    return { state, factors: verified, currentLevel: assurance.currentLevel,
+    return { state, factors: verified, pendingFactors: pending, currentLevel: assurance.currentLevel,
       nextLevel: assurance.nextLevel };
   }
   async function enroll(friendlyName = "FlowPay authenticator") {
     const data = await unwrap(mfa.enroll({ factorType: "totp", friendlyName }));
     if (!data?.id || !data?.totp?.qr_code) throw new Error("Invalid enrollment response");
     return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
+  }
+  async function restartUnverifiedEnrollment() {
+    const before = await status();
+    if (before.state !== "enrollment-required") throw new Error("Enrollment reset unavailable when MFA is verified");
+    const pending = (before.pendingFactors || []).filter(f => f.friendly_name === "FlowPay authenticator");
+    if (pending.length !== 1) throw new Error("Unable to identify a single unfinished FlowPay authenticator");
+    await unwrap(mfa.unenroll({ factorId: pending[0].id }));
+    return enroll();
   }
   async function verify(factorId, code) {
     if (!factorId || !/^\d{6}$/.test(code)) throw new Error("Enter a six-digit authenticator code");
@@ -41,5 +50,5 @@ export function createMfaController(supabase) {
     if (before.factors.length <= 1) throw new Error("Cannot remove your last verified factor");
     return unwrap(mfa.unenroll({ factorId }));
   }
-  return { status, enroll, verify, removeFactor };
+  return { status, enroll, restartUnverifiedEnrollment, verify, removeFactor };
 }
