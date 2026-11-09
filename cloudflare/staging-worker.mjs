@@ -358,9 +358,9 @@ export default {
     if (env.REQUIRE_ACTIVE_SESSION === "true") {
       let validSession = false;
       try {
-        const lookup = typeof env.SESSION_LOOKUP?.get === "function"
-          ? id => env.SESSION_LOOKUP.get(id)
-          : createSupabaseSessionLookup(env);
+        // Always query the authoritative session service. A KV/cache binding
+        // cannot reliably prove a Supabase session has not been revoked.
+        const lookup = createSupabaseSessionLookup(env);
         validSession = await verifyActiveSession(
           { sub: user.id, session_id: user.session_id }, lookup
         );
