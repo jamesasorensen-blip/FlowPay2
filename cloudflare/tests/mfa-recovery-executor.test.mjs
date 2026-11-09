@@ -79,6 +79,6 @@ test("refuses partial reset when another verified factor exists", async () => {
 test("rejects inventory that includes an unverified or wrong factor", async () => {
   const h = harness();
   h.getVerifiedFactors = async () => [{ id: uuid(2), status: "unverified" }];
-  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /verified factor/);
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /verified inventory/);
   assert.equal(h.deletes.length, 0);
 });
