@@ -35,7 +35,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   manual.style.cssText = "display:block; white-space:pre-wrap; overflow-wrap:anywhere; user-select:all; padding:8px 0; font:600 15px monospace; color:#111827;";
   setupDetails.append(manualLabel, manual);
   const form = document.createElement("form");
+  form.hidden = true;
   const input = document.createElement("input");
+  input.type = "text";
   input.inputMode = "numeric";
   input.autocomplete = "one-time-code";
   input.pattern = "[0-9]{6}";
@@ -59,6 +61,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   signOut.type = "button";
   signOut.textContent = "Sign out";
   panel.append(heading, message, enrollButton, restartButton, qr, setupDetails, form, signOut);
+  panel.style.cssText = "display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:100%;";
+  for (const control of [enrollButton, restartButton, signOut, button]) control.style.cssText = "padding:10px 14px;border-radius:8px;border:1px solid #a5b4fc;cursor:pointer;min-height:40px;";
+  input.style.cssText = "min-width:0;max-width:100%;padding:10px;border-radius:6px;color:#111827;background:#fff;";
   host.append(panel);
   let factorId = null;
   async function render() {
@@ -132,8 +137,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       factorId = setup.factorId;
       if (qrSource) qr.src = qrSource;
       qr.hidden = !qrSource;
-      manual.textContent = setup.secret || "";
-      manual.hidden = false;
+      if (typeof setup.secret !== "string" || !setup.secret.trim()) throw new Error("Authenticator setup key unavailable; cannot finish enrollment");
+      manual.textContent = setup.secret;
+      setupDetails.style.display = "block";
       form.hidden = false;
       form.style.display = "flex";
       form.style.flexWrap = "wrap";
