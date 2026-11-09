@@ -345,13 +345,6 @@ export default {
         error: "Staging access restricted"
       }, 403);
     }
-    // Disabled by default until the MFA enrollment UI and recovery flow are tested.
-    // When enabled, deny all financial API operations for sessions below AAL2.
-    // /me remains available to identify an account that needs enrollment.
-    if (requiresMfa(user, env, url.pathname, request.method)) {
-      return send({ success: false, error: "MFA_REQUIRED",
-        message: "Complete multi-factor authentication before accessing financial data." }, 403);
-    }
     // Check session validity for all authenticated routes, including /me.
     // AAL1 users may still access /me for enrollment, but revoked sessions cannot.
     // This remains disabled until the authoritative service is operational.
@@ -368,6 +361,13 @@ export default {
         // Configuration errors, unavailable lookup, and timeouts fail closed.
       }
       if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
+    }
+    // Disabled by default until the MFA enrollment UI and recovery flow are tested.
+    // When enabled, deny all financial API operations for sessions below AAL2.
+    // /me remains available to identify an account that needs enrollment.
+    if (requiresMfa(user, env, url.pathname, request.method)) {
+      return send({ success: false, error: "MFA_REQUIRED",
+        message: "Complete multi-factor authentication before accessing financial data." }, 403);
     }
     if (url.pathname === "/me" && request.method === "GET") {
       return send({ success: true, user: { id: user.id, email: user.email, aal: user.aal } });
