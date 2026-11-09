@@ -20,6 +20,7 @@ function harness() {
     audit: async e => { events.push(e); },
     verifyTrustedCase: async () => true,
     claimRecoveryCase: async () => true,
+    verifySessionsRevoked: async () => true,
     getVerifiedFactors: async () => deletes.some(d => d.id === uuid(2)) ? [] : [{ id: uuid(2), status: "verified" }],
     admin: { auth: { admin: { mfa: { deleteFactor: async input => {
       deletes.push(input); return { data: {} };
@@ -187,4 +188,19 @@ test("trusted verifier cannot mutate the approved recovery snapshot", async () =
   const result = await executeMfaRecovery({ record: record(), ...h, now, dryRun: false });
   assert.equal(result.status, "completed");
   assert.deepEqual(h.deletes, [{ userId: uuid(1), id: uuid(2) }]);
+});
+
+test("session revocation must be independently confirmed before recovery completion", async () => {
+  const h = harness();
+  h.verifySessionsRevoked = async () => false;
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /session revocation could not be verified/);
+  assert.equal(h.deletes.length, 1);
+  assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+  assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
+});
+test("missing session revocation verifier blocks destructive recovery", async () => {
+  const h = harness();
+  delete h.verifySessionsRevoked;
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /session revocation verification/);
+  assert.equal(h.deletes.length, 0);
 });
