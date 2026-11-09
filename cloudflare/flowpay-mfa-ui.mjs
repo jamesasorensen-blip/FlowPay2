@@ -28,13 +28,19 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   button.type = "submit";
   button.textContent = "Verify authenticator";
   form.append(input, button);
-  panel.append(heading, message, qr, manual, form);
+  const enrollButton = document.createElement("button");
+  enrollButton.type = "button";
+  enrollButton.textContent = "Set up authenticator";
+  enrollButton.hidden = true;
+  panel.append(heading, message, enrollButton, qr, manual, form);
   host.append(panel);
   let factorId = null;
   async function render() {
     const result = await controller.status();
     qr.hidden = manual.hidden = true;
     form.hidden = false;
+    enrollButton.hidden = true;
+    factorId = null;
     if (result.state === "signed-out") {
       message.textContent = "Sign in before setting up multi-factor authentication.";
       form.hidden = true;
@@ -46,17 +52,33 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       factorId = result.factors[0].id;
       message.textContent = "Enter the code from your authenticator app to continue.";
     } else {
-      message.textContent = "Setting up your authenticator…";
+      message.textContent = "Set up an authenticator app to protect your account.";
+      enrollButton.hidden = false;
+      form.hidden = true;
+    }
+  }
+  enrollButton.addEventListener("click", async () => {
+    enrollButton.disabled = true;
+    message.textContent = "Setting up your authenticator…";
+    try {
       const setup = await controller.enroll();
+      if (!/^data:image\\/(?:svg\\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) {
+        throw new Error("Invalid authenticator QR response");
+      }
       factorId = setup.factorId;
-      if (!/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) throw new Error("Invalid authenticator QR response");
       qr.src = setup.qrCode;
       qr.hidden = false;
       manual.textContent = setup.secret;
       manual.hidden = false;
-      message.textContent = "Scan the QR code or enter the setup key in an authenticator app, then verify a code.";
+      form.hidden = false;
+      enrollButton.hidden = true;
+      message.textContent = "Scan the QR code or enter the setup key in your authenticator app, then enter a code.";
+    } catch (error) {
+      message.textContent = error?.message || "Unable to start MFA enrollment.";
+    } finally {
+      enrollButton.disabled = false;
     }
-  }
+  });
   form.addEventListener("submit", async event => {
     event.preventDefault();
     button.disabled = true;
