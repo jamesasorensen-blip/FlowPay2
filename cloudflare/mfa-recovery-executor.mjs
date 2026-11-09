@@ -4,7 +4,7 @@ import { validateMfaRecoveryCase } from "./mfa-recovery-policy.mjs";
 // No network action is possible without a separately supplied privileged client.
 // The caller must provide an append-only, externally persisted audit writer.
 export async function executeMfaRecovery({
-  record, admin, audit, getVerifiedFactors, verifyTrustedCase, now = Date.now(),
+  record, admin, audit, getVerifiedFactors, verifyTrustedCase, claimRecoveryCase, now = Date.now(),
   dryRun = true
 }) {
   const validation = validateMfaRecoveryCase(record, { now });
@@ -12,8 +12,8 @@ export async function executeMfaRecovery({
     return { status: "denied", errors: validation.errors };
   }
   if (typeof getVerifiedFactors !== "function" || typeof audit !== "function" ||
-      typeof verifyTrustedCase !== "function") {
-    throw new Error("Trusted case verification, factor lookup and durable audit writer required");
+      typeof verifyTrustedCase !== "function" || typeof claimRecoveryCase !== "function") {
+    throw new Error("Trusted case verification, atomic case claim, factor lookup and durable audit writer required");
   }
   // Approval flags supplied in a request are not proof of independent authorization.
   // The trusted verifier must independently validate case ownership, identity evidence,
@@ -53,6 +53,10 @@ export async function executeMfaRecovery({
       !currentIds.every(id => record.factorIds.includes(id))) {
     throw new Error("Verified factor inventory changed before execution");
   }
+  // The case store must atomically claim this case exactly once (durable compare-and-set).
+  // A plain read followed by write is NOT sufficient across concurrent operators.
+  const claimed = await claimRecoveryCase(metadata);
+  if (claimed !== true) throw new Error("Recovery case already claimed or unavailable");
   // The audit sink must durably record intent before any irreversible mutation.
   await audit({ event: "mfa_recovery_started", ...metadata });
   const deleted = [];
