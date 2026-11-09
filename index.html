@@ -1032,6 +1032,52 @@ window.addEventListener('DOMContentLoaded',init);
     const area = $auth('supabase-auth-message');
     if (area) { area.textContent = message; area.style.color = error ? '#fda4af' : '#a5b4fc'; }
   };
+  // Staging MFA: keep the dashboard gated until a verified TOTP factor establishes AAL2.
+  let mfaGeneration = 0;
+  let mfaHost = null;
+  let mfaModule = null;
+  const showMfa = async (user) => {
+    const generation = ++mfaGeneration;
+    gate(null);
+    if (!user || !client) {
+      if (mfaHost) mfaHost.hidden = true;
+      const form = $auth('form-auth');
+      if (form) form.hidden = false;
+      const google = $auth('supabase-google-signin');
+      if (google) google.hidden = false;
+      return;
+    }
+    const modal = $auth('auth-modal');
+    if (!modal) return;
+    if (!mfaHost) {
+      mfaHost = document.createElement('div');
+      mfaHost.id = 'flowpay-mfa-gate';
+      mfaHost.style.cssText = 'background:#0f172a;color:#fff;padding:18px;border-radius:12px;max-width:420px;margin:12px auto;position:relative;z-index:1';
+      modal.querySelector('div')?.append(mfaHost);
+    }
+    mfaHost.hidden = false;
+    const form = $auth('form-auth');
+    if (form) form.hidden = true;
+    const google = $auth('supabase-google-signin');
+    if (google) google.hidden = true;
+    try {
+      mfaModule ||= await import('/mfa/flowpay-mfa-ui.mjs');
+      if (generation !== mfaGeneration) return;
+      await mfaModule.mountFlowPayMfa({supabase:client,host:mfaHost,onReady:async()=>{
+        if (generation !== mfaGeneration) return;
+        const {data,error} = await client.auth.getSession();
+        if (error || data.session?.user?.id !== user.id) return;
+        const {data:assurance,error:aalError} = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalError || assurance?.currentLevel !== 'aal2') return;
+        if (generation !== mfaGeneration) return;
+        mfaHost.hidden = true;
+        gate(user);
+      }});
+    } catch (error) {
+      mfaHost.textContent = 'Unable to load account verification. Please reload or sign out.';
+      console.error('MFA interface initialization failed');
+    }
+  };
   const gate = user => {
     const previousId = activeUser?.id || null;
     activeUser = user || null;
@@ -1098,12 +1144,12 @@ window.addEventListener('DOMContentLoaded',init);
           const name = $auth('auth-fullname').value.trim();
           const { data, error } = await client.auth.signUp({email, password, options:{data:{full_name:name}, emailRedirectTo:location.origin + '/'}});
           if (error) throw error;
-          if (data.session) { gate(data.user); notify('Account created and signed in.'); }
+          if (data.session) { await showMfa(data.user); notify('Set up your authenticator to continue.'); }
           else notify('Check your email for a confirmation link, then sign in.');
         } else {
           const { data, error } = await client.auth.signInWithPassword({email, password});
           if (error) throw error;
-          gate(data.user); notify('Signed in successfully.');
+          await showMfa(data.user); notify('Complete authenticator verification to continue.');
         }
       } catch(err) { notify(err.message || 'Authentication failed.', true); }
       finally { submit.disabled = false; }
@@ -1125,7 +1171,7 @@ window.addEventListener('DOMContentLoaded',init);
       e.preventDefault(); e.stopImmediatePropagation();
       if (client) await client.auth.signOut();
       $auth('modal-logout-confirm').classList.add('hidden');
-      gate(null);
+      await showMfa(null);
     }, true);
     // Hide obsolete local-only password/security settings; do not falsely present them as Supabase controls.
     const changePassword = $auth('form-change-password');
@@ -1137,10 +1183,13 @@ window.addEventListener('DOMContentLoaded',init);
     if (!window.supabase?.createClient) { notify('Supabase library could not load. Check your internet connection.', true); return; }
     try {
       client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
-      client.auth.onAuthStateChange((_event, session) => gate(session?.user || null));
+      client.auth.onAuthStateChange((_event, session) => {
+        // Avoid calling Supabase MFA APIs synchronously inside its auth callback.
+        setTimeout(() => { void showMfa(session?.user || null); }, 0);
+      });
       const {data, error} = await client.auth.getSession();
       if (error) throw error;
-      gate(data.session?.user || null);
+      await showMfa(data.session?.user || null);
       // Supabase recovery links may land on the home page with recovery session.
       const url = new URL(location.href);
       if (url.searchParams.get('type') === 'recovery' || location.hash.includes('type=recovery')) {
