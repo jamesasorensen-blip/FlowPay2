@@ -221,3 +221,37 @@ test("recovery fails if a newly enrolled verified factor appears after deletion"
   assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
   assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
 });
+
+test("null Supabase deletion response is not treated as success", async () => {
+  const h = harness();
+  h.admin.auth.admin.mfa.deleteFactor = async input => {
+    h.deletes.push(input);
+    return null;
+  };
+  await assert.rejects(
+    executeMfaRecovery({ record: record(), ...h, now, dryRun: false }),
+    /did not confirm MFA factor deletion/
+  );
+  assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+  assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
+});
+test("replayed recovery case fails atomic claim even if factors still appear present", async () => {
+  const h = harness();
+  h.getVerifiedFactors = async () => [{ id: uuid(2), status: "verified" }];
+  let claimed = false;
+  h.claimRecoveryCase = async () => {
+    if (claimed) return false;
+    claimed = true;
+    return true;
+  };
+  await assert.rejects(
+    executeMfaRecovery({ record: record(), ...h, now, dryRun: false }),
+    /factor deletion could not be verified/
+  );
+  const deletions = h.deletes.length;
+  await assert.rejects(
+    executeMfaRecovery({ record: record(), ...h, now, dryRun: false }),
+    /already claimed/
+  );
+  assert.equal(h.deletes.length, deletions);
+});
