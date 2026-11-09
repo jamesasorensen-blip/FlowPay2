@@ -28,6 +28,12 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   qr.alt = "Scan this code with your authenticator app";
   qr.style.maxWidth = "220px";
   const manual = document.createElement("code");
+  const manualLabel = document.createElement("div");
+  manualLabel.textContent = "Authenticator setup key (keep private)";
+  const setupDetails = document.createElement("div");
+  setupDetails.style.cssText = "display:none; margin:12px 0; padding:12px; border:1px solid #94a3b8; border-radius:8px; background:#fff; color:#111827; max-width:100%;";
+  manual.style.cssText = "display:block; white-space:pre-wrap; overflow-wrap:anywhere; user-select:all; padding:8px 0; font:600 15px monospace; color:#111827;";
+  setupDetails.append(manualLabel, manual);
   const form = document.createElement("form");
   const input = document.createElement("input");
   input.inputMode = "numeric";
@@ -52,13 +58,15 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   const signOut = document.createElement("button");
   signOut.type = "button";
   signOut.textContent = "Sign out";
-  panel.append(heading, message, enrollButton, restartButton, qr, manual, form, signOut);
+  panel.append(heading, message, enrollButton, restartButton, qr, setupDetails, form, signOut);
   host.append(panel);
   let factorId = null;
   async function render() {
     const result = await controller.status();
-    qr.hidden = manual.hidden = true;
+    qr.hidden = true;
+    setupDetails.style.display = "none";
     form.hidden = false;
+    form.style.display = "";
     enrollButton.hidden = true;
     restartButton.hidden = true;
     factorId = null;
@@ -89,9 +97,13 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       factorId = setup.factorId;
       if (qrSource) qr.src = qrSource;
       qr.hidden = !qrSource;
-      manual.textContent = setup.secret || "";
-      manual.hidden = false;
+      if (typeof setup.secret !== "string" || !setup.secret.trim()) throw new Error("Authenticator setup key unavailable; cannot finish enrollment");
+      manual.textContent = setup.secret;
+      setupDetails.style.display = "block";
       form.hidden = false;
+      form.style.display = "flex";
+      form.style.flexWrap = "wrap";
+      form.style.gap = "8px";
       enrollButton.hidden = true;
       message.textContent = qrSource ? "Scan the QR code or enter the setup key in your authenticator app, then enter a code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
@@ -123,6 +135,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       manual.textContent = setup.secret || "";
       manual.hidden = false;
       form.hidden = false;
+      form.style.display = "flex";
+      form.style.flexWrap = "wrap";
+      form.style.gap = "8px";
       restartButton.hidden = true;
       message.textContent = qrSource ? "Scan the new QR code and verify the six-digit code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
