@@ -1,0 +1,32 @@
+name: MFA security checks
+
+on:
+  pull_request:
+    paths:
+      - 'cloudflare/flowpay-mfa.mjs'
+      - 'cloudflare/flowpay-mfa-ui.mjs'
+      - 'cloudflare/tests/**'
+      - '.github/workflows/mfa-security.yml'
+  push:
+    branches:
+      - security/mfa-staging-gate
+
+permissions:
+  contents: read
+
+jobs:
+  mfa-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax check
+        run: |
+          node --check cloudflare/flowpay-mfa.mjs
+          node --check cloudflare/flowpay-mfa-ui.mjs
+          node --check cloudflare/staging-worker.mjs
+      - name: MFA regression tests
+        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs
