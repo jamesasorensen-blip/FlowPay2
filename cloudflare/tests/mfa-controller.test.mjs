@@ -23,7 +23,7 @@ test("verified factor at aal1 requires challenge", async () => {
   assert.equal((await createMfaController(client({ factors: [{ id: "one", status: "verified" }] })).status()).state, "challenge-required");
 });
 test("aal2 is ready", async () => {
-  assert.equal((await createMfaController(client({ level: "aal2" })).status()).state, "ready");
+  assert.equal((await createMfaController(client({ level: "aal2", factors: [{ id: "one", status: "verified" }] })).status()).state, "ready");
 });
 test("TOTP enrollment and challenge verify", async () => {
   const c = client({ factors: [{ id: "one", status: "verified" }] });
