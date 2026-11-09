@@ -25,13 +25,13 @@ export async function executeMfaRecovery({
     throw new Error("Trusted factor inventory unavailable");
   }
   const verifiedIds = new Set(verified.filter(f => f.status === "verified").map(f => f.id));
+  if (!record.factorIds.every(id => verifiedIds.has(id))) {
+    throw new Error("Requested factor does not match verified inventory");
+  }
   // Do not permit a partial factor reset: all verified factors must be explicitly approved.
   if (record.factorIds.length !== verifiedIds.size ||
       ![...verifiedIds].every(id => record.factorIds.includes(id))) {
     throw new Error("Recovery must explicitly authorize every verified factor");
-  }
-  if (!record.factorIds.every(id => verifiedIds.has(id))) {
-    throw new Error("Requested factor does not match verified inventory");
   }
   const metadata = {
     caseId: record.caseId, userId: record.userId,
