@@ -28,7 +28,7 @@ test("aal2 is ready", async () => {
 test("TOTP enrollment and challenge verify", async () => {
   const c = client({ factors: [{ id: "one", status: "verified" }] });
   const controller = createMfaController(c);
-  assert.equal((await controller.enroll()).factorId, "new");
+  await assert.rejects(controller.enroll(), /Verify your existing authenticator/);
   await assert.rejects(controller.verify("one", "12"));
   assert.equal((await controller.verify("one", "123456")).state, "ready");
   assert.deepEqual(c.calls.at(-1), ["verify", { factorId: "one", challengeId: "challenge", code: "123456" }]);
@@ -74,4 +74,20 @@ test("restart refuses ambiguous pending enrollments", async () => {
   ] });
   await assert.rejects(createMfaController(c).restartUnverifiedEnrollment(), /single unfinished/);
   assert.equal(c.calls.length, 0);
+});
+
+test("signed-out user cannot enroll a factor", async () => {
+  const c = client({ session: false });
+  await assert.rejects(createMfaController(c).enroll(), /Sign in/);
+  assert.equal(c.calls.length, 0);
+});
+test("AAL1 session cannot add another factor to an account with verified MFA", async () => {
+  const c = client({ factors: [{ id: "one", status: "verified" }] });
+  await assert.rejects(createMfaController(c).enroll(), /Verify your existing authenticator/);
+  assert.equal(c.calls.length, 0);
+});
+test("AAL2 session can add a backup authenticator without removing the original", async () => {
+  const c = client({ level: "aal2", factors: [{ id: "one", status: "verified" }] });
+  assert.equal((await createMfaController(c).enroll("Backup authenticator")).factorId, "new");
+  assert.deepEqual(c.calls, [["enroll", { factorType: "totp", friendlyName: "Backup authenticator" }]]);
 });
