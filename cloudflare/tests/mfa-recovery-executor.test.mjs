@@ -162,3 +162,29 @@ test("does not report success when Supabase returns success but factor remains",
   assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
   assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
 });
+
+test("caller cannot swap authorized factor while trusted verification is pending", async () => {
+  const h = harness();
+  const r = record();
+  let release;
+  const waiting = new Promise(resolve => { release = resolve; });
+  h.verifyTrustedCase = async () => { await waiting; return true; };
+  const pending = executeMfaRecovery({ record: r, ...h, now, dryRun: false });
+  r.factorIds[0] = uuid(3);
+  r.userId = uuid(4);
+  release();
+  const result = await pending;
+  assert.equal(result.status, "completed");
+  assert.deepEqual(h.deletes, [{ userId: uuid(1), id: uuid(2) }]);
+});
+test("trusted verifier cannot mutate the approved recovery snapshot", async () => {
+  const h = harness();
+  h.verifyTrustedCase = async r => {
+    r.factorIds[0] = uuid(3);
+    r.userId = uuid(4);
+    return true;
+  };
+  const result = await executeMfaRecovery({ record: record(), ...h, now, dryRun: false });
+  assert.equal(result.status, "completed");
+  assert.deepEqual(h.deletes, [{ userId: uuid(1), id: uuid(2) }]);
+});
