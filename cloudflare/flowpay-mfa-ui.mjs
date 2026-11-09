@@ -73,6 +73,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   async function render() {
     const result = await controller.status();
     qr.hidden = true;
+    qr.removeAttribute("src");
+    manual.textContent = "";
+    input.value = "";
     setupDetails.style.display = "none";
     form.hidden = false;
     form.style.display = "";
@@ -120,6 +123,12 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       enrollButton.hidden = true;
       message.textContent = qrSource ? "Scan the QR code or enter the setup key in your authenticator app, then enter a code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
+      qr.hidden = true;
+      qr.removeAttribute("src");
+      manual.textContent = "";
+      setupDetails.style.display = "none";
+      form.hidden = true;
+      factorId = null;
       message.textContent = error?.message || "Unable to start MFA enrollment.";
     } finally {
       enrollButton.disabled = false;
@@ -146,6 +155,12 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       backupButton.hidden = true;
       message.textContent = "Set up this backup on a separate device, then verify its six-digit code. Keep your original authenticator until the backup is verified.";
     } catch (error) {
+      qr.hidden = true;
+      qr.removeAttribute("src");
+      manual.textContent = "";
+      setupDetails.style.display = "none";
+      form.hidden = true;
+      factorId = null;
       message.textContent = error?.message || "Unable to create backup authenticator.";
     } finally { backupButton.disabled = false; }
   });
@@ -179,6 +194,12 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       restartButton.hidden = true;
       message.textContent = qrSource ? "Scan the new QR code and verify the six-digit code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
+      qr.hidden = true;
+      qr.removeAttribute("src");
+      manual.textContent = "";
+      setupDetails.style.display = "none";
+      form.hidden = true;
+      factorId = null;
       message.textContent = error?.message || "Unable to restart setup.";
     } finally { restartButton.disabled = false; }
   });
