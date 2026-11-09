@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.log
+node_modules
+coverage
+docs
+README*
+package-lock.json
