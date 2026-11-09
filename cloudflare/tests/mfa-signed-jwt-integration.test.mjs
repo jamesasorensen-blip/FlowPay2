@@ -81,3 +81,27 @@ test("real signed AAL1 JWT cannot access financial routes; AAL2 passes MFA gate"
     globalThis.fetch = originalFetch;
   }
 });
+
+test("session enforcement rejects revoked signed JWT and hides session id from /me", async () => {
+  const sessionId = "00000000-0000-4000-8000-000000000005";
+  const jwt = await token("aal2", { session_id: sessionId });
+  env.REQUIRE_ACTIVE_SESSION = "true";
+  env.SESSION_LOOKUP = { get: async () => null };
+  try {
+    const denied = await call("/bank-accounts", jwt);
+    assert.equal(denied.status, 401);
+    assert.equal((await denied.json()).error, "SESSION_INVALID");
+    const me = await call("/me", jwt);
+    assert.equal(me.status, 200);
+    assert.equal(Object.hasOwn((await me.json()).user, "session_id"), false);
+    env.SESSION_LOOKUP = { get: async id => ({ id, user_id: userId, not_after: null }) };
+    const allowed = await call("/bank-accounts", jwt);
+    assert.equal(allowed.status, 503); // valid session passes to missing staging DB
+    delete env.SESSION_LOOKUP;
+    const unavailable = await call("/bank-accounts", jwt);
+    assert.equal(unavailable.status, 401);
+  } finally {
+    delete env.REQUIRE_ACTIVE_SESSION;
+    delete env.SESSION_LOOKUP;
+  }
+});
