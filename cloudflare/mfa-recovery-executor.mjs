@@ -73,7 +73,7 @@ export async function executeMfaRecovery({
     }
     const after = await getVerifiedFactors(submitted.userId);
     if (!Array.isArray(after) || after.some(f => !f || typeof f.id !== "string") ||
-        after.some(f => f.status === "verified" && submitted.factorIds.includes(f.id))) {
+        after.some(f => f.status === "verified")) {
       throw new Error("MFA recovery factor deletion could not be verified");
     }
     // Supabase deletes verified factors and signs out sessions, but signed JWTs
