@@ -352,18 +352,21 @@ export default {
       return send({ success: false, error: "MFA_REQUIRED",
         message: "Complete multi-factor authentication before accessing financial data." }, 403);
     }
-    // Staging-only integration point. The SESSION_LOOKUP binding must be backed
-    // by an authoritative server-side session store, never client data.
-    if (env.REQUIRE_ACTIVE_SESSION === "true" &&
-        !(url.pathname === "/me" && request.method === "GET")) {
-      const validSession = await verifyActiveSession(
-        { sub: user.id, session_id: user.session_id },
-        typeof env.SESSION_LOOKUP?.get === "function"
+    // Check session validity for all authenticated routes, including /me.
+    // AAL1 users may still access /me for enrollment, but revoked sessions cannot.
+    // This remains disabled until the authoritative service is operational.
+    if (env.REQUIRE_ACTIVE_SESSION === "true") {
+      let validSession = false;
+      try {
+        const lookup = typeof env.SESSION_LOOKUP?.get === "function"
           ? id => env.SESSION_LOOKUP.get(id)
-          : env.SESSION_LOOKUP_URL && env.SESSION_LOOKUP_SECRET
-            ? createSupabaseSessionLookup(env)
-            : null
-      );
+          : createSupabaseSessionLookup(env);
+        validSession = await verifyActiveSession(
+          { sub: user.id, session_id: user.session_id }, lookup
+        );
+      } catch {
+        // Configuration errors, unavailable lookup, and timeouts fail closed.
+      }
       if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
     }
     if (url.pathname === "/me" && request.method === "GET") {
