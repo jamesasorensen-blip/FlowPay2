@@ -6,6 +6,7 @@ import postgres from "npm:postgres@3.4.3";
 
 const dbUrl = Deno.env.get("SUPABASE_DB_URL");
 const sharedSecret = Deno.env.get("FLOWPAY_SESSION_LOOKUP_SECRET");
+const stagingUserId = Deno.env.get("FLOWPAY_STAGING_TEST_USER_ID");
 const sql = dbUrl ? postgres(dbUrl, { prepare: false, max: 2, idle_timeout: 10 }) : null;
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const encoder = new TextEncoder();
@@ -27,7 +28,11 @@ Deno.serve(async (request) => {
   if (!(await authorized(request.headers.get("Authorization")))) {
     return Response.json({ error: "Unauthorized" }, { status: 401, headers });
   }
-  if (!sql) return Response.json({ error: "Unavailable" }, { status: 503, headers });
+  // The project is shared with production. Do not serve a general-purpose
+  // session oracle: this function must be limited to the staging test user.
+  if (!sql || !stagingUserId || !uuid.test(stagingUserId)) {
+    return Response.json({ error: "Unavailable" }, { status: 503, headers });
+  }
   try {
     const body = await request.text();
     if (body.length > 256) return Response.json({ error: "Invalid request" }, { status: 400, headers });
@@ -39,6 +44,7 @@ Deno.serve(async (request) => {
       select id::text, user_id::text, not_after
       from auth.sessions
       where id = ${session_id}::uuid
+        and user_id = ${stagingUserId}::uuid
       limit 1
     `;
     const row = rows[0];
