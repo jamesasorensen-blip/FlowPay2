@@ -1,0 +1,78 @@
+// Standalone MFA interface for integration into FlowPay's authenticated app.
+// Mount only after Supabase is initialized: mountFlowPayMfa({supabase, host, onReady}).
+import { createMfaController } from "./flowpay-mfa.mjs";
+export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
+  if (!host) throw new Error("MFA mount element required");
+  const controller = createMfaController(supabase);
+  host.replaceChildren();
+  const panel = document.createElement("section");
+  panel.setAttribute("aria-label", "FlowPay account security");
+  const heading = document.createElement("h2");
+  heading.textContent = "Secure your FlowPay account";
+  const message = document.createElement("p");
+  message.setAttribute("role", "status");
+  const qr = document.createElement("img");
+  qr.alt = "Scan this code with your authenticator app";
+  qr.style.maxWidth = "220px";
+  const manual = document.createElement("code");
+  const form = document.createElement("form");
+  const input = document.createElement("input");
+  input.inputMode = "numeric";
+  input.autocomplete = "one-time-code";
+  input.pattern = "[0-9]{6}";
+  input.maxLength = 6;
+  input.required = true;
+  input.placeholder = "6-digit code";
+  input.setAttribute("aria-label", "Authenticator code");
+  const button = document.createElement("button");
+  button.type = "submit";
+  button.textContent = "Verify authenticator";
+  form.append(input, button);
+  panel.append(heading, message, qr, manual, form);
+  host.append(panel);
+  let factorId = null;
+  async function render() {
+    const result = await controller.status();
+    qr.hidden = manual.hidden = true;
+    form.hidden = false;
+    if (result.state === "signed-out") {
+      message.textContent = "Sign in before setting up multi-factor authentication.";
+      form.hidden = true;
+    } else if (result.state === "ready") {
+      message.textContent = "Your authenticator is verified.";
+      form.hidden = true;
+      onReady();
+    } else if (result.state === "challenge-required") {
+      factorId = result.factors[0].id;
+      message.textContent = "Enter the code from your authenticator app to continue.";
+    } else {
+      message.textContent = "Setting up your authenticator…";
+      const setup = await controller.enroll();
+      factorId = setup.factorId;
+      qr.src = setup.qrCode;
+      qr.hidden = false;
+      manual.textContent = setup.secret;
+      manual.hidden = false;
+      message.textContent = "Scan the QR code or enter the setup key in an authenticator app, then verify a code.";
+    }
+  }
+  form.addEventListener("submit", async event => {
+    event.preventDefault();
+    button.disabled = true;
+    message.textContent = "Verifying…";
+    try {
+      await controller.verify(factorId, input.value.trim());
+      input.value = "";
+      await render();
+    } catch (error) {
+      message.textContent = error?.message || "Unable to verify. Try again.";
+    } finally {
+      button.disabled = false;
+    }
+  });
+  try { await render(); } catch (error) {
+    message.textContent = error?.message || "Unable to initialize MFA.";
+    form.hidden = true;
+  }
+  return { refresh: render };
+}
