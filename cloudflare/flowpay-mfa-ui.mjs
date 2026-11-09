@@ -1,6 +1,19 @@
 // Standalone MFA interface for integration into FlowPay's authenticated app.
 // Mount only after Supabase is initialized: mountFlowPayMfa({supabase, host, onReady}).
 import { createMfaController } from "./flowpay-mfa.mjs";
+function safeQrImageSource(value) {
+  if (typeof value !== "string") throw new Error("Invalid authenticator QR response");
+  const qr = value.trim();
+  if (/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/i.test(qr)) return qr;
+  if (/^data:image\/svg\+xml(?:;charset=[a-z0-9-]+)?,/i.test(qr)) return qr;
+  if (/^<svg(?:\s|>)/i.test(qr) && /<\/svg>\s*$/i.test(qr)) {
+    const bytes = new TextEncoder().encode(qr);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return "data:image/svg+xml;base64," + btoa(binary);
+  }
+  throw new Error("Unsupported authenticator QR format");
+}
 export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   if (!host) throw new Error("MFA mount element required");
   const controller = createMfaController(supabase);
@@ -72,11 +85,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     message.textContent = "Setting up your authenticator…";
     try {
       const setup = await controller.enroll();
-      if (!/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) {
-        throw new Error("Invalid authenticator QR response");
-      }
+      const qrSource = safeQrImageSource(setup.qrCode);
       factorId = setup.factorId;
-      qr.src = setup.qrCode;
+      qr.src = qrSource;
       qr.hidden = false;
       manual.textContent = setup.secret;
       manual.hidden = false;
@@ -105,9 +116,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     restartButton.disabled = true;
     try {
       const setup = await controller.restartUnverifiedEnrollment();
-      if (!/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) throw new Error("Invalid authenticator QR response");
+      const qrSource = safeQrImageSource(setup.qrCode);
       factorId = setup.factorId;
-      qr.src = setup.qrCode;
+      qr.src = qrSource;
       qr.hidden = false;
       manual.textContent = setup.secret;
       manual.hidden = false;
