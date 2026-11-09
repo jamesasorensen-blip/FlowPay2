@@ -97,7 +97,8 @@ async function authenticate(request, env) {
   if (!valid) throw Error("Invalid signature");
   return {
     id: claims.sub,
-    email: claims.email || null
+    email: claims.email || null,
+    aal: claims.aal === "aal2" ? "aal2" : "aal1"
   };
 }
 function getKeyBytes(value) {
@@ -332,6 +333,14 @@ export default {
         success: false,
         error: "Staging access restricted"
       }, 403);
+    }
+    // Disabled by default until the MFA enrollment UI and recovery flow are tested.
+    // When enabled, deny all financial API operations for sessions below AAL2.
+    // /me remains available to identify an account that needs enrollment.
+    if (env.REQUIRE_MFA_AAL2 === "true" && user.aal !== "aal2" &&
+        !(url.pathname === "/me" && request.method === "GET")) {
+      return send({ success: false, error: "MFA_REQUIRED",
+        message: "Complete multi-factor authentication before accessing financial data." }, 403);
     }
     if (url.pathname === "/me" && request.method === "GET") {
       return send({ success: true, user });
