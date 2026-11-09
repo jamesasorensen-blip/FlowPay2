@@ -1373,6 +1373,14 @@ window.addEventListener('DOMContentLoaded',init);
   <div style="font-weight:bold;margin-bottom:8px;">Bank Connections (Sandbox)</div>
   <button id="flowpay-connect-bank" type="button" style="background:#6366f1;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;">Connect Test Bank</button>
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
+  <section id="flowpay-consent-panel" aria-label="Test bank data consent" style="margin-top:10px;padding:10px;border:1px solid #64748b;border-radius:8px;font-size:12px">
+  <strong>Test bank data permission</strong>
+  <p style="margin:7px 0">FlowPay uses Plaid Sandbox to access your selected test bank's account names, balances, and transactions to show cash flow and suggest bill or income matches. FlowPay stores account information, transactions, and an encrypted access token. This is test data only, not a real bank connection.</p>
+  <label style="display:flex;gap:7px;align-items:flex-start"><input id="flowpay-consent-check" type="checkbox" style="margin-top:3px"><span>I understand and agree to this test bank data access.</span></label>
+  <button id="flowpay-consent-withdraw" type="button" style="margin-top:8px;padding:7px;background:#475569;color:white;border:0;border-radius:6px">Withdraw permission</button>
+  <div id="flowpay-consent-status" role="status" aria-live="polite" style="margin-top:7px;color:#cbd5e1">Checking permission…</div>
+  <small style="display:block;margin-top:6px;color:#cbd5e1">Withdrawing stops new access and synchronization but does not delete existing stored test bank data or tokens. Disconnect test banks separately to remove them.</small>
+</section>
   <div id="flowpay-plaid-status" role="status" aria-live="polite" style="font-size:12px;margin-top:9px;">Test banks only. No real accounts.</div>
   <div id="flowpay-bank-accounts" style="font-size:13px;margin-top:12px;"></div>
   <div id="flowpay-balance-settings" style="font-size:12px;margin-top:12px;padding-top:10px;border-top:1px solid #475569">
@@ -1405,6 +1413,31 @@ window.addEventListener('DOMContentLoaded',init);
   const panel = document.getElementById('flowpay-plaid-panel');
   const connectButton = document.getElementById('flowpay-connect-bank');
   const refreshButton = document.getElementById('flowpay-refresh-banks');
+  const consentCheck = document.getElementById('flowpay-consent-check');
+  const consentStatus = document.getElementById('flowpay-consent-status');
+  const withdrawButton = document.getElementById('flowpay-consent-withdraw');
+  let consentActive = false;
+  function showConsent(active) {
+    consentActive = active;
+    consentStatus.textContent = active ? 'Permission active.' : 'Permission not active. Check the box to agree before connecting.';
+    consentCheck.checked = false;
+  }
+  async function refreshConsent() {
+    const result = await api('/consent');
+    showConsent((result.consents || []).some(x => x.consent_type === 'bank_connection' && !x.withdrawn_at));
+  }
+  withdrawButton.addEventListener('click', async () => {
+    if (!currentUser || busy) return;
+    if (!window.confirm('Withdraw bank data permission? Existing stored test bank data and tokens will remain until you disconnect them.')) return;
+    setBusy(true);
+    try {
+      await api('/consent/withdraw', 'POST', {consent_type:'bank_connection'});
+      showConsent(false);
+      setStatus('Bank data permission withdrawn. New bank connections and synchronization are blocked.');
+    } catch(e) { setStatus('Withdrawal failed: '+e.message); }
+    finally {setBusy(false);}
+  });
+
   const status = document.getElementById('flowpay-plaid-status');
   const accountsEl = document.getElementById('flowpay-bank-accounts');
   const transactionsEl = document.getElementById('flowpay-bank-transactions');
@@ -1746,6 +1779,14 @@ window.addEventListener('DOMContentLoaded',init);
     setStatus('Opening Plaid Sandbox…');
     try {
       if(!window.Plaid) throw new Error('Plaid Link library did not load.');
+      const userCheckedConsent = consentCheck.checked;
+      await refreshConsent();
+      if (!consentActive) {
+        if (!userCheckedConsent) throw new Error('Read the test bank data notice and check the agreement box first.');
+        await api('/consent','POST',{agreed:true,consent_type:'bank_connection',policy_version:'production-v1'});
+        await refreshConsent();
+        if (!consentActive) throw new Error('Could not verify recorded permission.');
+      }
       const data=await api('/link-token','POST',{});
       if(!data.link_token) throw new Error('Missing Link token.');
       const gen=generation;
@@ -1790,7 +1831,9 @@ window.addEventListener('DOMContentLoaded',init);
     panel.style.display=currentUser ? 'block' : 'none';
     accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];txOverlay.style.display='none';window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
     setBusy(false);
+    showConsent(false);
     if(currentUser){
+      refreshConsent().catch(e=>{consentStatus.textContent='Unable to check permission: '+e.message;});
       setStatus('Loading Sandbox bank connections…');
       loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
         .catch(e=>setStatus('Bank loading failed: '+e.message));
