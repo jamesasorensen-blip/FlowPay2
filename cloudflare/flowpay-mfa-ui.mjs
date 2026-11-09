@@ -32,7 +32,10 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   enrollButton.type = "button";
   enrollButton.textContent = "Set up authenticator";
   enrollButton.hidden = true;
-  panel.append(heading, message, enrollButton, qr, manual, form);
+  const signOut = document.createElement("button");
+  signOut.type = "button";
+  signOut.textContent = "Sign out";
+  panel.append(heading, message, enrollButton, qr, manual, form, signOut);
   host.append(panel);
   let factorId = null;
   async function render() {
@@ -77,6 +80,18 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       message.textContent = error?.message || "Unable to start MFA enrollment.";
     } finally {
       enrollButton.disabled = false;
+    }
+  });
+  signOut.addEventListener("click", async () => {
+    signOut.disabled = true;
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      await render();
+    } catch (error) {
+      message.textContent = error?.message || "Unable to sign out.";
+    } finally {
+      signOut.disabled = false;
     }
   });
   form.addEventListener("submit", async event => {
