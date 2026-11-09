@@ -48,7 +48,8 @@ Deno.serve(async (request) => {
       limit 1
     `;
     const row = rows[0];
-    if (!row || (row.not_after && new Date(row.not_after).getTime() <= Date.now())) {
+    const expiry = row?.not_after == null ? null : new Date(row.not_after).getTime();
+    if (!row || (expiry !== null && (!Number.isFinite(expiry) || expiry <= Date.now()))) {
       return Response.json({ active: false }, { headers });
     }
     return Response.json({
