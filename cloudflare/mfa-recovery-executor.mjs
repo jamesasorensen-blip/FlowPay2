@@ -1,0 +1,55 @@
+import { validateMfaRecoveryCase } from "./mfa-recovery-policy.mjs";
+
+// Privileged recovery executor. Never import this module into a browser bundle.
+// No network action is possible without a separately supplied privileged client.
+// The caller must provide an append-only, externally persisted audit writer.
+export async function executeMfaRecovery({
+  record, admin, audit, getVerifiedFactors, now = Date.now(),
+  dryRun = true
+}) {
+  const validation = validateMfaRecoveryCase(record, { now });
+  if (!validation.approved) {
+    return { status: "denied", errors: validation.errors };
+  }
+  if (typeof getVerifiedFactors !== "function" || typeof audit !== "function") {
+    throw new Error("Trusted factor lookup and durable audit writer required");
+  }
+  const verified = await getVerifiedFactors(record.userId);
+  if (!Array.isArray(verified) || verified.some(f => !f || typeof f.id !== "string")) {
+    throw new Error("Trusted factor inventory unavailable");
+  }
+  const verifiedIds = new Set(verified.filter(f => f.status === "verified").map(f => f.id));
+  if (!record.factorIds.every(id => verifiedIds.has(id))) {
+    throw new Error("Requested factor does not match verified inventory");
+  }
+  const metadata = {
+    caseId: record.caseId, userId: record.userId,
+    factorIds: [...record.factorIds], operatorId: record.operatorId,
+    approverIds: record.approvals.map(a => a.approverId)
+  };
+  if (dryRun) return { status: "dry-run", ...metadata };
+  if (typeof admin?.auth?.admin?.mfa?.deleteFactor !== "function") {
+    throw new Error("Privileged Supabase admin MFA client required");
+  }
+  // The audit sink must durably record intent before any irreversible mutation.
+  await audit({ event: "mfa_recovery_started", ...metadata });
+  const deleted = [];
+  try {
+    for (const id of record.factorIds) {
+      const result = await admin.auth.admin.mfa.deleteFactor({ userId: record.userId, id });
+      if (result?.error) throw result.error;
+      deleted.push(id);
+      await audit({ event: "mfa_factor_deleted", caseId: record.caseId, userId: record.userId, factorId: id });
+    }
+    await audit({ event: "mfa_recovery_completed", ...metadata });
+  } catch (error) {
+    // Fail visibly. Never retry automatically after a partial destructive operation.
+    try {
+      await audit({ event: "mfa_recovery_failed", ...metadata, deletedFactorIds: deleted, errorCode: "OPERATION_FAILED" });
+    } catch {
+      throw new Error("Recovery failed and audit logging also failed; escalate immediately");
+    }
+    throw error;
+  }
+  return { status: "completed", ...metadata, deletedFactorIds: deleted };
+}
