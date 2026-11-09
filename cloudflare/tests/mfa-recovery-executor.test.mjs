@@ -96,3 +96,39 @@ test("inventory drift after approval but before execution blocks deletion", asyn
   assert.equal(h.deletes.length, 0);
   assert.equal(h.events.length, 0);
 });
+
+test("partial deletion halts immediately and records failure", async () => {
+  const h = harness();
+  const r = record();
+  r.factorIds = [uuid(2), uuid(3)];
+  h.getVerifiedFactors = async () => [
+    { id: uuid(2), status: "verified" }, { id: uuid(3), status: "verified" }
+  ];
+  let count = 0;
+  h.admin.auth.admin.mfa.deleteFactor = async input => {
+    h.deletes.push(input);
+    count++;
+    return count === 2 ? { error: new Error("Supabase rejected deletion") } : { data: {} };
+  };
+  await assert.rejects(executeMfaRecovery({ record: r, ...h, now, dryRun: false }), /Supabase rejected deletion/);
+  assert.equal(h.deletes.length, 2);
+  assert.deepEqual(h.events.map(e => e.event), [
+    "mfa_recovery_started", "mfa_factor_deleted", "mfa_recovery_failed"
+  ]);
+  assert.deepEqual(h.events.at(-1).deletedFactorIds, [uuid(2)]);
+});
+test("audit failure after first deletion prevents further deletions", async () => {
+  const h = harness();
+  const r = record();
+  r.factorIds = [uuid(2), uuid(3)];
+  h.getVerifiedFactors = async () => [
+    { id: uuid(2), status: "verified" }, { id: uuid(3), status: "verified" }
+  ];
+  h.audit = async event => {
+    if (event.event === "mfa_factor_deleted") throw new Error("audit unavailable");
+    h.events.push(event);
+  };
+  await assert.rejects(executeMfaRecovery({ record: r, ...h, now, dryRun: false }), /audit unavailable/);
+  assert.equal(h.deletes.length, 1);
+  assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+});
