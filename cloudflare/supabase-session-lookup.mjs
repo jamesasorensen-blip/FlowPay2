@@ -6,6 +6,16 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 
 export function createSupabaseSessionLookup(env, fetcher = fetch) {
   const endpoint = env.SESSION_LOOKUP_URL;
+  // Do not permit credentials to be sent to an arbitrary host.
+  const expectedHost = (env.SUPABASE_URL || "").replace(/^https:\/\//, "").replace(/\/$/, "");
+  let parsed;
+  try { parsed = new URL(endpoint); } catch { throw new Error("Invalid session lookup endpoint"); }
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(env.SUPABASE_URL || "") ||
+      parsed.protocol !== "https:" || parsed.hostname !== expectedHost ||
+      parsed.pathname !== "/functions/v1/flowpay-session-lookup" ||
+      parsed.search || parsed.hash || parsed.username || parsed.password || parsed.port) {
+    throw new Error("Session lookup endpoint must match configured Supabase project");
+  }
   const secret = env.SESSION_LOOKUP_SECRET;
   if (typeof endpoint !== "string" || !/^https:\/\//.test(endpoint) ||
       typeof secret !== "string" || secret.length < 32) {
