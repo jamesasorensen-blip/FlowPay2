@@ -91,3 +91,23 @@ test("AAL2 session can add a backup authenticator without removing the original"
   assert.equal((await createMfaController(c).enroll("Backup authenticator")).factorId, "new");
   assert.deepEqual(c.calls, [["enroll", { factorType: "totp", friendlyName: "Backup authenticator" }]]);
 });
+
+test("verified account can restart only its unfinished backup authenticator", async () => {
+  const c = client({ level: "aal2", factors: [
+    { id: "original", status: "verified", friendly_name: "FlowPay authenticator" },
+    { id: "pending-backup", status: "unverified", friendly_name: "FlowPay backup authenticator" }
+  ] });
+  assert.equal((await createMfaController(c).restartUnverifiedBackupEnrollment()).factorId, "new");
+  assert.deepEqual(c.calls, [
+    ["unenroll", { factorId: "pending-backup" }],
+    ["enroll", { factorType: "totp", friendlyName: "FlowPay backup authenticator" }]
+  ]);
+});
+test("AAL1 cannot restart a backup authenticator", async () => {
+  const c = client({ factors: [
+    { id: "original", status: "verified" },
+    { id: "pending-backup", status: "unverified", friendly_name: "FlowPay backup authenticator" }
+  ] });
+  await assert.rejects(createMfaController(c).restartUnverifiedBackupEnrollment(), /MFA verification required/);
+  assert.deepEqual(c.calls, []);
+});
