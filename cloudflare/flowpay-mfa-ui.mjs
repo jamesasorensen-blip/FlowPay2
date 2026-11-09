@@ -35,7 +35,7 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   const signOut = document.createElement("button");
   signOut.type = "button";
   signOut.textContent = "Sign out";
-  panel.append(heading, message, enrollButton, qr, manual, form, signOut);
+  panel.append(heading, message, enrollButton, restartButton, qr, manual, form, signOut);
   host.append(panel);
   let factorId = null;
   async function render() {
@@ -43,6 +43,7 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     qr.hidden = manual.hidden = true;
     form.hidden = false;
     enrollButton.hidden = true;
+    restartButton.hidden = true;
     factorId = null;
     if (result.state === "signed-out") {
       message.textContent = "Sign in before setting up multi-factor authentication.";
@@ -56,7 +57,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       message.textContent = "Enter the code from your authenticator app to continue.";
     } else {
       message.textContent = "Set up an authenticator app to protect your account.";
-      enrollButton.hidden = false;
+      enrollButton.hidden = (result.pendingFactors || []).some(f => f.friendly_name === "FlowPay authenticator");
+      restartButton.hidden = !enrollButton.hidden;
+      if (!restartButton.hidden) message.textContent = "An earlier authenticator setup was not completed. You can restart that unfinished setup.";
       form.hidden = true;
     }
   }
@@ -93,6 +96,23 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     } finally {
       signOut.disabled = false;
     }
+  });
+  restartButton.addEventListener("click", async () => {
+    restartButton.disabled = true;
+    try {
+      const setup = await controller.restartUnverifiedEnrollment();
+      if (!/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) throw new Error("Invalid authenticator QR response");
+      factorId = setup.factorId;
+      qr.src = setup.qrCode;
+      qr.hidden = false;
+      manual.textContent = setup.secret;
+      manual.hidden = false;
+      form.hidden = false;
+      restartButton.hidden = true;
+      message.textContent = "Scan the new QR code and verify the six-digit code.";
+    } catch (error) {
+      message.textContent = error?.message || "Unable to restart setup.";
+    } finally { restartButton.disabled = false; }
   });
   form.addEventListener("submit", async event => {
     event.preventDefault();
