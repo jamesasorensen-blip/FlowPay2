@@ -86,6 +86,8 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     } else if (result.state === "ready") {
       message.textContent = "Your authenticator is verified. You can add a backup authenticator on a separate device to reduce lockout risk.";
       form.hidden = true;
+      const unfinishedBackup = (result.pendingFactors || []).some(f => f.friendly_name === "FlowPay backup authenticator");
+      backupButton.textContent = unfinishedBackup ? "Restart unfinished backup setup" : "Add backup authenticator";
       backupButton.hidden = false;
       onReady();
     } else if (result.state === "challenge-required") {
@@ -127,7 +129,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     backupButton.disabled = true;
     message.textContent = "Creating backup authenticator…";
     try {
-      const setup = await controller.enroll("FlowPay backup authenticator");
+      const current = await controller.status();
+      const unfinishedBackup = (current.pendingFactors || []).some(f => f.friendly_name === "FlowPay backup authenticator");
+      const setup = unfinishedBackup ? await controller.restartUnverifiedBackupEnrollment() : await controller.enroll("FlowPay backup authenticator");
       const qrSource = safeQrImageSource(setup.qrCode);
       factorId = setup.factorId;
       if (qrSource) qr.src = qrSource;
