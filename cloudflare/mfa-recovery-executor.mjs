@@ -67,6 +67,11 @@ export async function executeMfaRecovery({
       deleted.push(id);
       await audit({ event: "mfa_factor_deleted", caseId: record.caseId, userId: record.userId, factorId: id });
     }
+    const after = await getVerifiedFactors(record.userId);
+    if (!Array.isArray(after) || after.some(f => !f || typeof f.id !== "string") ||
+        after.some(f => f.status === "verified" && record.factorIds.includes(f.id))) {
+      throw new Error("MFA recovery factor deletion could not be verified");
+    }
     await audit({ event: "mfa_recovery_completed", ...metadata });
   } catch (error) {
     // Fail visibly. Never retry automatically after a partial destructive operation.
