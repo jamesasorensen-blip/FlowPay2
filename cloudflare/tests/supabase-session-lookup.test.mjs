@@ -14,7 +14,7 @@ test("valid private response returns only session verification fields", async ()
   assert.deepEqual(await lookup(id), { id, user_id: user, not_after: null });
 });
 test("missing secret is rejected", () => {
-  assert.throws(() => createSupabaseSessionLookup({ SESSION_LOOKUP_URL: env.SESSION_LOOKUP_URL }), /credential/);
+  assert.throws(() => createSupabaseSessionLookup({ ...env, SESSION_LOOKUP_SECRET: undefined }), /credential/);
 });
 test("revoked session is rejected", async () => {
   const lookup = createSupabaseSessionLookup(env, async () => Response.json({ active: false }));
