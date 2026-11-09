@@ -12,7 +12,7 @@ function safeQrImageSource(value) {
     for (const byte of bytes) binary += String.fromCharCode(byte);
     return "data:image/svg+xml;base64," + btoa(binary);
   }
-  throw new Error("Unsupported authenticator QR format");
+  return null;
 }
 export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   if (!host) throw new Error("MFA mount element required");
@@ -87,13 +87,13 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       const setup = await controller.enroll();
       const qrSource = safeQrImageSource(setup.qrCode);
       factorId = setup.factorId;
-      qr.src = qrSource;
-      qr.hidden = false;
-      manual.textContent = setup.secret;
+      if (qrSource) qr.src = qrSource;
+      qr.hidden = !qrSource;
+      manual.textContent = setup.secret || "";
       manual.hidden = false;
       form.hidden = false;
       enrollButton.hidden = true;
-      message.textContent = "Scan the QR code or enter the setup key in your authenticator app, then enter a code.";
+      message.textContent = qrSource ? "Scan the QR code or enter the setup key in your authenticator app, then enter a code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
       message.textContent = error?.message || "Unable to start MFA enrollment.";
     } finally {
@@ -118,13 +118,13 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       const setup = await controller.restartUnverifiedEnrollment();
       const qrSource = safeQrImageSource(setup.qrCode);
       factorId = setup.factorId;
-      qr.src = qrSource;
-      qr.hidden = false;
-      manual.textContent = setup.secret;
+      if (qrSource) qr.src = qrSource;
+      qr.hidden = !qrSource;
+      manual.textContent = setup.secret || "";
       manual.hidden = false;
       form.hidden = false;
       restartButton.hidden = true;
-      message.textContent = "Scan the new QR code and verify the six-digit code.";
+      message.textContent = qrSource ? "Scan the new QR code and verify the six-digit code." : "Enter the setup key shown below manually in your authenticator app, then enter its six-digit code.";
     } catch (error) {
       message.textContent = error?.message || "Unable to restart setup.";
     } finally { restartButton.disabled = false; }
