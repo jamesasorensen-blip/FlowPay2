@@ -1,3 +1,5 @@
+import { verifyActiveSession } from "./mfa-session-check.mjs";
+
 const PLAID_URL = "https://sandbox.plaid.com";
 const FLOWPAY_ORIGINS = new Set(["https://flowpay-6aay.onrender.com", "https://flowpay-staging.onrender.com"]);
 const encoder = new TextEncoder();
@@ -98,7 +100,8 @@ async function authenticate(request, env) {
   return {
     id: claims.sub,
     email: claims.email || null,
-    aal: claims.aal === "aal2" ? "aal2" : "aal1"
+    aal: claims.aal === "aal2" ? "aal2" : "aal1",
+    session_id: claims.session_id || null
   };
 }
 function getKeyBytes(value) {
@@ -347,6 +350,18 @@ export default {
     if (requiresMfa(user, env, url.pathname, request.method)) {
       return send({ success: false, error: "MFA_REQUIRED",
         message: "Complete multi-factor authentication before accessing financial data." }, 403);
+    }
+    // Staging-only integration point. The SESSION_LOOKUP binding must be backed
+    // by an authoritative server-side session store, never client data.
+    if (env.REQUIRE_ACTIVE_SESSION === "true" &&
+        !(url.pathname === "/me" && request.method === "GET")) {
+      const validSession = await verifyActiveSession(
+        { sub: user.id, session_id: user.session_id },
+        typeof env.SESSION_LOOKUP?.get === "function"
+          ? id => env.SESSION_LOOKUP.get(id)
+          : null
+      );
+      if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
     }
     if (url.pathname === "/me" && request.method === "GET") {
       return send({ success: true, user });
