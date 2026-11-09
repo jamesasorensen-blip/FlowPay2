@@ -92,9 +92,12 @@ test("session enforcement rejects revoked signed JWT and hides session id from /
     assert.equal(denied.status, 401);
     assert.equal((await denied.json()).error, "SESSION_INVALID");
     const me = await call("/me", jwt);
-    assert.equal(me.status, 200);
-    assert.equal(Object.hasOwn((await me.json()).user, "session_id"), false);
+    assert.equal(me.status, 401);
+    assert.equal((await me.json()).error, "SESSION_INVALID");
     env.SESSION_LOOKUP = { get: async id => ({ id, user_id: userId, not_after: null }) };
+    const validMe = await call("/me", jwt);
+    assert.equal(validMe.status, 200);
+    assert.equal(Object.hasOwn((await validMe.json()).user, "session_id"), false);
     const allowed = await call("/bank-accounts", jwt);
     assert.equal(allowed.status, 503); // valid session passes to missing staging DB
     delete env.SESSION_LOOKUP;
