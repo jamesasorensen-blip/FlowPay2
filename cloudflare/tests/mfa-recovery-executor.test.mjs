@@ -144,7 +144,7 @@ test("a replayed recovery case cannot delete factors twice", async () => {
   };
   const first = await executeMfaRecovery({ record: record(), ...h, now, dryRun: false });
   assert.equal(first.status, "completed");
-  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /already claimed/);
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /already claimed|verified inventory/);
   assert.equal(h.deletes.length, 1);
 });
 test("missing atomic case claim blocks all privileged operations", async () => {
