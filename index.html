@@ -1156,7 +1156,7 @@ window.addEventListener('DOMContentLoaded',init);
 <script>
 (function () {
   'use strict';
-  const API = 'https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev/user-data';
+  const API = 'https://flowpay-plaid-api.james-a-sorensen.workers.dev/user-data';
   let generation = 0, revision = 0, ready = false, paused = false, timer = null;
   let remoteIsSample = false, activeId = null, writing = false, dirty = false;
   const notice = document.createElement('div');
@@ -1409,7 +1409,7 @@ window.addEventListener('DOMContentLoaded',init);
 <script>
 (function () {
   'use strict';
-  const API = 'https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev';
+  const API = 'https://flowpay-plaid-api.james-a-sorensen.workers.dev';
   const panel = document.getElementById('flowpay-plaid-panel');
   const connectButton = document.getElementById('flowpay-connect-bank');
   const refreshButton = document.getElementById('flowpay-refresh-banks');
@@ -1419,7 +1419,7 @@ window.addEventListener('DOMContentLoaded',init);
   let consentActive = false;
   function showConsent(active) {
     consentActive = active;
-    consentStatus.textContent = active ? 'Permission active (staging).' : 'Permission not active. Check the box to agree before connecting.';
+    consentStatus.textContent = active ? 'Permission active.' : 'Permission not active. Check the box to agree before connecting.';
     consentCheck.checked = false;
   }
   async function refreshConsent() {
@@ -1428,12 +1428,12 @@ window.addEventListener('DOMContentLoaded',init);
   }
   withdrawButton.addEventListener('click', async () => {
     if (!currentUser || busy) return;
-    if (!window.confirm('Withdraw staging bank data permission? Existing stored test bank data and tokens will remain until you disconnect them.')) return;
+    if (!window.confirm('Withdraw bank data permission? Existing stored test bank data and tokens will remain until you disconnect them.')) return;
     setBusy(true);
     try {
       await api('/consent/withdraw', 'POST', {consent_type:'bank_connection'});
       showConsent(false);
-      setStatus('Staging permission withdrawn. New bank connections and synchronization are blocked.');
+      setStatus('Bank data permission withdrawn. New bank connections and synchronization are blocked.');
     } catch(e) { setStatus('Withdrawal failed: '+e.message); }
     finally {setBusy(false);}
   });
@@ -1783,7 +1783,7 @@ window.addEventListener('DOMContentLoaded',init);
       await refreshConsent();
       if (!consentActive) {
         if (!userCheckedConsent) throw new Error('Read the test bank data notice and check the agreement box first.');
-        await api('/consent','POST',{agreed:true,consent_type:'bank_connection',policy_version:'staging-test-v1'});
+        await api('/consent','POST',{agreed:true,consent_type:'bank_connection',policy_version:'production-v1'});
         await refreshConsent();
         if (!consentActive) throw new Error('Could not verify recorded permission.');
       }
