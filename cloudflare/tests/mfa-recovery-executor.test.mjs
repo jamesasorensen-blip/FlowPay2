@@ -19,6 +19,7 @@ function harness() {
     events, deletes,
     audit: async e => { events.push(e); },
     verifyTrustedCase: async () => true,
+    claimRecoveryCase: async () => true,
     getVerifiedFactors: async () => [{ id: uuid(2), status: "verified" }],
     admin: { auth: { admin: { mfa: { deleteFactor: async input => {
       deletes.push(input); return { data: {} };
@@ -131,4 +132,24 @@ test("audit failure after first deletion prevents further deletions", async () =
   await assert.rejects(executeMfaRecovery({ record: r, ...h, now, dryRun: false }), /audit unavailable/);
   assert.equal(h.deletes.length, 1);
   assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+});
+
+test("a replayed recovery case cannot delete factors twice", async () => {
+  const h = harness();
+  let claimed = false;
+  h.claimRecoveryCase = async () => {
+    if (claimed) return false;
+    claimed = true;
+    return true;
+  };
+  const first = await executeMfaRecovery({ record: record(), ...h, now, dryRun: false });
+  assert.equal(first.status, "completed");
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /already claimed/);
+  assert.equal(h.deletes.length, 1);
+});
+test("missing atomic case claim blocks all privileged operations", async () => {
+  const h = harness();
+  delete h.claimRecoveryCase;
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /atomic case claim/);
+  assert.equal(h.deletes.length, 0);
 });
