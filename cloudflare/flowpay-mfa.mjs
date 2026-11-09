@@ -37,6 +37,7 @@ export function createMfaController(supabase) {
   async function removeFactor(factorId) {
     const before = await status();
     if (before.state !== "ready") throw new Error("MFA verification required");
+    if (!before.factors.some(f => f.id === factorId)) throw new Error("Factor is not verified for this account");
     if (before.factors.length <= 1) throw new Error("Cannot remove your last verified factor");
     return unwrap(mfa.unenroll({ factorId }));
   }
