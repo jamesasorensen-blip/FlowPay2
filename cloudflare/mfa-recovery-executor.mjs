@@ -4,7 +4,7 @@ import { validateMfaRecoveryCase } from "./mfa-recovery-policy.mjs";
 // No network action is possible without a separately supplied privileged client.
 // The caller must provide an append-only, externally persisted audit writer.
 export async function executeMfaRecovery({
-  record, admin, audit, getVerifiedFactors, verifyTrustedCase, claimRecoveryCase, now = Date.now(),
+  record, admin, audit, getVerifiedFactors, verifyTrustedCase, claimRecoveryCase, verifySessionsRevoked, now = Date.now(),
   dryRun = true
 }) {
   // Snapshot untrusted input before any awaited call. A caller must not be able
@@ -15,8 +15,9 @@ export async function executeMfaRecovery({
     return { status: "denied", errors: validation.errors };
   }
   if (typeof getVerifiedFactors !== "function" || typeof audit !== "function" ||
-      typeof verifyTrustedCase !== "function" || typeof claimRecoveryCase !== "function") {
-    throw new Error("Trusted case verification, atomic case claim, factor lookup and durable audit writer required");
+      typeof verifyTrustedCase !== "function" || typeof claimRecoveryCase !== "function" ||
+      typeof verifySessionsRevoked !== "function") {
+    throw new Error("Trusted case verification, atomic case claim, session revocation verification, factor lookup and durable audit writer required");
   }
   // Approval flags supplied in a request are not proof of independent authorization.
   // The trusted verifier must independently validate case ownership, identity evidence,
@@ -74,6 +75,11 @@ export async function executeMfaRecovery({
     if (!Array.isArray(after) || after.some(f => !f || typeof f.id !== "string") ||
         after.some(f => f.status === "verified" && submitted.factorIds.includes(f.id))) {
       throw new Error("MFA recovery factor deletion could not be verified");
+    }
+    // Supabase deletes verified factors and signs out sessions, but signed JWTs
+    // may remain valid until expiry unless the API checks server-side session state.
+    if (await verifySessionsRevoked(submitted.userId) !== true) {
+      throw new Error("MFA recovery session revocation could not be verified");
     }
     await audit({ event: "mfa_recovery_completed", ...metadata });
   } catch (error) {
