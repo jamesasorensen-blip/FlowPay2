@@ -42,6 +42,17 @@ export async function executeMfaRecovery({
   if (typeof admin?.auth?.admin?.mfa?.deleteFactor !== "function") {
     throw new Error("Privileged Supabase admin MFA client required");
   }
+  // Recheck immediately before the first destructive operation. This reduces
+  // stale-inventory risk but is NOT an atomic lock against concurrent changes.
+  const current = await getVerifiedFactors(record.userId);
+  if (!Array.isArray(current) || current.some(f => !f || typeof f.id !== "string")) {
+    throw new Error("Trusted factor inventory unavailable at execution");
+  }
+  const currentIds = current.filter(f => f.status === "verified").map(f => f.id);
+  if (currentIds.length !== record.factorIds.length ||
+      !currentIds.every(id => record.factorIds.includes(id))) {
+    throw new Error("Verified factor inventory changed before execution");
+  }
   // The audit sink must durably record intent before any irreversible mutation.
   await audit({ event: "mfa_recovery_started", ...metadata });
   const deleted = [];
