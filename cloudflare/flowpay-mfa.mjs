@@ -38,6 +38,14 @@ export function createMfaController(supabase) {
     await unwrap(mfa.unenroll({ factorId: pending[0].id }));
     return enroll();
   }
+  async function restartUnverifiedBackupEnrollment() {
+    const before = await status();
+    if (before.state !== "ready") throw new Error("MFA verification required to restart backup enrollment");
+    const pending = (before.pendingFactors || []).filter(f => f.friendly_name === "FlowPay backup authenticator");
+    if (pending.length !== 1) throw new Error("Unable to identify a single unfinished backup authenticator");
+    await unwrap(mfa.unenroll({ factorId: pending[0].id }));
+    return enroll("FlowPay backup authenticator");
+  }
   async function verify(factorId, code) {
     if (!factorId || !/^\d{6}$/.test(code)) throw new Error("Enter a six-digit authenticator code");
     const challenge = await unwrap(mfa.challenge({ factorId }));
@@ -53,5 +61,5 @@ export function createMfaController(supabase) {
     if (before.factors.length <= 1) throw new Error("Cannot remove your last verified factor");
     return unwrap(mfa.unenroll({ factorId }));
   }
-  return { status, enroll, restartUnverifiedEnrollment, verify, removeFactor };
+  return { status, enroll, restartUnverifiedEnrollment, restartUnverifiedBackupEnrollment, verify, removeFactor };
 }
