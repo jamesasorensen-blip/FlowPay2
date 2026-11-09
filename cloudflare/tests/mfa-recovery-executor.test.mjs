@@ -66,3 +66,19 @@ test("missing trusted verifier fails closed before any deletion", async () => {
   await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /Trusted case verification/);
   assert.equal(h.deletes.length, 0);
 });
+
+test("refuses partial reset when another verified factor exists", async () => {
+  const h = harness();
+  h.getVerifiedFactors = async () => [
+    { id: uuid(2), status: "verified" },
+    { id: uuid(3), status: "verified" }
+  ];
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /every verified factor/);
+  assert.equal(h.deletes.length, 0);
+});
+test("rejects inventory that includes an unverified or wrong factor", async () => {
+  const h = harness();
+  h.getVerifiedFactors = async () => [{ id: uuid(2), status: "unverified" }];
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /verified factor/);
+  assert.equal(h.deletes.length, 0);
+});
