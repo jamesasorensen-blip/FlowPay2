@@ -1,4 +1,5 @@
 import { verifyActiveSession } from "./mfa-session-check.mjs";
+import { createSupabaseSessionLookup } from "./supabase-session-lookup.mjs";
 
 const PLAID_URL = "https://sandbox.plaid.com";
 const FLOWPAY_ORIGINS = new Set(["https://flowpay-6aay.onrender.com", "https://flowpay-staging.onrender.com"]);
@@ -359,7 +360,9 @@ export default {
         { sub: user.id, session_id: user.session_id },
         typeof env.SESSION_LOOKUP?.get === "function"
           ? id => env.SESSION_LOOKUP.get(id)
-          : null
+          : env.SESSION_LOOKUP_URL && env.SESSION_LOOKUP_SECRET
+            ? createSupabaseSessionLookup(env)
+            : null
       );
       if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
     }
