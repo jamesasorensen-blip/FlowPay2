@@ -1,20 +1,8 @@
-# Use an official Node.js lightweight image
-FROM node:18-alpine
-
-# Set the working directory inside the container
+FROM node:24-alpine
 WORKDIR /app
-
-# Copy package files first to install dependencies efficiently
 COPY package*.json ./
-
-# Install project dependencies
-RUN npm install
-
-# Copy the rest of your application code into the container
-COPY . .
-
-# Expose the port your server listens on (Render uses port 10000 by default or reads from process.env.PORT)
+RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund
+COPY index.html server.js ./
 EXPOSE 10000
-
-# Command to start your application
+USER node
 CMD ["node", "server.js"]
