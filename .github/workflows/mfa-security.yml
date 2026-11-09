@@ -29,4 +29,4 @@ jobs:
           node --check cloudflare/flowpay-mfa-ui.mjs
           node --check cloudflare/staging-worker.mjs
       - name: MFA regression tests
-        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs
+        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs cloudflare/tests/mfa-backend-gate.test.mjs
