@@ -364,7 +364,7 @@ export default {
       if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
     }
     if (url.pathname === "/me" && request.method === "GET") {
-      return send({ success: true, user });
+      return send({ success: true, user: { id: user.id, email: user.email, aal: user.aal } });
     }
     if (!env.DB) {
       return send({ error: "Database unavailable" }, 503);
