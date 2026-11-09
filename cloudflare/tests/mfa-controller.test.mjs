@@ -37,3 +37,18 @@ test("cannot remove last factor", async () => {
   const c = client({ level: "aal2", factors: [{ id: "one", status: "verified" }] });
   await assert.rejects(createMfaController(c).removeFactor("one"), /last verified factor/);
 });
+
+test("signed-out status does not request MFA factors or assurance", async () => {
+  const c = client({ session: false });
+  c.auth.mfa.listFactors = async () => { throw new Error("Must not query factors while signed out"); };
+  c.auth.mfa.getAuthenticatorAssuranceLevel = async () => { throw new Error("Must not query assurance while signed out"); };
+  assert.equal((await createMfaController(c).status()).state, "signed-out");
+});
+test("cannot remove a different unverified factor", async () => {
+  const c = client({ level: "aal2", factors: [
+    { id: "one", status: "verified" },
+    { id: "two", status: "verified" }
+  ] });
+  await assert.rejects(createMfaController(c).removeFactor("unknown"), /not verified/);
+  assert.equal(c.calls.some(([name]) => name === "unenroll"), false);
+});
