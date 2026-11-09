@@ -57,6 +57,26 @@ test("real signed AAL1 JWT cannot access financial routes; AAL2 passes MFA gate"
     const bad = await call("/bank-accounts", await token("aal2", { sub: "00000000-0000-4000-8000-000000000002" }));
     assert.equal(bad.status, 403);
     assert.equal((await bad.json()).error, "Staging access restricted");
+    for (const claims of [
+      { exp: Math.floor(Date.now() / 1000) - 1 },
+      { iss: "https://attacker.example/auth/v1" },
+      { role: "anon" },
+      { aud: "anon" },
+      { nbf: Math.floor(Date.now() / 1000) + 3600 }
+    ]) {
+      const invalid = await call("/bank-accounts", await token("aal2", claims));
+      assert.equal(invalid.status, 401, JSON.stringify(claims));
+    }
+    const valid = await token("aal2");
+    const pieces = valid.split(".");
+    const tamperedPayload = JSON.parse(Buffer.from(pieces[1], "base64url").toString());
+    tamperedPayload.email = "forged@example.test";
+    pieces[1] = b64url(JSON.stringify(tamperedPayload));
+    const forged = await call("/bank-accounts", pieces.join("."));
+    assert.equal(forged.status, 401);
+    const missingAal = await call("/bank-accounts", await token(undefined));
+    assert.equal(missingAal.status, 403);
+    assert.equal((await missingAal.json()).error, "MFA_REQUIRED");
   } finally {
     globalThis.fetch = originalFetch;
   }
