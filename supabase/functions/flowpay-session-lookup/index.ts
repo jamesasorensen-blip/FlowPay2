@@ -1,5 +1,6 @@
 // Staging-only private service. NOT DEPLOYED. Requires a separate shared secret
-// and SUPABASE_DB_URL in server-side secrets. Never expose this endpoint publicly
+// and SUPABASE_DB_URL in server-side secrets. Database calls use the private
+// allowlisted lookup function, not direct access to auth.sessions. Never expose this endpoint publicly
 // without authentication. Set verify_jwt=false only when this shared-secret check
 // is intentionally used as the authentication mechanism.
 import postgres from "npm:postgres@3.4.3";
@@ -42,9 +43,8 @@ Deno.serve(async (request) => {
     }
     const rows = await sql`
       select id::text, user_id::text, not_after
-      from auth.sessions
-      where id = ${session_id}::uuid
-        and user_id = ${stagingUserId}::uuid
+      from flowpay_session_private.lookup_active_session(${session_id}::uuid)
+      where user_id = ${stagingUserId}::uuid
       limit 1
     `;
     const row = rows[0];
