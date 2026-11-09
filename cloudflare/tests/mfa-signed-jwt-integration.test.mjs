@@ -82,29 +82,47 @@ test("real signed AAL1 JWT cannot access financial routes; AAL2 passes MFA gate"
   }
 });
 
-test("session enforcement rejects revoked signed JWT and hides session id from /me", async () => {
+test("session enforcement uses authoritative Supabase lookup and rejects revoked JWTs", async () => {
   const sessionId = "00000000-0000-4000-8000-000000000005";
   const jwt = await token("aal2", { session_id: sessionId });
+  const originalFetch = globalThis.fetch;
   env.REQUIRE_ACTIVE_SESSION = "true";
-  env.SESSION_LOOKUP = { get: async () => null };
+  env.SESSION_LOOKUP_URL = base + "/functions/v1/flowpay-session-lookup";
+  env.SESSION_LOOKUP_SECRET = "test-only-secret-that-is-long-enough-for-checks";
+  env.SESSION_LOOKUP = { get: async () => ({ id: sessionId, user_id: userId }) };
+  let active = false;
+  globalThis.fetch = async (url, options) => {
+    if (url === base + "/auth/v1/.well-known/jwks.json") {
+      return Response.json({ keys: [jwk] });
+    }
+    assert.equal(url, env.SESSION_LOOKUP_URL);
+    assert.equal(options.method, "POST");
+    assert.equal(options.headers.Authorization, "Bearer " + env.SESSION_LOOKUP_SECRET);
+    assert.equal(JSON.parse(options.body).session_id, sessionId);
+    return Response.json(active
+      ? { active: true, session: { id: sessionId, user_id: userId, not_after: null } }
+      : { active: false });
+  };
   try {
     const denied = await call("/bank-accounts", jwt);
     assert.equal(denied.status, 401);
     assert.equal((await denied.json()).error, "SESSION_INVALID");
     const me = await call("/me", jwt);
     assert.equal(me.status, 401);
-    assert.equal((await me.json()).error, "SESSION_INVALID");
-    env.SESSION_LOOKUP = { get: async id => ({ id, user_id: userId, not_after: null }) };
+    active = true;
     const validMe = await call("/me", jwt);
     assert.equal(validMe.status, 200);
     assert.equal(Object.hasOwn((await validMe.json()).user, "session_id"), false);
     const allowed = await call("/bank-accounts", jwt);
-    assert.equal(allowed.status, 503); // valid session passes to missing staging DB
-    delete env.SESSION_LOOKUP;
+    assert.equal(allowed.status, 503);
+    delete env.SESSION_LOOKUP_SECRET;
     const unavailable = await call("/bank-accounts", jwt);
     assert.equal(unavailable.status, 401);
   } finally {
+    globalThis.fetch = originalFetch;
     delete env.REQUIRE_ACTIVE_SESSION;
     delete env.SESSION_LOOKUP;
+    delete env.SESSION_LOOKUP_URL;
+    delete env.SESSION_LOOKUP_SECRET;
   }
 });
