@@ -23,6 +23,9 @@ export function createMfaController(supabase) {
       nextLevel: assurance.nextLevel };
   }
   async function enroll(friendlyName = "FlowPay authenticator") {
+    const before = await status();
+    if (before.state === "signed-out") throw new Error("Sign in to enroll an authenticator");
+    if (before.state === "challenge-required") throw new Error("Verify your existing authenticator before adding another");
     const data = await unwrap(mfa.enroll({ factorType: "totp", friendlyName }));
     if (!data?.id || !data?.totp?.qr_code) throw new Error("Invalid enrollment response");
     return { factorId: data.id, qrCode: data.totp.qr_code, secret: data.totp.secret };
