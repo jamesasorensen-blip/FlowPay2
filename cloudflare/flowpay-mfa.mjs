@@ -16,7 +16,7 @@ export function createMfaController(supabase) {
     ]);
     if (!session.session) return { state: "signed-out", factors: [] };
     const verified = (factors.totp || []).filter(f => f.status === "verified");
-    const state = assurance.currentLevel === "aal2" ? "ready" :
+    const state = assurance.currentLevel === "aal2" && verified.length ? "ready" :
       verified.length ? "challenge-required" : "enrollment-required";
     return { state, factors: verified, currentLevel: assurance.currentLevel,
       nextLevel: assurance.nextLevel };
