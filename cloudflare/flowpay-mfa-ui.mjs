@@ -53,6 +53,10 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   enrollButton.type = "button";
   enrollButton.textContent = "Set up authenticator";
   enrollButton.hidden = true;
+  const backupButton = document.createElement("button");
+  backupButton.type = "button";
+  backupButton.textContent = "Add backup authenticator";
+  backupButton.hidden = true;
   const restartButton = document.createElement("button");
   restartButton.type = "button";
   restartButton.textContent = "Restart unfinished setup";
@@ -60,9 +64,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   const signOut = document.createElement("button");
   signOut.type = "button";
   signOut.textContent = "Sign out";
-  panel.append(heading, message, enrollButton, restartButton, qr, setupDetails, form, signOut);
+  panel.append(heading, message, enrollButton, backupButton, restartButton, qr, setupDetails, form, signOut);
   panel.style.cssText = "display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:100%;";
-  for (const control of [enrollButton, restartButton, signOut, button]) control.style.cssText = "padding:10px 14px;border-radius:8px;border:1px solid #a5b4fc;cursor:pointer;min-height:40px;";
+  for (const control of [enrollButton, backupButton, restartButton, signOut, button]) control.style.cssText = "padding:10px 14px;border-radius:8px;border:1px solid #a5b4fc;cursor:pointer;min-height:40px;";
   input.style.cssText = "min-width:0;max-width:100%;padding:10px;border-radius:6px;color:#111827;background:#fff;";
   host.append(panel);
   let factorId = null;
@@ -73,14 +77,16 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     form.hidden = false;
     form.style.display = "";
     enrollButton.hidden = true;
+    backupButton.hidden = true;
     restartButton.hidden = true;
     factorId = null;
     if (result.state === "signed-out") {
       message.textContent = "Sign in before setting up multi-factor authentication.";
       form.hidden = true;
     } else if (result.state === "ready") {
-      message.textContent = "Your authenticator is verified.";
+      message.textContent = "Your authenticator is verified. You can add a backup authenticator on a separate device to reduce lockout risk.";
       form.hidden = true;
+      backupButton.hidden = false;
       onReady();
     } else if (result.state === "challenge-required") {
       factorId = result.factors[0].id;
@@ -116,6 +122,28 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     } finally {
       enrollButton.disabled = false;
     }
+  });
+  backupButton.addEventListener("click", async () => {
+    backupButton.disabled = true;
+    message.textContent = "Creating backup authenticator…";
+    try {
+      const setup = await controller.enroll("FlowPay backup authenticator");
+      const qrSource = safeQrImageSource(setup.qrCode);
+      factorId = setup.factorId;
+      if (qrSource) qr.src = qrSource;
+      qr.hidden = !qrSource;
+      if (typeof setup.secret !== "string" || !setup.secret.trim()) throw new Error("Backup setup key unavailable");
+      manual.textContent = setup.secret;
+      setupDetails.style.display = "block";
+      form.hidden = false;
+      form.style.display = "flex";
+      form.style.flexWrap = "wrap";
+      form.style.gap = "8px";
+      backupButton.hidden = true;
+      message.textContent = "Set up this backup on a separate device, then verify its six-digit code. Keep your original authenticator until the backup is verified.";
+    } catch (error) {
+      message.textContent = error?.message || "Unable to create backup authenticator.";
+    } finally { backupButton.disabled = false; }
   });
   signOut.addEventListener("click", async () => {
     signOut.disabled = true;
