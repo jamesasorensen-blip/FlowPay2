@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createSupabaseSessionLookup } from "../supabase-session-lookup.mjs";
 const id = "00000000-0000-4000-8000-000000000002";
 const user = "00000000-0000-4000-8000-000000000001";
-const env = { SESSION_LOOKUP_URL: "https://private.example.test/session", SESSION_LOOKUP_SECRET: "x".repeat(40) };
+const env = { SUPABASE_URL: "https://flowpay-mfa-test.supabase.co", SESSION_LOOKUP_URL: "https://flowpay-mfa-test.supabase.co/functions/v1/flowpay-session-lookup", SESSION_LOOKUP_SECRET: "x".repeat(40) };
 test("valid private response returns only session verification fields", async () => {
   const lookup = createSupabaseSessionLookup(env, async (url, init) => {
     assert.equal(url, env.SESSION_LOOKUP_URL);
@@ -27,4 +27,13 @@ test("mismatched authoritative session id is rejected", async () => {
 test("lookup transport failure rejects rather than permitting access", async () => {
   const lookup = createSupabaseSessionLookup(env, async () => new Response("offline", { status: 503 }));
   await assert.rejects(lookup(id), /unavailable/);
+});
+
+test("lookup refuses credential exfiltration to another host", () => {
+  assert.throws(() => createSupabaseSessionLookup({ ...env, SESSION_LOOKUP_URL: "https://attacker.example/session" }), /must match configured Supabase project/);
+});
+test("lookup refuses URL credentials, query parameters and alternate function paths", () => {
+  for (const suffix of ["?redirect=evil", "/other", "#fragment"]) {
+    assert.throws(() => createSupabaseSessionLookup({ ...env, SESSION_LOOKUP_URL: env.SESSION_LOOKUP_URL + suffix }), /must match configured Supabase project/);
+  }
 });
