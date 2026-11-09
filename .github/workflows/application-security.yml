@@ -1,0 +1,58 @@
+name: Application security regression
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '31 10 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  server-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install server dependencies without lifecycle scripts
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Check syntax
+        run: node --check server.js
+      - name: Verify protected routes and security headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          PORT=18765 node server.js > /tmp/flowpay-server.log 2>&1 &
+          trap 'kill $! 2>/dev/null || true' EXIT
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:18765/ -o /dev/null; then break; fi
+            sleep 1
+          done
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/)" = "200"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18765/api/create_link_token)" = "410"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18765/api/exchange_public_token)" = "410"
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST http://127.0.0.1:18765/api/get_balance)" = "410"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/server.js)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/package.json)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18765/.env)" = "404"
+          curl -sSI http://127.0.0.1:18765/ | grep -qi '^x-content-type-options: nosniff'
+          curl -sSI http://127.0.0.1:18765/ | grep -qi '^x-frame-options: DENY'
+          curl -sSI http://127.0.0.1:18765/ | grep -qi '^strict-transport-security:'
+      - name: Detect high-risk secret patterns in tracked application files
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -nE '(PLAID_SECRET|SUPABASE_SERVICE_ROLE_KEY)[[:space:]]*\|\|[[:space:]]*["\x27]' server.js; then
+            echo 'Potential hardcoded secret fallback detected'
+            exit 1
+          fi
+          if grep -nE 'PlaidEnvironments\.production|itemPublicTokenExchange' server.js; then
+            echo 'Legacy Plaid integration unexpectedly reintroduced'
+            exit 1
+          fi
