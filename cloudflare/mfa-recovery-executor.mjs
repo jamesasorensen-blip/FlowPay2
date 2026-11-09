@@ -68,6 +68,9 @@ export async function executeMfaRecovery({
     for (const id of submitted.factorIds) {
       const result = await admin.auth.admin.mfa.deleteFactor({ userId: submitted.userId, id });
       if (result?.error) throw result.error;
+      if (!result || result.data == null) {
+        throw new Error("Supabase did not confirm MFA factor deletion");
+      }
       deleted.push(id);
       await audit({ event: "mfa_factor_deleted", caseId: submitted.caseId, userId: submitted.userId, factorId: id });
     }
