@@ -82,3 +82,17 @@ test("rejects inventory that includes an unverified or wrong factor", async () =
   await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /verified inventory/);
   assert.equal(h.deletes.length, 0);
 });
+
+test("inventory drift after approval but before execution blocks deletion", async () => {
+  const h = harness();
+  let calls = 0;
+  h.getVerifiedFactors = async () => {
+    calls += 1;
+    return calls === 1
+      ? [{ id: uuid(2), status: "verified" }]
+      : [{ id: uuid(2), status: "verified" }, { id: uuid(3), status: "verified" }];
+  };
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /inventory changed/);
+  assert.equal(h.deletes.length, 0);
+  assert.equal(h.events.length, 0);
+});
