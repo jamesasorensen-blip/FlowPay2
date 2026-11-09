@@ -20,7 +20,7 @@ function harness() {
     audit: async e => { events.push(e); },
     verifyTrustedCase: async () => true,
     claimRecoveryCase: async () => true,
-    getVerifiedFactors: async () => [{ id: uuid(2), status: "verified" }],
+    getVerifiedFactors: async () => deletes.some(d => d.id === uuid(2)) ? [] : [{ id: uuid(2), status: "verified" }],
     admin: { auth: { admin: { mfa: { deleteFactor: async input => {
       deletes.push(input); return { data: {} };
     } } } } }
@@ -152,4 +152,13 @@ test("missing atomic case claim blocks all privileged operations", async () => {
   delete h.claimRecoveryCase;
   await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /atomic case claim/);
   assert.equal(h.deletes.length, 0);
+});
+
+test("does not report success when Supabase returns success but factor remains", async () => {
+  const h = harness();
+  h.getVerifiedFactors = async () => [{ id: uuid(2), status: "verified" }];
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /could not be verified/);
+  assert.equal(h.deletes.length, 1);
+  assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+  assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
 });
