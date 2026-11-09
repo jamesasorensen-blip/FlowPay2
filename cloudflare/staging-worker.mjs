@@ -1,5 +1,5 @@
 const PLAID_URL = "https://sandbox.plaid.com";
-const FLOWPAY_ORIGIN = "https://flowpay-6aay.onrender.com";
+const FLOWPAY_ORIGINS = new Set(["https://flowpay-6aay.onrender.com", "https://flowpay-staging.onrender.com"]);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 function json(data, status = 200, cors = {}) {
@@ -280,10 +280,10 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
-    const allowed = origin === FLOWPAY_ORIGIN;
+    const allowed = FLOWPAY_ORIGINS.has(origin);
     const cors = allowed
       ? {
-          "Access-Control-Allow-Origin": FLOWPAY_ORIGIN,
+          "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Vary": "Origin"
