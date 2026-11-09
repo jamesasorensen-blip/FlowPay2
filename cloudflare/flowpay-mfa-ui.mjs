@@ -49,6 +49,7 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       message.textContent = "Setting up your authenticator…";
       const setup = await controller.enroll();
       factorId = setup.factorId;
+      if (!/^data:image\/(?:svg\+xml|png);base64,[A-Za-z0-9+/=]+$/.test(setup.qrCode)) throw new Error("Invalid authenticator QR response");
       qr.src = setup.qrCode;
       qr.hidden = false;
       manual.textContent = setup.secret;
