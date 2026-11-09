@@ -269,6 +269,13 @@ async function readJson(request, maxBytes = 4096) {
     throw error;
   }
 }
+// Fail closed for financial operations when MFA enforcement is enabled.
+// /me is deliberately limited to identity/status metadata for enrollment.
+export function requiresMfa(user, env, pathname, method) {
+  return env.REQUIRE_MFA_AAL2 === "true" &&
+    user.aal !== "aal2" &&
+    !(pathname === "/me" && method === "GET");
+}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -337,8 +344,7 @@ export default {
     // Disabled by default until the MFA enrollment UI and recovery flow are tested.
     // When enabled, deny all financial API operations for sessions below AAL2.
     // /me remains available to identify an account that needs enrollment.
-    if (env.REQUIRE_MFA_AAL2 === "true" && user.aal !== "aal2" &&
-        !(url.pathname === "/me" && request.method === "GET")) {
+    if (requiresMfa(user, env, url.pathname, request.method)) {
       return send({ success: false, error: "MFA_REQUIRED",
         message: "Complete multi-factor authentication before accessing financial data." }, 403);
     }
