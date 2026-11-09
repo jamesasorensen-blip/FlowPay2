@@ -18,6 +18,7 @@ function harness() {
   return {
     events, deletes,
     audit: async e => { events.push(e); },
+    verifyTrustedCase: async () => true,
     getVerifiedFactors: async () => [{ id: uuid(2), status: "verified" }],
     admin: { auth: { admin: { mfa: { deleteFactor: async input => {
       deletes.push(input); return { data: {} };
@@ -49,5 +50,19 @@ test("audit failure prevents privileged deletion", async () => {
   const h = harness();
   h.audit = async () => { throw new Error("audit offline"); };
   await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /audit offline/);
+  assert.equal(h.deletes.length, 0);
+});
+
+test("self-attested approvals without trusted verification cannot reset factors", async () => {
+  const h = harness();
+  h.verifyTrustedCase = async () => false;
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /independently authorized/);
+  assert.equal(h.deletes.length, 0);
+  assert.equal(h.events.length, 0);
+});
+test("missing trusted verifier fails closed before any deletion", async () => {
+  const h = harness();
+  delete h.verifyTrustedCase;
+  await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /Trusted case verification/);
   assert.equal(h.deletes.length, 0);
 });
