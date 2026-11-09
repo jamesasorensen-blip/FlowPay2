@@ -204,3 +204,20 @@ test("missing session revocation verifier blocks destructive recovery", async ()
   await assert.rejects(executeMfaRecovery({ record: record(), ...h, now, dryRun: false }), /session revocation verification/);
   assert.equal(h.deletes.length, 0);
 });
+
+test("recovery fails if a newly enrolled verified factor appears after deletion", async () => {
+  const h = harness();
+  let inventoryCalls = 0;
+  h.getVerifiedFactors = async () => {
+    inventoryCalls += 1;
+    if (inventoryCalls < 3) return [{ id: uuid(2), status: "verified" }];
+    return [{ id: uuid(3), status: "verified" }];
+  };
+  await assert.rejects(
+    executeMfaRecovery({ record: record(), ...h, now, dryRun: false }),
+    /factor deletion could not be verified/
+  );
+  assert.equal(h.deletes.length, 1);
+  assert.equal(h.events.at(-1).event, "mfa_recovery_failed");
+  assert.equal(h.events.some(e => e.event === "mfa_recovery_completed"), false);
+});
