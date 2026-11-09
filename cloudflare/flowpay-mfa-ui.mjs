@@ -32,6 +32,10 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   enrollButton.type = "button";
   enrollButton.textContent = "Set up authenticator";
   enrollButton.hidden = true;
+  const restartButton = document.createElement("button");
+  restartButton.type = "button";
+  restartButton.textContent = "Restart unfinished setup";
+  restartButton.hidden = true;
   const signOut = document.createElement("button");
   signOut.type = "button";
   signOut.textContent = "Sign out";
