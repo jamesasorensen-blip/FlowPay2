@@ -52,3 +52,26 @@ test("cannot remove a different unverified factor", async () => {
   await assert.rejects(createMfaController(c).removeFactor("unknown"), /not verified/);
   assert.equal(c.calls.some(([name]) => name === "unenroll"), false);
 });
+
+test("unfinished named enrollment can be restarted without touching verified factors", async () => {
+  const pending = { id: "pending", factor_type: "totp", status: "unverified", friendly_name: "FlowPay authenticator" };
+  const c = client({ factors: [pending] });
+  const controller = createMfaController(c);
+  assert.equal((await controller.status()).pendingFactors.length, 1);
+  assert.equal((await controller.restartUnverifiedEnrollment()).factorId, "new");
+  assert.deepEqual(c.calls.map(([name]) => name), ["unenroll", "enroll"]);
+  assert.deepEqual(c.calls[0][1], { factorId: "pending" });
+});
+test("restart refuses to remove a verified authenticator", async () => {
+  const c = client({ factors: [{ id: "verified", factor_type: "totp", status: "verified", friendly_name: "FlowPay authenticator" }] });
+  await assert.rejects(createMfaController(c).restartUnverifiedEnrollment(), /unavailable/);
+  assert.equal(c.calls.length, 0);
+});
+test("restart refuses ambiguous pending enrollments", async () => {
+  const c = client({ factors: [
+    { id: "a", factor_type: "totp", status: "unverified", friendly_name: "FlowPay authenticator" },
+    { id: "b", factor_type: "totp", status: "unverified", friendly_name: "FlowPay authenticator" }
+  ] });
+  await assert.rejects(createMfaController(c).restartUnverifiedEnrollment(), /single unfinished/);
+  assert.equal(c.calls.length, 0);
+});
