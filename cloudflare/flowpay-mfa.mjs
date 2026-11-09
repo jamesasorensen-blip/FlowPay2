@@ -9,12 +9,12 @@ export function createMfaController(supabase) {
     return data;
   };
   async function status() {
-    const [session, factors, assurance] = await Promise.all([
-      unwrap(supabase.auth.getSession()),
+    const session = await unwrap(supabase.auth.getSession());
+    if (!session.session) return { state: "signed-out", factors: [] };
+    const [factors, assurance] = await Promise.all([
       unwrap(mfa.listFactors()),
       unwrap(mfa.getAuthenticatorAssuranceLevel())
     ]);
-    if (!session.session) return { state: "signed-out", factors: [] };
     const verified = (factors.totp || []).filter(f => f.status === "verified");
     const state = assurance.currentLevel === "aal2" && verified.length ? "ready" :
       verified.length ? "challenge-required" : "enrollment-required";
