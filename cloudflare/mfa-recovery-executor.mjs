@@ -4,16 +4,22 @@ import { validateMfaRecoveryCase } from "./mfa-recovery-policy.mjs";
 // No network action is possible without a separately supplied privileged client.
 // The caller must provide an append-only, externally persisted audit writer.
 export async function executeMfaRecovery({
-  record, admin, audit, getVerifiedFactors, now = Date.now(),
+  record, admin, audit, getVerifiedFactors, verifyTrustedCase, now = Date.now(),
   dryRun = true
 }) {
   const validation = validateMfaRecoveryCase(record, { now });
   if (!validation.approved) {
     return { status: "denied", errors: validation.errors };
   }
-  if (typeof getVerifiedFactors !== "function" || typeof audit !== "function") {
-    throw new Error("Trusted factor lookup and durable audit writer required");
+  if (typeof getVerifiedFactors !== "function" || typeof audit !== "function" ||
+      typeof verifyTrustedCase !== "function") {
+    throw new Error("Trusted case verification, factor lookup and durable audit writer required");
   }
+  // Approval flags supplied in a request are not proof of independent authorization.
+  // The trusted verifier must independently validate case ownership, identity evidence,
+  // operator and both approvals against authoritative records.
+  const trusted = await verifyTrustedCase(record);
+  if (trusted !== true) throw new Error("Recovery case not independently authorized");
   const verified = await getVerifiedFactors(record.userId);
   if (!Array.isArray(verified) || verified.some(f => !f || typeof f.id !== "string")) {
     throw new Error("Trusted factor inventory unavailable");
