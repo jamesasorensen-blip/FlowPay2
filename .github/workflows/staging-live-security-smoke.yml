@@ -1,8 +1,8 @@
 name: Staging anonymous API security smoke test
 
 on:
-  schedule:
-    - cron: '17 9 * * *'
+  push:
+    branches: [security/mfa-staging-gate]
   workflow_dispatch:
 
 permissions:
