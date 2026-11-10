@@ -1,0 +1,54 @@
+name: Staging regression (offline)
+
+on:
+  push:
+    branches: [security/mfa-staging-gate]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mfa-and-static-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check Worker and MFA module syntax
+        run: |
+          node --check cloudflare/staging-worker.mjs
+          node --check cloudflare/flowpay-mfa.mjs
+          node --check cloudflare/flowpay-mfa-ui.mjs
+      - name: Run offline MFA and session regression tests
+        run: |
+          node --test \
+            tests/mfa-enforcement.test.mjs \
+            tests/mfa-recovery-guards.test.mjs \
+            tests/mfa-recovery-policy.test.mjs \
+            tests/mfa-signed-jwt-integration.test.mjs \
+            tests/staging-session-security.test.mjs
+      - name: Validate static-site manifest and logo
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import fs from 'node:fs';
+          const root = 'staging-public/';
+          const manifest = JSON.parse(fs.readFileSync(root + 'manifest.webmanifest', 'utf8'));
+          assert.equal(manifest.display, 'standalone');
+          assert.equal(manifest.start_url, '/');
+          assert.ok(manifest.icons.length > 0);
+          for (const icon of manifest.icons) {
+            assert.ok(icon.src.startsWith('/'));
+            assert.ok(fs.existsSync(root + icon.src.slice(1)), 'Missing icon: ' + icon.src);
+          }
+          const html = fs.readFileSync('index.html', 'utf8');
+          assert.match(html, /manifest\\.webmanifest/);
+          NODE
+      - name: Run local Cloudflare unit tests
+        run: python3 -m unittest discover -s cloudflare/tests -v
