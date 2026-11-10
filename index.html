@@ -1091,7 +1091,7 @@ window.addEventListener('DOMContentLoaded',init);
     const modal = $auth('auth-modal');
     if (modal) modal.classList.toggle('hidden', !!activeUser);
     const bank = $auth('flowpay-plaid-panel');
-    if (bank) bank.style.display = activeUser ? '' : 'none';
+    if (bank && !activeUser) bank.style.display = 'none'; // Only the user's Bank Connections button may open this panel.
     const warning = $auth('flowpay-local-storage-warning');
     if (warning) warning.style.display = activeUser ? '' : 'none';
   };
@@ -1257,6 +1257,15 @@ window.addEventListener('DOMContentLoaded',init);
   notice.id = 'flowpay-cloud-sync';
   notice.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9100;background:#172033;color:#fff;padding:12px;border-radius:12px;max-width:300px;font:13px Arial,sans-serif;box-shadow:0 4px 20px #0005;display:none';
   notice.innerHTML = '<div id="flowpay-sync-status" role="status">Checking cloud storage…</div><button id="flowpay-import-legacy" type="button" style="display:none;margin-top:10px;background:#6366f1;color:white;padding:9px;border-radius:7px">Back up and import this browser’s old data</button>';
+  const dismissCloudNotice = document.createElement('button');
+  dismissCloudNotice.type = 'button';
+  dismissCloudNotice.textContent = '×';
+  dismissCloudNotice.setAttribute('aria-label', 'Close cloud data notice');
+  dismissCloudNotice.style.cssText = 'position:absolute;right:8px;top:4px;color:white;background:transparent;border:0;font-size:22px;cursor:pointer';
+  notice.appendChild(dismissCloudNotice);
+  let cloudNoticeDismissed = false;
+  dismissCloudNotice.addEventListener('click', () => { cloudNoticeDismissed = true; notice.style.display = 'none'; });
+
   document.body.appendChild(notice);
   const freshButton = document.createElement('button');
   freshButton.id = 'flowpay-start-fresh';
@@ -1348,7 +1357,7 @@ window.addEventListener('DOMContentLoaded',init);
     clearTimeout(timer);
     activeId = id;ready = false;paused = false;writing = false;dirty = false;revision=0;remoteIsSample=false;
     state = normalized({});theme();render();
-    notice.style.display = id ? 'block' : 'none';
+    notice.style.display = id && !cloudNoticeDismissed ? 'block' : 'none';
     if (!id) return;
     setStatus('Loading your account’s cloud data…');
     try {
@@ -2336,6 +2345,21 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 #fp4-shortcuts{font-size:12px;color:#64748b;margin:8px 0}
 #fp4-shortcuts kbd{border:1px solid #cbd5e1;padding:2px 5px;border-radius:4px}
 @media(prefers-reduced-motion:reduce){#fp4-notification-drawer *{animation:none!important;transition:none!important}}
+@media(max-width:767px){
+  #fp4-shortcuts{display:none!important}
+  #fp-toolbar{width:100%;min-width:0;justify-content:flex-start;gap:8px;flex-wrap:nowrap;overflow-x:auto;padding:6px 0;scrollbar-width:none}
+  #fp-toolbar::-webkit-scrollbar{display:none}
+  #fp-toolbar .fp-ui-btn{flex:0 0 auto;min-width:42px;min-height:42px;padding:9px}
+  #fp-toolbar .fp-status{flex:0 0 auto;font-size:11px}
+  header:has(#fp-toolbar){display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;min-width:0}
+  header:has(#fp-toolbar)>div:first-child{min-width:0;flex:1 1 155px}
+  header:has(#fp-toolbar)>div:first-child h1{font-size:16px;overflow-wrap:anywhere}
+  header:has(#fp-toolbar)>div:nth-child(2){flex:0 0 auto;gap:6px}
+  header:has(#fp-toolbar)>div:nth-child(2) button{flex-shrink:0;padding:8px}
+  header:has(#fp-toolbar)>div:nth-child(2) #btn-logout span{display:none}
+  header:has(#fp-toolbar)>#fp-toolbar{flex:1 1 100%}
+  #flowpay-cloud-sync{max-width:min(300px,calc(100vw - 32px));max-height:45vh;overflow-y:auto}
+}
 </style>
 <div id="fp4-notification-drawer" role="presentation">
  <section id="fp4-notification-panel" role="dialog" aria-modal="true" aria-labelledby="fp4-notification-title" tabindex="-1">
