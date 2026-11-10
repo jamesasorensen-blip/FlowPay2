@@ -55,4 +55,37 @@ drop trigger if exists audit_immutable on flowpay_recovery_private.audit_events;
 create trigger audit_immutable before update or delete
 on flowpay_recovery_private.audit_events
 for each row execute function flowpay_recovery_private.reject_audit_mutation();
+
+-- Atomic, one-time case claim for a dedicated privileged database operator.
+-- This function is SECURITY INVOKER: it does not elevate privileges.
+-- Caller must have narrowly scoped UPDATE permission on cases, and no browser
+-- role may execute this function or update recovery tables.
+create or replace function flowpay_recovery_private.claim_case(
+ p_case_id uuid, p_user_id uuid, p_operator_ref text
+) returns boolean
+language plpgsql security invoker set search_path = '' as $
+declare claimed_count integer;
+begin
+ if p_operator_ref is null or length(trim(p_operator_ref)) < 6 then
+  return false;
+ end if;
+ update flowpay_recovery_private.cases
+ set status = 'claimed', claimed_at = now()
+ where case_id = p_case_id and user_id = p_user_id
+   and status = 'pending_approval'
+   and cancelled_at is null and suspicious_activity = false
+   and requested_at <= now() - interval '48 hours'
+   and identity_verified_at is not null
+   and notification_sent_at is not null
+   and (select count(distinct reviewer_id)
+        from flowpay_recovery_private.approvals a
+        where a.case_id = p_case_id and a.decision = 'approve'
+          and a.decided_at >= (select c.requested_at from flowpay_recovery_private.cases c where c.case_id = p_case_id)
+          and a.decided_at <= now()) >= 2;
+ get diagnostics claimed_count = row_count;
+ return claimed_count = 1;
+end;
+$;
+revoke all on function flowpay_recovery_private.claim_case(uuid,uuid,text) from public, anon, authenticated;
+
 commit;
