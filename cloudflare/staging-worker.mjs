@@ -858,7 +858,9 @@ export default {
           `SELECT CASE WHEN EXISTS (
              SELECT 1 FROM bank_connections
              WHERE id = ? AND user_id = ? AND COALESCE(sync_cursor, '') = ?
-           ) THEN 1 ELSE json_extract('SYNC_CURSOR_CONFLICT', '
+           ) THEN 1 ELSE json_extract('SYNC_CURSOR_CONFLICT', '$') END AS cursor_guard`
+        ).bind(connection.id, user.id, initialCursor));
+        for (const tx of changes) {
           const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
           statements.push(env.DB.prepare(
             `INSERT INTO bank_transactions
