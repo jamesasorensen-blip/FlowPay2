@@ -20,3 +20,5 @@ jobs:
           node-version: '22'
       - name: Test MFA gate
         run: node --test tests/mfa-enforcement.test.mjs tests/staging-session-security.test.mjs
+      - name: Probe deployed staging API (anonymous only)
+        run: node --test tests/staging-live-anonymous.test.mjs
