@@ -1153,6 +1153,12 @@ window.addEventListener('DOMContentLoaded',init);
     if (!window.supabase?.createClient) { notify('Supabase library could not load. Check your internet connection.', true); return; }
     try {
       client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      window.flowpayMfaSessionStatus = async () => {
+        const {data,error} = await client.auth.getSession();
+        if (error || !data.session) return {session:'missing',error:error?.message || null};
+        const {data:assurance,error:aalError} = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+        return {session:'present',currentLevel:assurance?.currentLevel || null,nextLevel:assurance?.nextLevel || null,error:aalError?.message || null};
+      };
       // Staging MFA enrollment and challenge UI. Never bypass the Worker AAL2 gate.
       // The user's browser-only financial records are not changed by this UI.
       const settingsModal = document.getElementById('modal-settings');
@@ -1184,9 +1190,20 @@ window.addEventListener('DOMContentLoaded',init);
           launch.disabled = true;
           error.textContent = '';
           try {
-            const {data, error:sessionError} = await client.auth.getSession();
+            // Recover an expired/inconsistent Supabase session before mounting MFA.
+            // Never read/write financial data as part of this recovery.
+            let {data, error:sessionError} = await client.auth.getSession();
             if (sessionError) throw sessionError;
-            if (!data.session) throw new Error('Sign in before setting up an authenticator.');
+            if (!data.session) {
+              throw new Error('Supabase session missing. Please export a backup of local financial data before signing in again.');
+            }
+            // Refresh the token through Supabase rather than trusting a cached AAL1 JWT.
+            // A verified TOTP factor still needs a challenge to reach AAL2.
+            const refreshed = await client.auth.refreshSession();
+            if (refreshed.error) throw new Error('Session refresh failed: ' + refreshed.error.message);
+            if (!refreshed.data.session) throw new Error('Supabase did not restore the session. Do not clear browser storage.');
+            const {data: identity, error:identityError} = await client.auth.getUser();
+            if (identityError || !identity.user) throw new Error('Supabase could not validate your session: ' + (identityError?.message || 'No user'));
             const {mountFlowPayMfa} = await import('/mfa/flowpay-mfa-ui.mjs');
             await mountFlowPayMfa({supabase:client,host,onReady:()=>{
               info.textContent = 'Authenticator verified. Checking cloud access without overwriting browser records.';
@@ -1201,9 +1218,11 @@ window.addEventListener('DOMContentLoaded',init);
       }
 
       client.auth.onAuthStateChange((event, session) => {
-        gate(session?.user || null);
+        if (event === 'SIGNED_OUT') gate(null);
+        else if (session?.user) gate(session.user);
         if (session?.access_token && ['TOKEN_REFRESHED','SIGNED_IN','MFA_CHALLENGE_VERIFIED'].includes(event)) {
-          window.dispatchEvent(new Event('flowpay-auth-token-updated'));
+          // Queue the cloud READ retry until Supabase has persisted its new session.
+          setTimeout(() => window.dispatchEvent(new Event('flowpay-auth-token-updated')), 0);
         }
       });
       const {data, error} = await client.auth.getSession();
