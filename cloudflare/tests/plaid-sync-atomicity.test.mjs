@@ -17,3 +17,12 @@ test("sync rejects excessive changes and malformed cursors before writes", () =>
   assert.match(sync, /typeof page\.has_more !== "boolean"/);
   assert.ok(sync.indexOf("Sync change limit exceeded") < sync.indexOf("env.DB.batch(statements)"));
 });
+
+test("sync rejects a stale cursor before any transaction write in the atomic batch", () => {
+  assert.match(sync, /const initialCursor = connection\.sync_cursor \|\| ""/);
+  assert.match(sync, /COALESCE\(sync_cursor, ''\) = \?/);
+  assert.match(sync, /json_extract\('SYNC_CURSOR_CONFLICT', '\$'\)/);
+  assert.match(sync, /\.bind\(connection\.id, user\.id, initialCursor\)/);
+  assert.ok(sync.indexOf("SYNC_CURSOR_CONFLICT") < sync.indexOf("INSERT INTO bank_transactions"));
+  assert.match(sync, /results\.slice\(changes\.length \+ 1, changes\.length \+ 1 \+ removals\.length\)/);
+});
