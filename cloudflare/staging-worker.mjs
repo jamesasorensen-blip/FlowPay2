@@ -826,6 +826,12 @@ export default {
           additions.push(...(page.added || []));
           modifications.push(...(page.modified || []));
           removals.push(...(page.removed || []));
+          if (additions.length + modifications.length + removals.length > 500) {
+            return send({ error: "Sync change limit exceeded; no changes saved" }, 503);
+          }
+          if (typeof page.next_cursor !== "string" || typeof page.has_more !== "boolean") {
+            return send({ error: "Invalid sync page; no changes saved" }, 502);
+          }
           cursor = page.next_cursor;
           hasMore = page.has_more;
         }
@@ -840,32 +846,50 @@ export default {
             return send({ error: "Transaction account mismatch" }, 502);
           }
         }
-        for (const tx of additions) {
-          await saveTransaction(env, tx);
-          added++;
-        }
-        for (const tx of modifications) {
-          await saveTransaction(env, tx);
-          modified++;
+        // D1 batch executes statements as a transaction: failed writes roll back
+        // both transaction changes and the cursor advance.
+        const changes = [...additions, ...modifications];
+        const statements = [];
+        for (const tx of changes) {
+          const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
+          statements.push(env.DB.prepare(
+            `INSERT INTO bank_transactions
+             (id, account_id, amount, transaction_date, merchant_name, description, pending, category)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               amount = excluded.amount,
+               transaction_date = excluded.transaction_date,
+               merchant_name = excluded.merchant_name,
+               description = excluded.description,
+               pending = excluded.pending,
+               category = excluded.category`
+          ).bind(tx.transaction_id, tx.account_id, tx.amount, tx.date,
+            tx.merchant_name || null, tx.name || null, tx.pending ? 1 : 0, category));
         }
         for (const tx of removals) {
-          const result = await env.DB.prepare(
+          statements.push(env.DB.prepare(
             `DELETE FROM bank_transactions
-             WHERE id = ?
-               AND account_id IN (
-                 SELECT id FROM bank_accounts
-                 WHERE connection_id = ?
-               )`
-          ).bind(tx.transaction_id, connection.id).run();
-          removed += result.meta?.changes || 0;
+             WHERE id = ? AND account_id IN (
+               SELECT id FROM bank_accounts WHERE connection_id = ?
+             )`
+          ).bind(tx.transaction_id, connection.id));
         }
-        await env.DB.prepare(
-          `UPDATE bank_connections
-           SET sync_cursor = ?,
-               last_synced_at = CURRENT_TIMESTAMP
+        statements.push(env.DB.prepare(
+          `UPDATE bank_connections SET sync_cursor = ?,
+             last_synced_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`
-        ).bind(cursor, connection.id, user.id).run();
-        await audit(env, user.id, "transactions_synced", "bank_connection", connection.id);
+        ).bind(cursor, connection.id, user.id));
+        statements.push(env.DB.prepare(
+          `INSERT INTO security_audit_log
+           (id, user_id, action, resource_type, resource_id)
+           VALUES (?, ?, 'transactions_synced', 'bank_connection', ?)`
+        ).bind(crypto.randomUUID(), user.id, connection.id));
+        const results = await env.DB.batch(statements);
+        added = additions.length;
+        modified = modifications.length;
+        removed = results.slice(changes.length, changes.length + removals.length)
+          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
         return send({
           success: true,
           added,
