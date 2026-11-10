@@ -1450,6 +1450,18 @@ window.addEventListener('DOMContentLoaded',init);
     if (!legacy || typeof legacy !== 'object' || Array.isArray(legacy)) {
       setStatus('No valid old browser data found. Nothing was uploaded.');return;
     }
+    // An existing account-scoped cache may contain newer or different financial data.
+    // Never replace that cache with legacy records without a deliberate reconciliation.
+    const accountCache = localStorage.getItem(cacheKey(activeId));
+    if (accountCache !== null) {
+      let cachedAccount;
+      try { cachedAccount = JSON.parse(accountCache); }
+      catch { setStatus('Account browser cache is unreadable. Import blocked to protect existing records.',true); return; }
+      if (JSON.stringify(normalized(cachedAccount)) !== JSON.stringify(normalized(legacy))) {
+        setStatus('This account already has different browser records. Import blocked to prevent replacing them. Export both sets before reconciling.',true);
+        return;
+      }
+    }
     if (!confirm('This will back up your original browser data, then upload it to the currently signed-in account. If the cloud contains the test record, it will be replaced. Continue?')) return;
     const id=activeId,gen=generation;
     backup(legacy,'flowpay-original-browser-backup.json');
