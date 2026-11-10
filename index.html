@@ -2606,11 +2606,13 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  trigger.setAttribute('aria-controls','flowpay-plaid-panel');trigger.setAttribute('aria-expanded','false');
  trigger.setAttribute('aria-label','Open bank connections');
  trigger.style.cssText='padding:9px 12px;border-radius:10px;background:#475569;color:white;border:1px solid #64748b;font:600 12px Arial;cursor:pointer;min-height:44px;';
+ trigger.hidden=!window.flowpayActiveUserId;
+ trigger.style.display=window.flowpayActiveUserId?'':'none';
  trigger.addEventListener('click',()=>panel.dataset.panelOpen==='true'?close():open());
  panel.querySelector('#flowpay-close-bank-panel')?.addEventListener('click',close);
  const toolbar=document.getElementById('fp-toolbar');
  (toolbar||document.querySelector('header')||document.body).appendChild(trigger);
- window.addEventListener('flowpay-auth-user-changed',close);
+ window.addEventListener('flowpay-auth-user-changed',event=>{close();const signedIn=!!event.detail?.userId;trigger.hidden=!signedIn;trigger.style.display=signedIn?'':'none';});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&panel.dataset.panelOpen!=='true')close();});
  window.addEventListener('pageshow',()=>{if(panel.dataset.panelOpen!=='true')close();});
 })();
