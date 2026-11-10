@@ -258,7 +258,7 @@ async function saveTransaction(env, tx) {
     category
   ).run();
 }
-async function readJson(request, maxBytes = 4096) {
+export async function readJson(request, maxBytes = 4096) {
   // Bound memory consumption while streaming, not after buffering the body.
   const reader = request.body?.getReader();
   const chunks = [];
