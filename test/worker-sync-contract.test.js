@@ -40,3 +40,12 @@ test('staging sync commits transactions, cursor and audit together', () => {
   assert.match(route, /await env\.DB\.batch\(statements\)/);
   assert.doesNotMatch(route, /await saveTransaction\(/);
 });
+
+test('staging sync rejects oversized batches before database mutation', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
+  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const guard = route.indexOf('if (statementCount > 500)');
+  const batch = route.indexOf('await env.DB.batch(statements)');
+  assert.ok(guard >= 0 && batch > guard, 'batch limit must precede atomic write');
+  assert.match(route, /Transaction sync batch too large; no changes saved/);
+});
