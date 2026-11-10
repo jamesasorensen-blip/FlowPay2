@@ -1188,6 +1188,28 @@ window.addEventListener('DOMContentLoaded',init);
       $auth('modal-logout-confirm').classList.add('hidden');
       await showMfa(null);
     }, true);
+    // Browser/OS credential autofill can use the phone's biometric unlock without
+    // bypassing Supabase password authentication or the server-enforced MFA gate.
+    const deviceLogin = $auth('biometric-login-btn');
+    const deviceHint = $auth('biometric-auth-hint');
+    if (deviceLogin) {
+      deviceLogin.textContent = 'Use saved password / device unlock';
+      deviceLogin.addEventListener('click', event => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        username.focus();
+        notify('Choose your saved FlowPay login from your phone password manager, then complete authenticator verification.');
+      }, true);
+    }
+    if (deviceHint) deviceHint.textContent = 'Your phone can unlock saved passwords with fingerprint or face recognition. A separate verified passkey sign-in is not yet available.';
+    const legacyDeviceSection = $auth('biometric-enroll-btn')?.parentElement;
+    if (legacyDeviceSection) {
+      const info = document.createElement('p');
+      info.id = 'flowpay-device-signin-guidance';
+      info.className = 'text-xs text-slate-500 dark:text-slate-400';
+      info.textContent = 'Device unlock: save your FlowPay password in your phone password manager and enable fingerprint/face unlock there. This does not bypass Supabase sign-in or MFA. Verified passkey enrollment is not yet available.';
+      legacyDeviceSection.appendChild(info);
+    }
     // Hide obsolete local-only password/security settings; do not falsely present them as Supabase controls.
     const changePassword = $auth('form-change-password');
     if (changePassword) changePassword.style.display = 'none';
