@@ -12,8 +12,8 @@ test('mobile browser viewport and PWA metadata are present',()=>{
 
 test('device sign-in checks secure context and WebAuthn before use',()=>{
  assert.match(html,/function biometricSupported\(\)\{return !!\(window\.isSecureContext&&window\.PublicKeyCredential&&navigator\.credentials/);
- assert.match(html,/if\(!biometricSupported\(\)\)/);
- assert.match(html,/userVerification:'required'/);
+ assert.match(html,/Verified passkey enrollment is not yet available/);
+ assert.doesNotMatch(html.slice(html.indexOf('function signInBiometric(){'),html.indexOf('function showAuth(){')),/sessionStorage\.setItem\('flowpay_session_active'/);
 });
 
 test('bank linking uses supported Plaid Link callback rather than a pop-up assumption',()=>{
