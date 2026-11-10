@@ -42,6 +42,14 @@ test('frontend server smoke and security checks', async (t) => {
   const retired = await get('/api/plaid');
   assert.equal(retired.status, 410);
   assert.deepEqual(await retired.json(), { error: 'Legacy API retired' });
+  for (const route of ['/api', '/api/', '/api/sync-transactions', '/api/create-link-token']) {
+    const response = await get(route);
+    assert.equal(response.status, 410, route + ' must remain retired');
+    assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
+  }
+  const head = await fetch('http://127.0.0.1:' + port + '/', { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get('x-frame-options'), 'DENY');
   for (const path of ['/server.js', '/package.json', '/package-lock.json', '/.env', '/.git/config', '/not-a-real-page']) {
     const response = await get(path);
     assert.equal(response.status, 404, path + ' must not be public');
