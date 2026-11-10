@@ -743,26 +743,46 @@ export default {
           return send({ error: "Bank connection consent required" }, 403);
         }
         const token = await decryptToken(connection, env);
-        let cursor = connection.sync_cursor || "";
+        const initialCursor = connection.sync_cursor || "";
+        let cursor = initialCursor;
         let hasMore = true;
         let pages = 0;
         let added = 0;
         let modified = 0;
         let removed = 0;
-        const additions = [];
-        const modifications = [];
-        const removals = [];
+        let additions = [];
+        let modifications = [];
+        let removals = [];
+        let paginationRestarts = 0;
         while (hasMore) {
           if (++pages > 100) {
             return send({
               error: "Too many sync pages; no changes saved"
             }, 503);
           }
-          const page = await plaid(env, "/transactions/sync", {
-            access_token: token,
-            cursor,
-            count: 100
-          });
+          let page;
+          try {
+            page = await plaid(env, "/transactions/sync", {
+              access_token: token,
+              cursor,
+              count: 100
+            });
+          } catch (error) {
+            // Plaid requires a full restart from the last committed cursor
+            // when transactions mutate during pagination.
+            if (error.code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION" &&
+                paginationRestarts < 2) {
+              paginationRestarts++;
+              cursor = initialCursor;
+              hasMore = true;
+              pages = 0;
+              additions = [];
+              modifications = [];
+              removals = [];
+              continue;
+            }
+            throw error;
+          }
           // Reject malformed pages before persisting any transactions or cursor.
           // An invalid cursor must never replace the last committed sync position.
           if (
