@@ -77,11 +77,18 @@ begin
    and requested_at <= now() - interval '48 hours'
    and identity_verified_at is not null
    and notification_sent_at is not null
+   and not exists (select 1 from flowpay_recovery_private.approvals rejected where rejected.case_id = p_case_id and rejected.decision = 'reject')
    and (select count(distinct reviewer_id)
         from flowpay_recovery_private.approvals a
         where a.case_id = p_case_id and a.decision = 'approve'
           and a.decided_at >= (select c.requested_at from flowpay_recovery_private.cases c where c.case_id = p_case_id)
-          and a.decided_at <= now()) >= 2;
+          and a.decided_at <= now()
+          and a.decided_at >= now() - interval '24 hours'
+          and a.evidence_ref is not null and length(trim(a.evidence_ref)) >= 6) >= 2
+   and (select count(distinct a.evidence_ref)
+        from flowpay_recovery_private.approvals a
+        where a.case_id = p_case_id and a.decision = 'approve'
+          and a.decided_at >= now() - interval '24 hours') >= 2;
  get diagnostics claimed_count = row_count;
  return claimed_count = 1;
 end;
