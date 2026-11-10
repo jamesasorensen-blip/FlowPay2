@@ -259,12 +259,37 @@ async function saveTransaction(env, tx) {
   ).run();
 }
 async function readJson(request, maxBytes = 4096) {
-  const raw = await request.text();
-  if (encoder.encode(raw).byteLength > maxBytes) {
-    const error = Error("Payload too large");
-    error.status = 413;
-    throw error;
+  // Bound memory consumption while streaming, not after buffering the body.
+  const reader = request.body?.getReader();
+  const chunks = [];
+  let bytes = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > maxBytes) {
+          const error = Error("Payload too large");
+          error.status = 413;
+          throw error;
+        }
+        chunks.push(value);
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
   }
+  const body = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const raw = decoder.decode(body);
   try {
     return JSON.parse(raw);
   } catch {
