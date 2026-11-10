@@ -10,7 +10,7 @@ const base='https://test-flowpay.supabase.co';
 const originalFetch=globalThis.fetch;
 
 let keySequence = 0;
-async function setup(aal,{active=true}={}) {
+async function setup(aal,{active=true,db}={}) {
   const keyPair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const jwk=await crypto.subtle.exportKey('jwk',keyPair.publicKey);
   const kid='integration-'+aal+'-'+(++keySequence);
@@ -33,12 +33,13 @@ async function setup(aal,{active=true}={}) {
     SUPABASE_URL:base,STAGING_TEST_USER_ID:uuid,PLAID_ENV:'sandbox',
     REQUIRE_MFA_AAL2:'true',REQUIRE_ACTIVE_SESSION:'true',
     SESSION_LOOKUP_URL:base+'/functions/v1/flowpay-session-lookup',
-    SESSION_LOOKUP_SECRET:'test-only-secret-at-least-32-characters'
+    SESSION_LOOKUP_SECRET:'test-only-secret-at-least-32-characters',DB:db
   };
-  return async path=>{
-    const request=new Request('https://worker.example'+path,{headers:{
-      Authorization:'Bearer '+token,Origin:'https://flowpay-staging.onrender.com'
-    }});
+  return async (path,{method='GET',body}={})=>{
+    const request=new Request('https://worker.example'+path,{method,headers:{
+      Authorization:'Bearer '+token,Origin:'https://flowpay-staging.onrender.com',
+      'Content-Type':'application/json'
+    },...(body!==undefined?{body:JSON.stringify(body)}:{})});
     const response=await worker.fetch(request,env);
     return {status:response.status,body:await response.json()};
   };
@@ -69,5 +70,27 @@ test('revoked session is rejected even with signed AAL2 JWT',async()=>{
     const r=await probe('/user-data');
     assert.equal(r.status,401);
     assert.equal(r.body.error,'SESSION_INVALID');
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+// Verify the write endpoint refuses invalid revisions before any database writes.
+test('cloud writes reject missing, negative, fractional and unsafe revisions',async()=>{
+  let dbCalls=0;
+  const db={prepare(){dbCalls++;throw new Error('Database must not be touched for invalid input');}};
+  try{
+    const probe=await setup('aal2',{db});
+    for(const body of [
+      {data:{bills:[]}},
+      {revision:-1,data:{}},
+      {revision:0.5,data:{}},
+      {revision:Number.MAX_SAFE_INTEGER+1,data:{}},
+      {revision:0,data:[]},
+      {revision:0,data:null}
+    ]){
+      const response=await probe('/user-data',{method:'PUT',body});
+      assert.equal(response.status,400,JSON.stringify(body));
+      assert.equal(response.body.error,'Expected revision and data object');
+    }
+    assert.equal(dbCalls,0);
   }finally{globalThis.fetch=originalFetch;}
 });
