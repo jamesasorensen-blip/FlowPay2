@@ -95,6 +95,11 @@ async function authenticate(request, env) {
     encoder.encode(`${headerPart}.${payloadPart}`)
   );
   if (!valid) throw Error("Invalid signature");
+  // Opt-in staging gate. Do not enable until existing users can enroll and
+  // recover MFA; a JWT without verified AAL2 must not access financial data.
+  if (env.REQUIRE_AAL2 === "true" && claims.aal !== "aal2") {
+    throw Error("MFA verification required");
+  }
   return {
     id: claims.sub,
     email: claims.email || null
