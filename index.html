@@ -1461,7 +1461,7 @@ window.addEventListener('DOMContentLoaded',init);
 <!-- FlowPay Plaid Sandbox Bank Connection -->
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 <div id="flowpay-plaid-panel" style="position:fixed;bottom:20px;right:20px;z-index:9000;background:#1e293b;color:white;padding:14px;border-radius:14px;box-shadow:0 5px 25px #0005;max-width:330px;max-height:75vh;overflow:auto;font-family:Arial,sans-serif;display:none;">
-  <div style="font-weight:bold;margin-bottom:8px;">Bank Connections (Sandbox)</div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px;"><strong>Bank Connections (Sandbox)</strong><button id="flowpay-close-banks" type="button" aria-label="Close bank connections" style="background:#475569;color:white;border:0;padding:6px 10px;border-radius:6px;cursor:pointer">Close</button></div>
   <button id="flowpay-connect-bank" type="button" style="background:#6366f1;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;">Connect Test Bank</button>
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
   <section id="flowpay-consent-panel" aria-label="Test bank data consent" style="margin-top:10px;padding:10px;border:1px solid #64748b;border-radius:8px;font-size:12px">
@@ -1502,6 +1502,22 @@ window.addEventListener('DOMContentLoaded',init);
   'use strict';
   const API = 'https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev';
   const panel = document.getElementById('flowpay-plaid-panel');
+  const closeBanksButton = document.getElementById('flowpay-close-banks');
+  const openBanksButton = document.createElement('button');
+  openBanksButton.type = 'button';
+  openBanksButton.id = 'flowpay-open-banks';
+  openBanksButton.textContent = 'Bank Connections';
+  openBanksButton.setAttribute('aria-controls', 'flowpay-plaid-panel');
+  openBanksButton.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:8999;background:#1e293b;color:#fff;border:1px solid #64748b;border-radius:12px;padding:10px 14px;box-shadow:0 5px 25px #0005;cursor:pointer;display:none';
+  panel.insertAdjacentElement('afterend', openBanksButton);
+  const setBankPanelOpen = (open) => {
+    const visible = Boolean(currentUser);
+    panel.style.display = visible && open ? 'block' : 'none';
+    openBanksButton.style.display = visible && !open ? 'block' : 'none';
+    openBanksButton.setAttribute('aria-expanded', String(visible && open));
+  };
+  openBanksButton.addEventListener('click', () => setBankPanelOpen(true));
+  closeBanksButton.addEventListener('click', () => setBankPanelOpen(false));
   const connectButton = document.getElementById('flowpay-connect-bank');
   const refreshButton = document.getElementById('flowpay-refresh-banks');
   const consentCheck = document.getElementById('flowpay-consent-check');
@@ -1919,7 +1935,7 @@ window.addEventListener('DOMContentLoaded',init);
   function authChanged(id) {
     generation++;
     currentUser=id || null;
-    panel.style.display=currentUser ? 'block' : 'none';
+    setBankPanelOpen(false);
     accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];txOverlay.style.display='none';window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
     setBusy(false);
     showConsent(false);
