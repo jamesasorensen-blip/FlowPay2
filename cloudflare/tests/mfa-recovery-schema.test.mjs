@@ -24,3 +24,16 @@ test('approval and case lifecycle have database constraints',()=>{
  assert.match(sql,/check \(decision in \('approve','reject'\)\)/);
  assert.match(sql,/check \(status in \(/);
 });
+
+test('claim is a single conditional update with no privilege escalation',()=>{
+ assert.match(sql,/create or replace function flowpay_recovery_private\.claim_case\(/);
+ assert.match(sql,/language plpgsql security invoker/);
+ assert.match(sql,/set status = 'claimed', claimed_at = now\(\)/);
+ assert.match(sql,/status = 'pending_approval'/);
+ assert.match(sql,/cancelled_at is null and suspicious_activity = false/);
+ assert.match(sql,/requested_at <= now\(\) - interval '48 hours'/);
+ assert.match(sql,/count\(distinct reviewer_id\)/);
+ assert.match(sql,/get diagnostics claimed_count = row_count/);
+ assert.match(sql,/return claimed_count = 1/);
+ assert.match(sql,/revoke all on function flowpay_recovery_private\.claim_case\(uuid,uuid,text\) from public, anon, authenticated/);
+});
