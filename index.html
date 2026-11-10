@@ -1386,7 +1386,10 @@ window.addEventListener('DOMContentLoaded',init);
 <!-- FlowPay Plaid Sandbox Bank Connection -->
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 <div id="flowpay-plaid-panel" style="position:fixed;bottom:20px;right:20px;z-index:9000;background:#1e293b;color:white;padding:14px;border-radius:14px;box-shadow:0 5px 25px #0005;width:min(330px, calc(100vw - 40px));box-sizing:border-box;max-height:75vh;overflow:auto;font-family:Arial,sans-serif;display:none;">
-  <div style="font-weight:bold;margin-bottom:8px;">Bank Connections (Sandbox)</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;">
+ <strong>Bank Connections (Sandbox)</strong>
+ <button id="flowpay-close-bank-panel" type="button" aria-label="Close Bank Connections" style="flex:none;width:44px;height:44px;border:1px solid #64748b;border-radius:10px;background:#334155;color:white;font-size:30px;line-height:1;cursor:pointer;">×</button>
+</div>
   <button id="flowpay-connect-bank" type="button" style="background:#6366f1;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;">Connect Test Bank</button>
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
   <section id="flowpay-consent-panel" aria-label="Test bank data consent" style="margin-top:10px;padding:10px;border:1px solid #64748b;border-radius:8px;font-size:12px">
@@ -1895,7 +1898,8 @@ window.addEventListener('DOMContentLoaded',init);
 </div>
 <div id="fp-popover" hidden role="dialog" aria-label="FlowPay quick actions"></div>
 <div id="fp-welcome" hidden role="dialog" aria-modal="true" aria-label="FlowPay setup guide">
- <div id="fp-welcome-inner">
+ <div id="fp-welcome-inner" style="position:relative;max-height:calc(100dvh - 40px);overflow-y:auto;box-sizing:border-box;">
+  <button id="fp-welcome-close" type="button" aria-label="Close setup guide" style="position:absolute;top:8px;right:8px;width:44px;height:44px;border:1px solid #cbd5e1;border-radius:10px;background:#f1f5f9;color:#0f172a;font-size:28px;cursor:pointer;z-index:2;">×</button>
   <h2 style="font-size:22px;font-weight:800;margin-bottom:6px">Welcome to FlowPay</h2>
   <p style="font-size:13px;color:#475569;margin-bottom:16px">Get started in a few steps. Your existing data will not be changed.</p>
   <div id="fp-welcome-steps" style="font-size:14px;display:grid;gap:10px;margin-bottom:20px"></div>
@@ -2365,5 +2369,37 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
 })();
 </script>
 
+<style id="flowpay-mobile-overlay-hotfix">
+#flowpay-plaid-panel { width:min(430px,calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; max-height:calc(100dvh - 110px) !important; overflow:auto !important; box-sizing:border-box !important; right:12px !important; bottom:calc(12px + env(safe-area-inset-bottom,0px)) !important; z-index:9200 !important; }
+#flowpay-plaid-panel button { max-width:100%; }
+#fp-welcome-inner { padding-top:56px !important; }
+@media(max-width:600px) { #flowpay-plaid-panel { left:12px !important; } }
+</style>
+<script id="flowpay-mobile-overlay-hotfix-script">
+(function(){
+ 'use strict';
+ const bank=document.getElementById('flowpay-plaid-panel');
+ const bankClose=document.getElementById('flowpay-close-bank-panel');
+ const welcome=document.getElementById('fp-welcome');
+ const welcomeClose=document.getElementById('fp-welcome-close');
+ if(bank && bankClose){
+   bankClose.addEventListener('click',function(){
+     bank.style.setProperty('display','none','important');
+     bank.setAttribute('data-user-closed','true');
+   });
+   // Bank controls should not open automatically when returning from another app.
+   document.addEventListener('visibilitychange',function(){
+     if(document.visibilityState==='visible' && bank.dataset.userClosed==='true')
+       bank.style.setProperty('display','none','important');
+   });
+ }
+ if(welcome && welcomeClose){
+   welcomeClose.addEventListener('click',function(){
+     welcome.hidden=true;
+     welcome.style.display='none';
+   });
+ }
+})();
+</script>
 </body>
 </html>
