@@ -1183,6 +1183,48 @@ window.addEventListener('DOMContentLoaded',init);
     if (!window.supabase?.createClient) { notify('Supabase library could not load. Check your internet connection.', true); return; }
     try {
       client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      // Staging-only optional authenticator management in Account Settings.
+      // This does not change the existing login gate or server-side MFA policy.
+      const settingsModal = document.getElementById('modal-settings');
+      const settingsContent = settingsModal?.querySelector('.glass');
+      if (settingsContent && !document.getElementById('flowpay-settings-mfa')) {
+        const section = document.createElement('section');
+        section.id = 'flowpay-settings-mfa';
+        section.className = 'pt-4 border-t border-slate-200 dark:border-slate-700 space-y-2';
+        section.innerHTML = `<h4 class="font-bold text-xs text-slate-700 dark:text-slate-300">Authenticator app (MFA)</h4>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Manage your Supabase authenticator factor. Enrollment is being tested on staging.</p>
+          <button type="button" id="flowpay-settings-mfa-button" class="w-full py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white">Manage authenticator</button>
+          <p id="flowpay-settings-mfa-error" role="alert" class="text-xs text-rose-500"></p>
+          <div id="flowpay-settings-mfa-host" hidden></div>`;
+        settingsContent.appendChild(section);
+        const button = section.querySelector('#flowpay-settings-mfa-button');
+        const host = section.querySelector('#flowpay-settings-mfa-host');
+        const errorArea = section.querySelector('#flowpay-settings-mfa-error');
+        let busy = false;
+        button.addEventListener('click', async () => {
+          if (busy) return;
+          if (!host.hidden) { host.hidden = true; button.textContent = 'Manage authenticator'; return; }
+          busy = true;
+          button.disabled = true;
+          errorArea.textContent = '';
+          try {
+            const {data, error} = await client.auth.getSession();
+            if (error) throw error;
+            if (!data.session) throw new Error('Please sign in again.');
+            const module = await import('/mfa/flowpay-mfa-ui.mjs');
+            await module.mountFlowPayMfa({supabase:client, host, onReady: async () => {
+              host.hidden = true;
+              button.textContent = 'Manage authenticator';
+            }});
+            host.hidden = false;
+            button.textContent = 'Hide authenticator settings';
+          } catch (error) {
+            host.hidden = true;
+            errorArea.textContent = error?.message || 'Unable to open authenticator settings.';
+          } finally { busy = false; button.disabled = false; }
+        });
+      }
+
       client.auth.onAuthStateChange((_event, session) => {
         // Avoid calling Supabase MFA APIs synchronously inside its auth callback.
         setTimeout(() => { void showMfa(session?.user || null); }, 0);
