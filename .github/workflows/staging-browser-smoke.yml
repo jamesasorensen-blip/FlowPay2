@@ -1,0 +1,37 @@
+name: Staging cross-browser smoke
+on:
+  push:
+    branches: [security/mfa-staging-gate]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Playwright test runner
+        run: npm install --no-save --no-package-lock @playwright/test@1.58.2
+      - name: Install browser and OS dependencies
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Assemble staging static site
+        run: |
+          mkdir -p staging-public/mfa
+          cp index.html staging-public/index.html
+          cp cloudflare/flowpay-mfa.mjs cloudflare/flowpay-mfa-ui.mjs staging-public/mfa/
+      - name: Run browser smoke checks
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory staging-public &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          npx playwright test tests/browser-smoke.spec.cjs --project=${{ matrix.browser }} --config=playwright.config.cjs
