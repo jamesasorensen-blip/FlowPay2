@@ -22,7 +22,7 @@ function fixture() {
   sql.exec(`
     CREATE TABLE users(id TEXT PRIMARY KEY);
     CREATE TABLE user_data(user_id TEXT PRIMARY KEY, data_json TEXT, revision INTEGER, updated_at TEXT);
-    CREATE TABLE bank_connections(id TEXT PRIMARY KEY,user_id TEXT,item_id TEXT,encrypted_access_token TEXT,token_iv TEXT,institution_name TEXT,created_at TEXT);
+    CREATE TABLE bank_connections(id TEXT PRIMARY KEY,user_id TEXT,item_id TEXT,encrypted_access_token TEXT,token_iv TEXT,institution_name TEXT,created_at TEXT,sync_cursor TEXT,last_synced_at TEXT);
     CREATE TABLE bank_accounts(id TEXT PRIMARY KEY,connection_id TEXT,name TEXT,mask TEXT,type TEXT,subtype TEXT,current_balance REAL,available_balance REAL,balance_updated_at TEXT);
     CREATE TABLE bank_transactions(id TEXT PRIMARY KEY,account_id TEXT,amount REAL,transaction_date TEXT,merchant_name TEXT,description TEXT,pending INTEGER,category TEXT);
     CREATE TABLE user_consents(id TEXT PRIMARY KEY,user_id TEXT,consent_type TEXT,policy_version TEXT,granted_at TEXT,withdrawn_at TEXT,connection_id TEXT);
@@ -140,7 +140,6 @@ test('local D1 batch simulator rolls back successful writes if a later statement
 test('failed sync batch rolls back transaction changes, cursor and audit together', async () => {
   const f = fixture();
   try {
-    f.sql.exec('ALTER TABLE bank_connections ADD COLUMN sync_cursor TEXT');
     const before = f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor;
     await assert.rejects(f.db.batch([
       f.db.prepare('INSERT INTO bank_transactions (id,account_id,amount,transaction_date) VALUES (?,?,?,?)')
