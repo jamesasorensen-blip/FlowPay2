@@ -14,7 +14,7 @@ export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
       record.identityMethod === "email-only" || !evidence(record.identityMethod)) {
     errors.push("Independent identity verification required");
   }
-  if (!evidence(record.operatorId)) errors.push("Operator ID required");
+  if (!evidence(record.operatorId) || record.operatorId === record.userId) errors.push("Independent operator ID required");
   if (!Array.isArray(record.factorIds) || record.factorIds.length === 0 ||
       record.factorIds.some(id => typeof id !== "string" || !UUID.test(id)) ||
       new Set(record.factorIds).size !== record.factorIds.length) {
@@ -28,7 +28,8 @@ export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
     if (ids.some(id => !evidence(id)) || ids[0] === ids[1] || ids.includes(record.operatorId)) {
       errors.push("Approvers must be distinct and independent of operator");
     }
-    if (approvals.some(a => a?.approved !== true || !evidence(a?.evidenceRef))) {
+    if (approvals.some(a => a?.approved !== true || !evidence(a?.evidenceRef)) ||
+        approvals[0]?.evidenceRef === approvals[1]?.evidenceRef) {
       errors.push("Documented affirmative approval required");
     }
     if (approvals.some(a => typeof a?.approvedAt !== "string" ||
@@ -44,6 +45,12 @@ export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
   if (!Number.isFinite(requestedAt) || requestedAt > now ||
       now - requestedAt < 48 * 60 * 60 * 1000) {
     errors.push("48-hour recovery waiting period required");
+  }
+  if (Array.isArray(approvals) && Number.isFinite(requestedAt)) {
+    if (approvals.some(a => Number.isFinite(Date.parse(a?.approvedAt)) &&
+        Date.parse(a.approvedAt) < requestedAt)) {
+      errors.push("Approval cannot predate recovery request");
+    }
   }
   if (record.revokeAllSessions !== true || record.requireFreshMfaEnrollment !== true) {
     errors.push("Session revocation and MFA re-enrollment required");
