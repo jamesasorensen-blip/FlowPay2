@@ -1,0 +1,19 @@
+{
+  "id": "/",
+  "name": "FlowPay Cash Flow Tracker",
+  "short_name": "FlowPay",
+  "description": "FlowPay personal cash flow and bill coverage tracker",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#130b35",
+  "icons": [
+    {
+      "src": "/flowpay-original-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

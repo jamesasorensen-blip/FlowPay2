@@ -22,6 +22,16 @@ const publicAssets = new Set([
   'index.html', 'manifest.webmanifest', 'favicon.ico',
   'icon-192.png', 'icon-512.png', 'sw.js', 'service-worker.js'
 ]);
+// Serve only the audited MFA browser modules; never expose the cloudflare directory.
+const mfaModules = new Set(['flowpay-mfa.mjs', 'flowpay-mfa-ui.mjs']);
+app.get('/mfa/:module', (req, res, next) => {
+  if (!mfaModules.has(req.params.module)) return next();
+  res.type('text/javascript');
+  res.set('Cache-Control', 'no-store');
+  res.sendFile(path.join(__dirname, 'cloudflare', req.params.module), err => {
+    if (err && !res.headersSent) next(err);
+  });
+});
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/:filename', (req, res, next) => {
   if (!publicAssets.has(req.params.filename)) return next();

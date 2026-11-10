@@ -1,0 +1,24 @@
+name: Staging MFA security tests
+on:
+  push:
+    branches: [security/mfa-staging-gate]
+  pull_request:
+    paths:
+      - 'cloudflare/**'
+      - 'tests/**'
+      - '.github/workflows/staging-mfa-tests.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mfa-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test MFA gate
+        run: node --test tests/mfa-enforcement.test.mjs tests/staging-session-security.test.mjs tests/mfa-recovery-guards.test.mjs tests/mfa-recovery-policy.test.mjs tests/mfa-signed-jwt-integration.test.mjs
+      - name: Probe deployed staging API (anonymous only)
+        run: node --test tests/staging-live-anonymous.test.mjs

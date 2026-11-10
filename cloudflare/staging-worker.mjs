@@ -1,5 +1,8 @@
+import { verifyActiveSession } from "./mfa-session-check.mjs";
+import { createSupabaseSessionLookup } from "./supabase-session-lookup.mjs";
+
 const PLAID_URL = "https://sandbox.plaid.com";
-const FLOWPAY_ORIGIN = "https://flowpay-6aay.onrender.com";
+const FLOWPAY_ORIGINS = new Set(["https://flowpay-6aay.onrender.com", "https://flowpay-staging.onrender.com"]);
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 function json(data, status = 200, cors = {}) {
@@ -97,7 +100,9 @@ async function authenticate(request, env) {
   if (!valid) throw Error("Invalid signature");
   return {
     id: claims.sub,
-    email: claims.email || null
+    email: claims.email || null,
+    aal: claims.aal === "aal2" ? "aal2" : "aal1",
+    session_id: claims.session_id || null
   };
 }
 function getKeyBytes(value) {
@@ -268,14 +273,21 @@ async function readJson(request, maxBytes = 4096) {
     throw error;
   }
 }
+// Fail closed for financial operations when MFA enforcement is enabled.
+// /me is deliberately limited to identity/status metadata for enrollment.
+export function requiresMfa(user, env, pathname, method) {
+  return env.REQUIRE_MFA_AAL2 === "true" &&
+    user.aal !== "aal2" &&
+    !(pathname === "/me" && method === "GET");
+}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
-    const allowed = origin === FLOWPAY_ORIGIN;
+    const allowed = FLOWPAY_ORIGINS.has(origin);
     const cors = allowed
       ? {
-          "Access-Control-Allow-Origin": FLOWPAY_ORIGIN,
+          "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
           "Access-Control-Allow-Headers": "Content-Type, Authorization",
           "Vary": "Origin"
@@ -333,8 +345,32 @@ export default {
         error: "Staging access restricted"
       }, 403);
     }
+    // Check session validity for all authenticated routes, including /me.
+    // AAL1 users may still access /me for enrollment, but revoked sessions cannot.
+    // This remains disabled until the authoritative service is operational.
+    if (env.REQUIRE_ACTIVE_SESSION === "true") {
+      let validSession = false;
+      try {
+        // Always query the authoritative session service. A KV/cache binding
+        // cannot reliably prove a Supabase session has not been revoked.
+        const lookup = createSupabaseSessionLookup(env);
+        validSession = await verifyActiveSession(
+          { sub: user.id, session_id: user.session_id }, lookup
+        );
+      } catch {
+        // Configuration errors, unavailable lookup, and timeouts fail closed.
+      }
+      if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
+    }
+    // Disabled by default until the MFA enrollment UI and recovery flow are tested.
+    // When enabled, deny all financial API operations for sessions below AAL2.
+    // /me remains available to identify an account that needs enrollment.
+    if (requiresMfa(user, env, url.pathname, request.method)) {
+      return send({ success: false, error: "MFA_REQUIRED",
+        message: "Complete multi-factor authentication before accessing financial data." }, 403);
+    }
     if (url.pathname === "/me" && request.method === "GET") {
-      return send({ success: true, user });
+      return send({ success: true, user: { id: user.id, email: user.email, aal: user.aal } });
     }
     if (!env.DB) {
       return send({ error: "Database unavailable" }, 503);
