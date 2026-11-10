@@ -2423,5 +2423,62 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  header h1 { font-size:clamp(15px,4.5vw,22px) !important; line-height:1.2 !important; overflow-wrap:normal !important; }
 }
 </style>
+<style id="flowpay-mobile-header-grid-v2">
+@media (max-width: 767px) {
+  header:has(#header-page-title) {
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) auto !important;
+    grid-template-rows:auto auto !important;
+    gap:12px 8px !important;
+    align-items:center !important;
+    justify-content:stretch !important;
+    padding:12px !important;
+    width:100% !important;
+    max-width:100vw !important;
+    overflow:visible !important;
+  }
+  header:has(#header-page-title) > div:first-child {
+    grid-column:1 !important;grid-row:1 !important;
+    display:flex !important;align-items:center !important;
+    gap:8px !important;min-width:0 !important;width:auto !important;
+  }
+  header:has(#header-page-title) > div:first-child > div:last-child {
+    min-width:0 !important; flex:1 1 auto !important;
+  }
+  #header-page-title {
+    font-size:clamp(14px,4vw,19px) !important;
+    line-height:1.25 !important;
+    overflow-wrap:normal !important;
+    word-break:normal !important;
+    white-space:normal !important;
+  }
+  header:has(#header-page-title) > div:first-child p {
+    font-size:11px !important;line-height:1.3 !important;
+  }
+  header:has(#header-page-title) > div:nth-child(2) {
+    grid-column:2 !important;grid-row:1 !important;
+    display:flex !important;gap:6px !important;
+    flex-wrap:nowrap !important;min-width:0 !important;
+  }
+  header:has(#header-page-title) > div:nth-child(2) button {
+    flex:0 0 auto !important;min-width:38px !important;
+    min-height:40px !important;padding:8px !important;
+  }
+  #btn-logout span {display:none !important;}
+  #fp-toolbar {
+    grid-column:1 / -1 !important;grid-row:2 !important;
+    display:flex !important;justify-content:flex-start !important;
+    align-items:center !important;gap:8px !important;
+    flex-wrap:nowrap !important;width:100% !important;
+    min-width:0 !important;
+  }
+  #fp-toolbar > button {
+    flex:0 0 auto !important;
+    min-width:44px !important;min-height:44px !important;
+    padding:9px 12px !important;
+  }
+  #fp4-shortcuts, #fp2-save-status {display:none !important;}
+}
+</style>
 </body>
 </html>
