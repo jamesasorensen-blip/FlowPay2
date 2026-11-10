@@ -30,7 +30,7 @@ test('financial records warning can be dismissed without touching stored records
 });
 
 test('device login offers password-manager guidance without client-only session bypass',()=>{
- const start=html.indexOf('function signInBiometric(){');
+ const start=html.indexOf('function updateBiometricUI(){');
  const end=html.indexOf('function showAuth(){',start);
  assert.ok(start>=0 && end>start);
  const section=html.slice(start,end);
