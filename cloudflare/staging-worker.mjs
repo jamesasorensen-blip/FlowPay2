@@ -792,6 +792,12 @@ export default {
             return send({ error: "Transaction account mismatch" }, 502);
           }
         }
+        // Bound the atomic batch so unusually large syncs fail without
+        // advancing the cursor or risking D1 statement/CPU limits.
+        const statementCount = additions.length + modifications.length + removals.length + 2;
+        if (statementCount > 500) {
+          return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
+        }
         // D1 batch executes these statements in a single transaction. The
         // cursor is advanced only if every transaction change succeeds.
         const statements = [
