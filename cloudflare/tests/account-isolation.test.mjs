@@ -41,7 +41,19 @@ function fixture() {
     async first() { return sql.prepare(query).get(...values) ?? null; },
     async all() { return {results:sql.prepare(query).all(...values)}; },
     async run() { return {meta:sql.prepare(query).run(...values)}; }
-  }; }, async batch(items) { return Promise.all(items.map(s=>s.run())); } };
+  }; }, async batch(items) {
+    // Model D1's transactional batch behavior, including rollback on failure.
+    sql.exec('BEGIN');
+    try {
+      const results = [];
+      for (const statement of items) results.push(await statement.run());
+      sql.exec('COMMIT');
+      return results;
+    } catch (error) {
+      sql.exec('ROLLBACK');
+      throw error;
+    }
+  } };
   let externalCalls=0;
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async url => {
