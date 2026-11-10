@@ -9,7 +9,7 @@ const session='f3acfe6a-c28e-4ca2-bdd7-3d7fdf2f72e9';
 const base='https://test-flowpay.supabase.co';
 const originalFetch=globalThis.fetch;
 
-async function setup(aal) {
+async function setup(aal,{active=true}={}) {
   const keyPair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const jwk=await crypto.subtle.exportKey('jwk',keyPair.publicKey);
   const kid='integration-'+aal;
@@ -25,12 +25,12 @@ async function setup(aal) {
     if(url===base+'/auth/v1/.well-known/jwks.json')
       return Response.json({keys:[{...jwk,kid,alg:'ES256',use:'sig'}]});
     if(url===base+'/functions/v1/flowpay-session-lookup')
-      return Response.json({active:true,id:session,user_id:uuid,not_after:null});
+      return Response.json({active,session:active?{id:session,user_id:uuid,not_after:null}:null});
     throw new Error('Unexpected outbound request: '+url);
   };
   const env={
     SUPABASE_URL:base,STAGING_TEST_USER_ID:uuid,PLAID_ENV:'sandbox',
-    REQUIRE_MFA_AAL2:'true',REQUIRE_ACTIVE_SESSION:'false'
+    REQUIRE_MFA_AAL2:'true',REQUIRE_ACTIVE_SESSION:'true',\n    SESSION_LOOKUP_URL:base+'/functions/v1/flowpay-session-lookup',\n    SESSION_LOOKUP_SECRET:'test-only-secret-at-least-32-characters'
   };
   return async path=>{
     const request=new Request('https://worker.example'+path,{headers:{
@@ -57,5 +57,14 @@ test('signed AAL2 JWT reaches financial route',async()=>{
     assert.notEqual(financial.status,403);
     assert.equal(financial.status,503); // no DB in test env: proves MFA gate passed
     assert.equal(financial.body.error,'Database unavailable');
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+test('revoked session is rejected even with signed AAL2 JWT',async()=>{
+  try{
+    const probe=await setup('aal2',{active:false});
+    const r=await probe('/user-data');
+    assert.equal(r.status,401);
+    assert.equal(r.body.error,'SESSION_INVALID');
   }finally{globalThis.fetch=originalFetch;}
 });
