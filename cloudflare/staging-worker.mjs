@@ -792,6 +792,22 @@ export default {
             return send({ error: "Transaction account mismatch" }, 502);
           }
         }
+        // Validate Plaid identifiers and required transaction fields before
+        // building any statements; malformed payloads must not advance cursor.
+        for (const tx of [...additions, ...modifications]) {
+          if (!tx || typeof tx.transaction_id !== "string" ||
+              !tx.transaction_id || typeof tx.account_id !== "string" ||
+              !tx.account_id || typeof tx.amount !== "number" ||
+              !Number.isFinite(tx.amount) || typeof tx.date !== "string" ||
+              !/^\\d{4}-\\d{2}-\\d{2}$/.test(tx.date)) {
+            return send({ error: "Invalid transaction fields; no changes saved" }, 502);
+          }
+        }
+        for (const tx of removals) {
+          if (!tx || typeof tx.transaction_id !== "string" || !tx.transaction_id) {
+            return send({ error: "Invalid removed transaction; no changes saved" }, 502);
+          }
+        }
         // Bound the atomic batch so unusually large syncs fail without
         // advancing the cursor or risking D1 statement/CPU limits.
         const statementCount = additions.length + modifications.length + removals.length + 2;
