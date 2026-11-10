@@ -1178,7 +1178,7 @@ window.addEventListener('DOMContentLoaded',init);
   const notice = document.createElement('div');
   notice.id = 'flowpay-cloud-sync';
   notice.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9100;background:#172033;color:#fff;padding:12px;border-radius:12px;max-width:300px;font:13px Arial,sans-serif;box-shadow:0 4px 20px #0005;display:none';
-  notice.innerHTML = '<div id="flowpay-sync-status" role="status">Checking cloud storage…</div><button id="flowpay-import-legacy" type="button" style="display:none;margin-top:10px;background:#6366f1;color:white;padding:9px;border-radius:7px">Back up and import this browser’s old data</button>';
+  notice.innerHTML = '<button id="flowpay-cloud-close" type="button" aria-label="Dismiss cloud status" style="position:absolute;top:5px;right:5px;width:38px;height:38px;border:1px solid #64748b;border-radius:8px;background:#334155;color:#fff;font-size:25px;cursor:pointer">×</button><div id="flowpay-sync-status" role="status" style="padding-right:38px">Checking cloud storage…</div><button id="flowpay-import-legacy" type="button" style="display:none;margin-top:10px;background:#6366f1;color:white;padding:9px;border-radius:7px">Back up and import this browser’s old data</button>';
   document.body.appendChild(notice);
   const freshButton = document.createElement('button');
   freshButton.id = 'flowpay-start-fresh';
@@ -1186,6 +1186,16 @@ window.addEventListener('DOMContentLoaded',init);
   freshButton.textContent = 'Start Fresh (empty account)';
   freshButton.style.cssText = 'display:none;margin-top:10px;background:#0d9488;color:white;padding:9px;border-radius:7px;cursor:pointer';
   notice.appendChild(freshButton);
+  const cloudClose = notice.querySelector('#flowpay-cloud-close');
+  cloudClose.addEventListener('click', () => {
+    sessionStorage.setItem('flowpay-cloud-notice-dismissed', '1');
+    notice.style.setProperty('display', 'none', 'important');
+  });
+  const cloudObserver = new MutationObserver(() => {
+    if (sessionStorage.getItem('flowpay-cloud-notice-dismissed') === '1' && notice.style.display !== 'none')
+      notice.style.setProperty('display', 'none', 'important');
+  });
+  cloudObserver.observe(notice, {attributes:true,attributeFilter:['style']});
   const status = notice.querySelector('#flowpay-sync-status');
   const importButton = notice.querySelector('#flowpay-import-legacy');
   const cacheKey = id => 'flowpay_state_user_' + id;
@@ -2401,5 +2411,17 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
  }
 })();
 </script>
+<style id="flowpay-header-mobile-repair">
+#flowpay-cloud-sync { box-sizing:border-box !important; width:min(420px,calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; left:12px !important; bottom:calc(88px + env(safe-area-inset-bottom,0px)) !important; padding:14px !important; position:fixed !important; }
+@media(max-width:700px) {
+ #fp4-shortcuts { display:none !important; }
+ #fp2-save-status { display:none !important; }
+ #fp-toolbar { display:flex !important; flex-wrap:wrap !important; align-items:center !important; gap:8px !important; width:100% !important; min-width:0 !important; }
+ #fp-toolbar > * { flex-shrink:0 !important; }
+ header { max-width:100vw !important; box-sizing:border-box !important; }
+ header .flex { min-width:0; }
+ header h1 { font-size:clamp(15px,4.5vw,22px) !important; line-height:1.2 !important; overflow-wrap:normal !important; }
+}
+</style>
 </body>
 </html>
