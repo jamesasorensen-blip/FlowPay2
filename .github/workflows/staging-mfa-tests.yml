@@ -5,7 +5,7 @@ on:
   pull_request:
     paths:
       - 'cloudflare/**'
-      - 'tests/mfa-enforcement.test.mjs'
+      - 'tests/**'
       - '.github/workflows/staging-mfa-tests.yml'
   workflow_dispatch:
 permissions:
@@ -19,4 +19,4 @@ jobs:
         with:
           node-version: '22'
       - name: Test MFA gate
-        run: node --test tests/mfa-enforcement.test.mjs
+        run: node --test tests/mfa-enforcement.test.mjs tests/staging-session-security.test.mjs
