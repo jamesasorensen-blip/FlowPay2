@@ -55,7 +55,7 @@ function createSupabaseSessionLookup(env, fetcher = fetch) {
       method: "POST",
       headers: { "Authorization": "Bearer " + secret, "Content-Type": "application/json" },
       body: JSON.stringify({ session_id: sessionId }),
-      redirect: "error",
+      redirect: "manual",
       signal: AbortSignal.timeout(5000)
     });
     if (!response.ok) throw new Error("Session lookup unavailable");
