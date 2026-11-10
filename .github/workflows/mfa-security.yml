@@ -3,6 +3,7 @@ name: MFA security checks
 on:
   pull_request:
     paths:
+      - 'index.html'
       - 'cloudflare/flowpay-mfa.mjs'
       - 'cloudflare/flowpay-mfa-ui.mjs'
       - 'cloudflare/mfa-session-check.mjs'
@@ -36,4 +37,4 @@ jobs:
           node --check cloudflare/mfa-session-check.mjs
           node --check cloudflare/supabase-session-lookup.mjs
       - name: MFA regression tests
-        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs cloudflare/tests/mfa-backend-gate.test.mjs cloudflare/tests/mfa-staging-http.test.mjs cloudflare/tests/mfa-signed-jwt-integration.test.mjs cloudflare/tests/mfa-recovery-schema.test.mjs cloudflare/tests/mfa-recovery-policy.test.mjs cloudflare/tests/mfa-recovery-executor.test.mjs cloudflare/tests/mfa-session-check.test.mjs cloudflare/tests/supabase-session-lookup.test.mjs
+        run: node --test cloudflare/tests/bank-panel-ui.test.mjs cloudflare/tests/plaid-sync-atomicity.test.mjs cloudflare/tests/plaid-upstream-security.test.mjs cloudflare/tests/request-body-limits.test.mjs cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs cloudflare/tests/mfa-backend-gate.test.mjs cloudflare/tests/mfa-staging-http.test.mjs cloudflare/tests/mfa-signed-jwt-integration.test.mjs cloudflare/tests/mfa-recovery-schema.test.mjs cloudflare/tests/mfa-recovery-policy.test.mjs cloudflare/tests/mfa-recovery-executor.test.mjs cloudflare/tests/mfa-session-check.test.mjs cloudflare/tests/supabase-session-lookup.test.mjs

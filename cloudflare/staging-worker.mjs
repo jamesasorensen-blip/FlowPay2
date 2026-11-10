@@ -150,15 +150,21 @@ async function plaid(env, endpoint, body = {}) {
   if (!env.PLAID_CLIENT_ID || !env.PLAID_SECRET) {
     throw Error("Plaid credentials missing");
   }
+  // Do not follow redirects with Plaid credentials or wait indefinitely.
   const response = await fetch(`${PLAID_URL}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    redirect: "manual",
+    signal: AbortSignal.timeout(15000),
     body: JSON.stringify({
       client_id: env.PLAID_CLIENT_ID,
       secret: env.PLAID_SECRET,
       ...body
     })
   });
+  if (response.status >= 300 && response.status < 400) {
+    throw Error("Plaid redirect refused");
+  }
   const result = await response.json();
   if (!response.ok) {
     const error = Error("Plaid request failed");
@@ -258,13 +264,38 @@ async function saveTransaction(env, tx) {
     category
   ).run();
 }
-async function readJson(request, maxBytes = 4096) {
-  const raw = await request.text();
-  if (encoder.encode(raw).byteLength > maxBytes) {
-    const error = Error("Payload too large");
-    error.status = 413;
-    throw error;
+export async function readJson(request, maxBytes = 4096) {
+  // Bound memory consumption while streaming, not after buffering the body.
+  const reader = request.body?.getReader();
+  const chunks = [];
+  let bytes = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        bytes += value.byteLength;
+        if (bytes > maxBytes) {
+          const error = Error("Payload too large");
+          error.status = 413;
+          throw error;
+        }
+        chunks.push(value);
+      }
+    } catch (error) {
+      await reader.cancel().catch(() => {});
+      throw error;
+    } finally {
+      reader.releaseLock();
+    }
   }
+  const body = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  const raw = decoder.decode(body);
   try {
     return JSON.parse(raw);
   } catch {
@@ -772,7 +803,8 @@ export default {
           return send({ error: "Bank connection consent required" }, 403);
         }
         const token = await decryptToken(connection, env);
-        let cursor = connection.sync_cursor || "";
+        const initialCursor = connection.sync_cursor || "";
+        let cursor = initialCursor;
         let hasMore = true;
         let pages = 0;
         let added = 0;
@@ -787,14 +819,31 @@ export default {
               error: "Too many sync pages; no changes saved"
             }, 503);
           }
-          const page = await plaid(env, "/transactions/sync", {
-            access_token: token,
-            cursor,
-            count: 100
-          });
+          let page;
+          try {
+            page = await plaid(env, "/transactions/sync", {
+              access_token: token,
+              cursor,
+              count: 100
+            });
+          } catch (error) {
+            // Plaid requires restarting pagination at the original cursor if
+            // transactions mutate during an in-progress sync. Never apply a
+            // partial page set or persist an intermediate cursor.
+            if (error.code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") {
+              return send({ error: "Sync changed during pagination; retry from saved cursor" }, 409);
+            }
+            throw error;
+          }
           additions.push(...(page.added || []));
           modifications.push(...(page.modified || []));
           removals.push(...(page.removed || []));
+          if (additions.length + modifications.length + removals.length > 500) {
+            return send({ error: "Sync change limit exceeded; no changes saved" }, 503);
+          }
+          if (typeof page.next_cursor !== "string" || typeof page.has_more !== "boolean") {
+            return send({ error: "Invalid sync page; no changes saved" }, 502);
+          }
           cursor = page.next_cursor;
           hasMore = page.has_more;
         }
@@ -809,32 +858,146 @@ export default {
             return send({ error: "Transaction account mismatch" }, 502);
           }
         }
-        for (const tx of additions) {
-          await saveTransaction(env, tx);
-          added++;
-        }
-        for (const tx of modifications) {
-          await saveTransaction(env, tx);
-          modified++;
+        // D1 batch executes statements as a transaction: failed writes roll back
+        // both transaction changes and the cursor advance.
+        const changes = [...additions, ...modifications];
+        const statements = [];
+        // Guard the entire batch against another sync advancing this cursor.
+        // SQLite raises an error on malformed JSON, rolling back the D1 batch.
+        // This guard must remain the FIRST statement in the atomic batch.
+        statements.push(env.DB.prepare(
+          `SELECT CASE WHEN EXISTS (
+             SELECT 1 FROM bank_connections
+             WHERE id = ? AND user_id = ? AND COALESCE(sync_cursor, '') = ?
+           ) THEN 1 ELSE json_extract('SYNC_CURSOR_CONFLICT', '$') END AS cursor_guard`
+        ).bind(connection.id, user.id, initialCursor));
+        for (const tx of changes) {
+          const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
+          statements.push(env.DB.prepare(
+            `INSERT INTO bank_transactions
+             (id, account_id, amount, transaction_date, merchant_name, description, pending, category)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               amount = excluded.amount,
+               transaction_date = excluded.transaction_date,
+               merchant_name = excluded.merchant_name,
+               description = excluded.description,
+               pending = excluded.pending,
+               category = excluded.category`
+          ).bind(tx.transaction_id, tx.account_id, tx.amount, tx.date,
+            tx.merchant_name || null, tx.name || null, tx.pending ? 1 : 0, category));
         }
         for (const tx of removals) {
-          const result = await env.DB.prepare(
+          statements.push(env.DB.prepare(
             `DELETE FROM bank_transactions
-             WHERE id = ?
-               AND account_id IN (
-                 SELECT id FROM bank_accounts
-                 WHERE connection_id = ?
-               )`
-          ).bind(tx.transaction_id, connection.id).run();
-          removed += result.meta?.changes || 0;
+             WHERE id = ? AND account_id IN (
+               SELECT id FROM bank_accounts WHERE connection_id = ?
+             )`
+          ).bind(tx.transaction_id, connection.id));
         }
-        await env.DB.prepare(
-          `UPDATE bank_connections
-           SET sync_cursor = ?,
-               last_synced_at = CURRENT_TIMESTAMP
+        statements.push(env.DB.prepare(
+          `UPDATE bank_connections SET sync_cursor = ?,
+             last_synced_at = CURRENT_TIMESTAMP
            WHERE id = ? AND user_id = ?`
-        ).bind(cursor, connection.id, user.id).run();
-        await audit(env, user.id, "transactions_synced", "bank_connection", connection.id);
+        ).bind(cursor, connection.id, user.id));
+        statements.push(env.DB.prepare(
+          `INSERT INTO security_audit_log
+           (id, user_id, action, resource_type, resource_id)
+           VALUES (?, ?, 'transactions_synced', 'bank_connection', ?)`
+        ).bind(crypto.randomUUID(), user.id, connection.id));
+        const results = await env.DB.batch(statements);
+        added = additions.length;
+        modified = modifications.length;
+        removed = results.slice(changes.length + 1, changes.length + 1 + removals.length)
+          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
+        return send({
+          success: true,
+          added,
+          modified,
+          removed,
+          pages,
+          has_more: false
+        });
+      }
+      // TRANSACTION HISTORY
+      if (url.pathname === "/bank-transactions" &&
+          request.method === "GET") {
+        const rows = await env.DB.prepare(
+          `SELECT t.id, t.account_id, t.amount,
+                  t.transaction_date, t.merchant_name,
+                  t.description, t.pending, t.category,
+                  a.name AS account_name, c.institution_name
+           FROM bank_transactions t
+           JOIN bank_accounts a ON a.id = t.account_id
+           JOIN bank_connections c ON c.id = a.connection_id
+           WHERE c.user_id = ?
+           ORDER BY t.transaction_date DESC, t.id DESC
+           LIMIT 200`
+        ).bind(user.id).all();
+        return send({
+          success: true,
+          transactions: rows.results || []
+        });
+      }
+      return send({ error: "Method not allowed" }, 405);
+    } catch (error) {
+      console.error(
+        "FlowPay API error:",
+        error.code || "INTERNAL_ERROR"
+      );
+      if (error.status === 400 || error.status === 413) {
+        return send({ success: false, error: error.message }, error.status);
+      }
+      return send({
+        success: false,
+        error: "Request failed"
+      }, 500);
+    }
+  }
+};
+) END AS cursor_guard`
+        ).bind(connection.id, user.id, initialCursor));
+        for (const tx of changes) {
+          const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
+          statements.push(env.DB.prepare(
+            `INSERT INTO bank_transactions
+             (id, account_id, amount, transaction_date, merchant_name, description, pending, category)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               amount = excluded.amount,
+               transaction_date = excluded.transaction_date,
+               merchant_name = excluded.merchant_name,
+               description = excluded.description,
+               pending = excluded.pending,
+               category = excluded.category`
+          ).bind(tx.transaction_id, tx.account_id, tx.amount, tx.date,
+            tx.merchant_name || null, tx.name || null, tx.pending ? 1 : 0, category));
+        }
+        for (const tx of removals) {
+          statements.push(env.DB.prepare(
+            `DELETE FROM bank_transactions
+             WHERE id = ? AND account_id IN (
+               SELECT id FROM bank_accounts WHERE connection_id = ?
+             )`
+          ).bind(tx.transaction_id, connection.id));
+        }
+        statements.push(env.DB.prepare(
+          `UPDATE bank_connections SET sync_cursor = ?,
+             last_synced_at = CURRENT_TIMESTAMP
+           WHERE id = ? AND user_id = ?`
+        ).bind(cursor, connection.id, user.id));
+        statements.push(env.DB.prepare(
+          `INSERT INTO security_audit_log
+           (id, user_id, action, resource_type, resource_id)
+           VALUES (?, ?, 'transactions_synced', 'bank_connection', ?)`
+        ).bind(crypto.randomUUID(), user.id, connection.id));
+        const results = await env.DB.batch(statements);
+        added = additions.length;
+        modified = modifications.length;
+        removed = results.slice(changes.length, changes.length + removals.length)
+          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
         return send({
           success: true,
           added,
