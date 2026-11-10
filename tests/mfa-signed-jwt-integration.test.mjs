@@ -94,3 +94,28 @@ test('cloud writes reject missing, negative, fractional and unsafe revisions',as
     assert.equal(dbCalls,0);
   }finally{globalThis.fetch=originalFetch;}
 });
+
+// Ensure all cloud write attempts are denied before the DB when MFA is incomplete.
+test('AAL1 cannot write financial data, even with a valid revision',async()=>{
+  let dbCalls=0;
+  const db={prepare(){dbCalls++;throw new Error('Financial DB must remain inaccessible');}};
+  try{
+    const probe=await setup('aal1',{db});
+    const response=await probe('/user-data',{method:'PUT',body:{revision:0,data:{bills:[]}}});
+    assert.equal(response.status,403);
+    assert.equal(response.body.error,'MFA_REQUIRED');
+    assert.equal(dbCalls,0);
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+test('revoked AAL2 session cannot write financial data',async()=>{
+  let dbCalls=0;
+  const db={prepare(){dbCalls++;throw new Error('Financial DB must remain inaccessible');}};
+  try{
+    const probe=await setup('aal2',{active:false,db});
+    const response=await probe('/user-data',{method:'PUT',body:{revision:0,data:{bills:[]}}});
+    assert.equal(response.status,401);
+    assert.equal(response.body.error,'SESSION_INVALID');
+    assert.equal(dbCalls,0);
+  }finally{globalThis.fetch=originalFetch;}
+});
