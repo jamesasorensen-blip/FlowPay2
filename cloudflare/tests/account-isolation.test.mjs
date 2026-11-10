@@ -61,7 +61,7 @@ function fixture() {
     externalCalls++;
     throw Error('External network call blocked');
   };
-  return { sql, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
+  return { sql, db, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
     async call(uid,path,method='GET',body,allowedUser=uid) {
       const response=await worker.fetch(new Request('https://worker.test'+path, {method, headers:{Origin:'https://flowpay-6aay.onrender.com',Authorization:'Bearer '+tokens[uid],'Content-Type':'application/json'}, ...(body===undefined?{}:{body:JSON.stringify(body)})}),
         {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser});
@@ -118,4 +118,21 @@ test('consent withdrawal affects only the authenticated user', async()=>{
     assert.ok(f.sql.prepare('SELECT withdrawn_at FROM user_consents WHERE user_id=?').get(A).withdrawn_at);
     assert.equal(f.sql.prepare('SELECT user_id FROM security_audit_log').get().user_id,A);
   } finally { f.close(); }
+});
+
+test('local D1 batch simulator rolls back successful writes if a later statement fails', async () => {
+  const f = fixture();
+  try {
+    const before = f.sql.prepare('SELECT COUNT(*) AS n FROM bank_transactions').get().n;
+    await assert.rejects(f.db.batch([
+      f.db.prepare("INSERT INTO bank_transactions (id,account_id,amount,transaction_date) VALUES (?,?,?,?)")
+        .bind('new-test-transaction', 'account-A', 12, '2026-01-02'),
+      f.db.prepare("INSERT INTO bank_transactions (id,account_id,amount,transaction_date) VALUES (?,?,?,?)")
+        .bind('tx-A', 'account-A', 13, '2026-01-02')
+    ]));
+    assert.equal(f.sql.prepare('SELECT COUNT(*) AS n FROM bank_transactions').get().n, before);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='new-test-transaction'").get().n, 0);
+  } finally {
+    f.close();
+  }
 });
