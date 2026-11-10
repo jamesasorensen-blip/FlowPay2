@@ -49,3 +49,13 @@ test('staging sync rejects oversized batches before database mutation', () => {
   assert.ok(guard >= 0 && batch > guard, 'batch limit must precede atomic write');
   assert.match(route, /Transaction sync batch too large; no changes saved/);
 });
+
+test('staging sync rejects malformed transaction identifiers and amounts before writes', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
+  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const check = route.indexOf('Invalid transaction fields; no changes saved');
+  const batch = route.indexOf('await env.DB.batch(statements)');
+  assert.ok(check >= 0 && batch > check);
+  assert.match(route, /Number\.isFinite\(tx\.amount\)/);
+  assert.match(route, /Invalid removed transaction; no changes saved/);
+});
