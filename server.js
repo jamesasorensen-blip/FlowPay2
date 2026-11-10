@@ -32,6 +32,14 @@ app.get('/mfa/:module', (req, res, next) => {
     if (err && !res.headersSent) next(err);
   });
 });
+// The installed-app manifest lives at manifest.json in this repository.
+// Serve it at the URL referenced by index.html without exposing other files.
+app.get('/manifest.webmanifest', (_req, res, next) => {
+  res.type('application/manifest+json');
+  res.sendFile(path.join(__dirname, 'manifest.json'), err => {
+    if (err && !res.headersSent) next(err);
+  });
+});
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/:filename', (req, res, next) => {
   if (!publicAssets.has(req.params.filename)) return next();
