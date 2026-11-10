@@ -12,3 +12,8 @@ test("sign-in does not force the bank panel over the app", () => {
   assert.match(source, /function authChanged\(id\) \{[\s\S]{0,150}setBankPanelOpen\(false\)/);
   assert.doesNotMatch(source, /panel\.style\.display=currentUser \? 'block' : 'none'/);
 });
+
+test("mobile PWA links to the actual install manifest", () => {
+  assert.match(source, /<link rel="manifest" href="\/manifest\.json">/);
+  assert.doesNotMatch(source, /rel="manifest" href="manifest\.webmanifest"/);
+});
