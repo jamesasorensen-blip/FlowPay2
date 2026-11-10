@@ -225,12 +225,12 @@ async function saveAccounts(env, connectionId, accounts) {
     ).run();
   }
 }
-async function saveTransaction(env, tx) {
+function transactionStatement(env, tx) {
   const category =
     tx.personal_finance_category?.primary ||
     tx.category?.[0] ||
     null;
-  await env.DB.prepare(
+  return env.DB.prepare(
     `INSERT INTO bank_transactions
      (id, account_id, amount, transaction_date,
       merchant_name, description, pending, category)
@@ -253,7 +253,7 @@ async function saveTransaction(env, tx) {
     tx.name || null,
     tx.pending ? 1 : 0,
     category
-  ).run();
+  );
 }
 async function readJson(request, maxBytes = 4096) {
   const raw = await request.text();
@@ -787,32 +787,35 @@ export default {
             return send({ error: "Transaction account mismatch" }, 502);
           }
         }
-        for (const tx of additions) {
-          await saveTransaction(env, tx);
-          added++;
-        }
-        for (const tx of modifications) {
-          await saveTransaction(env, tx);
-          modified++;
-        }
-        for (const tx of removals) {
-          const result = await env.DB.prepare(
+        // D1 batch executes these statements in a single transaction. The
+        // cursor is advanced only if every transaction change succeeds.
+        const statements = [
+          ...additions.map(tx => transactionStatement(env, tx)),
+          ...modifications.map(tx => transactionStatement(env, tx)),
+          ...removals.map(tx => env.DB.prepare(
             `DELETE FROM bank_transactions
              WHERE id = ?
                AND account_id IN (
-                 SELECT id FROM bank_accounts
-                 WHERE connection_id = ?
+                 SELECT id FROM bank_accounts WHERE connection_id = ?
                )`
-          ).bind(tx.transaction_id, connection.id).run();
-          removed += result.meta?.changes || 0;
-        }
-        await env.DB.prepare(
-          `UPDATE bank_connections
-           SET sync_cursor = ?,
-               last_synced_at = CURRENT_TIMESTAMP
-           WHERE id = ? AND user_id = ?`
-        ).bind(cursor, connection.id, user.id).run();
-        await audit(env, user.id, "transactions_synced", "bank_connection", connection.id);
+          ).bind(tx.transaction_id, connection.id)),
+          env.DB.prepare(
+            `UPDATE bank_connections
+             SET sync_cursor = ?, last_synced_at = CURRENT_TIMESTAMP
+             WHERE id = ? AND user_id = ?`
+          ).bind(cursor, connection.id, user.id),
+          env.DB.prepare(
+            `INSERT INTO security_audit_log
+             (id, user_id, action, resource_type, resource_id)
+             VALUES (?, ?, ?, ?, ?)`
+          ).bind(crypto.randomUUID(), user.id, "transactions_synced", "bank_connection", connection.id)
+        ];
+        const results = await env.DB.batch(statements);
+        added = additions.length;
+        modified = modifications.length;
+        removed = results.slice(additions.length + modifications.length,
+          additions.length + modifications.length + removals.length)
+          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
         return send({
           success: true,
           added,
