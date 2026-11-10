@@ -35,7 +35,8 @@ jobs:
             tests/staging-session-security.test.mjs \
             tests/staging-bank-panel-static.test.mjs \
             tests/staging-cloud-import-static.test.mjs \
-            tests/staging-browser-compatibility.test.mjs
+            tests/staging-browser-compatibility.test.mjs \
+            tests/staging-cloud-loading-race.test.mjs
       - name: Validate static-site manifest and logo
         run: |
           node --input-type=module <<'NODE'
