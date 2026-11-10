@@ -19,3 +19,17 @@ jobs:
       - run: npm test
       - name: Verify production Docker image builds
         run: docker build --tag flowpay-frontend-ci .
+  worker-isolation:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Check staging Worker syntax
+        run: node --check cloudflare/staging-worker.mjs
+      - name: Run local two-user isolation regression suite
+        run: node --test cloudflare/tests/account-isolation.test.mjs
