@@ -8,6 +8,7 @@ on:
       - 'cloudflare/mfa-session-check.mjs'
       - 'cloudflare/supabase-session-lookup.mjs'
       - 'cloudflare/tests/**'
+      - 'docs/mfa-recovery-private-schema-draft.sql'
       - '.github/workflows/mfa-security.yml'
   push:
     branches:
@@ -35,4 +36,4 @@ jobs:
           node --check cloudflare/mfa-session-check.mjs
           node --check cloudflare/supabase-session-lookup.mjs
       - name: MFA regression tests
-        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs cloudflare/tests/mfa-backend-gate.test.mjs cloudflare/tests/mfa-staging-http.test.mjs cloudflare/tests/mfa-signed-jwt-integration.test.mjs cloudflare/tests/mfa-recovery-policy.test.mjs cloudflare/tests/mfa-recovery-executor.test.mjs cloudflare/tests/mfa-session-check.test.mjs cloudflare/tests/supabase-session-lookup.test.mjs
+        run: node --test cloudflare/tests/mfa-controller.test.mjs cloudflare/tests/mfa-security-regressions.test.mjs cloudflare/tests/mfa-backend-gate.test.mjs cloudflare/tests/mfa-staging-http.test.mjs cloudflare/tests/mfa-signed-jwt-integration.test.mjs cloudflare/tests/mfa-recovery-schema.test.mjs cloudflare/tests/mfa-recovery-policy.test.mjs cloudflare/tests/mfa-recovery-executor.test.mjs cloudflare/tests/mfa-session-check.test.mjs cloudflare/tests/supabase-session-lookup.test.mjs
