@@ -9,10 +9,11 @@ const session='f3acfe6a-c28e-4ca2-bdd7-3d7fdf2f72e9';
 const base='https://test-flowpay.supabase.co';
 const originalFetch=globalThis.fetch;
 
+let keySequence = 0;
 async function setup(aal,{active=true}={}) {
   const keyPair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const jwk=await crypto.subtle.exportKey('jwk',keyPair.publicKey);
-  const kid='integration-'+aal;
+  const kid='integration-'+aal+'-'+(++keySequence);
   const header=b64(enc.encode(JSON.stringify({alg:'ES256',kid,typ:'JWT'})));
   const payload=b64(enc.encode(JSON.stringify({
     iss:base+'/auth/v1',aud:'authenticated',role:'authenticated',sub:uuid,
