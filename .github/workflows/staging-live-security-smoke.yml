@@ -1,0 +1,24 @@
+name: Staging anonymous API security smoke test
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  anonymous-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: security/mfa-staging-gate
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify staging API denies unauthenticated and forged requests
+        run: node --test tests/staging-live-anonymous.test.mjs
