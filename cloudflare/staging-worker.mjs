@@ -819,11 +819,22 @@ export default {
               error: "Too many sync pages; no changes saved"
             }, 503);
           }
-          const page = await plaid(env, "/transactions/sync", {
-            access_token: token,
-            cursor,
-            count: 100
-          });
+          let page;
+          try {
+            page = await plaid(env, "/transactions/sync", {
+              access_token: token,
+              cursor,
+              count: 100
+            });
+          } catch (error) {
+            // Plaid requires restarting pagination at the original cursor if
+            // transactions mutate during an in-progress sync. Never apply a
+            // partial page set or persist an intermediate cursor.
+            if (error.code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") {
+              return send({ error: "Sync changed during pagination; retry from saved cursor" }, 409);
+            }
+            throw error;
+          }
           additions.push(...(page.added || []));
           modifications.push(...(page.modified || []));
           removals.push(...(page.removed || []));
