@@ -119,3 +119,68 @@ test('revoked AAL2 session cannot write financial data',async()=>{
     assert.equal(dbCalls,0);
   }finally{globalThis.fetch=originalFetch;}
 });
+
+function mockCloudDb(){
+ const rows=new Map();
+ const db={prepare(sql){
+   let args=[];
+   return {
+     bind(...values){args=values;return this;},
+     async first(){
+       if(sql.includes('SELECT revision FROM user_data')){const row=rows.get(args[0]);return row?{revision:row.revision}:null;}
+       if(sql.includes('SELECT data_json, revision, updated_at')){const row=rows.get(args[0]);return row?{...row}:null;}
+       throw new Error('Unexpected SELECT: '+sql);
+     },
+     async run(){
+       if(sql.includes('INSERT OR IGNORE INTO users'))return {meta:{changes:1}};
+       if(sql.includes('INSERT OR IGNORE INTO user_data')){
+         if(rows.has(args[0]))return {meta:{changes:0}};
+         rows.set(args[0],{data_json:args[1],revision:1,updated_at:'2026-11-10'});
+         return {meta:{changes:1}};
+       }
+       if(sql.includes('UPDATE user_data SET')){
+         const row=rows.get(args[1]);
+         if(!row||row.revision!==args[2])return {meta:{changes:0}};
+         rows.set(args[1],{data_json:args[0],revision:row.revision+1,updated_at:'2026-11-10'});
+         return {meta:{changes:1}};
+       }
+       throw new Error('Unexpected write: '+sql);
+     }
+   };
+ }};
+ return {db,rows};
+}
+
+test('cloud write revisions prevent stale browser overwrites and preserve records',async()=>{
+ const {db,rows}=mockCloudDb();
+ try{
+   const probe=await setup('aal2',{db});
+   const first=await probe('/user-data',{method:'PUT',body:{revision:0,data:{bills:[{id:'bill-A'}]}}});
+   assert.equal(first.status,200);
+   assert.equal(first.body.revision,1);
+   const second=await probe('/user-data',{method:'PUT',body:{revision:1,data:{bills:[{id:'bill-B'}]}}});
+   assert.equal(second.status,200);
+   assert.equal(second.body.revision,2);
+   const stale=await probe('/user-data',{method:'PUT',body:{revision:1,data:{bills:[]}}});
+   assert.equal(stale.status,409);
+   assert.equal(stale.body.current_revision,2);
+   const read=await probe('/user-data');
+   assert.equal(read.status,200);
+   assert.equal(read.body.revision,2);
+   assert.deepEqual(read.body.data.bills,[{id:'bill-B'}]);
+   assert.equal(rows.size,1);
+ }finally{globalThis.fetch=originalFetch;}
+});
+
+test('two initial cloud writes cannot overwrite the first revision-zero record',async()=>{
+ const {db}=mockCloudDb();
+ try{
+   const probe=await setup('aal2',{db});
+   const first=await probe('/user-data',{method:'PUT',body:{revision:0,data:{bills:[{id:'original'}]}}});
+   assert.equal(first.status,200);
+   const repeat=await probe('/user-data',{method:'PUT',body:{revision:0,data:{bills:[{id:'replacement'}]}}});
+   assert.equal(repeat.status,409);
+   const read=await probe('/user-data');
+   assert.deepEqual(read.body.data.bills,[{id:'original'}]);
+ }finally{globalThis.fetch=originalFetch;}
+});
