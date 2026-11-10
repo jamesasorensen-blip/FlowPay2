@@ -775,6 +775,11 @@ export default {
           ) {
             return send({ error: "Invalid transaction sync response; no changes saved" }, 502);
           }
+          if (page.added.length + page.modified.length + page.removed.length > 500 ||
+              additions.length + modifications.length + removals.length +
+              page.added.length + page.modified.length + page.removed.length > 498) {
+            return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
+          }
           additions.push(...page.added);
           modifications.push(...page.modified);
           removals.push(...page.removed);
