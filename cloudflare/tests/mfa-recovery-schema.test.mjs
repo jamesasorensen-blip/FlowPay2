@@ -37,3 +37,10 @@ test('claim is a single conditional update with no privilege escalation',()=>{
  assert.match(sql,/return claimed_count = 1/);
  assert.match(sql,/revoke all on function flowpay_recovery_private\.claim_case\(uuid,uuid,text\) from public, anon, authenticated/);
 });
+
+test('atomic claim rejects vetoes and requires fresh distinct approval evidence',()=>{
+ assert.match(sql,/not exists \(select 1 from flowpay_recovery_private\.approvals rejected/);
+ assert.match(sql,/rejected\.decision = 'reject'/);
+ assert.match(sql,/a\.decided_at >= now\(\) - interval '24 hours'/);
+ assert.match(sql,/count\(distinct a\.evidence_ref\)/);
+});
