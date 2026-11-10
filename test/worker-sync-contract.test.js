@@ -75,3 +75,17 @@ test('staging sync bounds pagination accumulation before pushing records', () =>
   const push = route.indexOf('additions.push(...page.added)');
   assert.ok(bound >= 0 && push > bound, 'limit records before accumulation');
 });
+
+test('staging sync restarts mutation-affected pagination from committed cursor', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
+  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  assert.match(route, /TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION/);
+  assert.match(route, /paginationRestarts < 2/);
+  assert.match(route, /cursor = initialCursor/);
+  for (const name of ['additions', 'modifications', 'removals']) {
+    assert.ok(route.includes(name + ' = [];'), name + ' must be reset');
+  }
+  const batch = route.indexOf('await env.DB.batch(statements)');
+  const restart = route.indexOf('cursor = initialCursor', route.indexOf('catch (error)'));
+  assert.ok(restart >= 0 && batch > restart, 'pagination restart must precede any writes');
+});
