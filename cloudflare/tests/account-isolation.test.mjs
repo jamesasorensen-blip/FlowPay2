@@ -175,14 +175,17 @@ test('optional MFA gate rejects AAL1 and accepts signed AAL2 token', async () =>
   }
 });
 
+async function enableSyntheticPlaid(f, connectionId = CA) {
+  const key = await crypto.subtle.importKey('raw', new Uint8Array(32), 'AES-GCM', false, ['encrypt']);
+  const iv = new Uint8Array(12);
+  const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode('synthetic-access-token'));
+  f.sql.prepare('UPDATE bank_connections SET encrypted_access_token=?,token_iv=? WHERE id=?')
+    .run(Buffer.from(ciphertext).toString('base64'),Buffer.from(iv).toString('base64'),connectionId);
+}
 test('actual sync route commits a valid Plaid page and advances its cursor', async () => {
   const f = fixture();
   try {
-    const key = await crypto.subtle.importKey('raw', new Uint8Array(32), 'AES-GCM', false, ['encrypt']);
-    const iv = new Uint8Array(12);
-    const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode('synthetic-access-token'));
-    f.sql.prepare('UPDATE bank_connections SET encrypted_access_token=?,token_iv=? WHERE id=?')
-      .run(Buffer.from(ciphertext).toString('base64'),Buffer.from(iv).toString('base64'),CA);
+    await enableSyntheticPlaid(f);
     f.setPlaidResponder(body => {
       assert.equal(body.cursor, '');
       return Response.json({
@@ -196,5 +199,21 @@ test('actual sync route commits a valid Plaid page and advances its cursor', asy
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,'cursor-1');
     assert.equal(f.sql.prepare("SELECT amount FROM bank_transactions WHERE id='new-plaid-tx'").get().amount,17.5);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,1);
+  } finally { f.close(); }
+});
+
+test('actual sync route rejects foreign-account transactions without moving cursor', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    f.setPlaidResponder(() => Response.json({
+      added:[{transaction_id:'foreign-plaid-tx',account_id:'account-B',amount:10,date:'2026-11-10'}],
+      modified:[],removed:[],next_cursor:'should-not-commit',has_more:false
+    }));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,502);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='foreign-plaid-tx'").get().n,0);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,0);
   } finally { f.close(); }
 });
