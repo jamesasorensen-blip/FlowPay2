@@ -56,16 +56,20 @@ function fixture() {
     }
   } };
   let externalCalls=0;
+  let plaidResponder = null;
   const originalFetch=globalThis.fetch;
-  globalThis.fetch=async url => {
+  globalThis.fetch=async (url, options) => {
     if (String(url)===issuer+'/.well-known/jwks.json') return Response.json({keys:[jwk]});
+    if (String(url) === 'https://sandbox.plaid.com/transactions/sync' && plaidResponder) {
+      return plaidResponder(JSON.parse(options.body));
+    }
     externalCalls++;
     throw Error('External network call blocked');
   };
-  return { sql, db, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
+  return { sql, db, setPlaidResponder(fn) { plaidResponder = fn; }, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
     async call(uid,path,method='GET',body,allowedUser=uid,requireAal2=false,overrideToken) {
       const response=await worker.fetch(new Request('https://worker.test'+path, {method, headers:{Origin:'https://flowpay-6aay.onrender.com',Authorization:'Bearer '+(overrideToken || tokens[uid]),'Content-Type':'application/json'}, ...(body===undefined?{}:{body:JSON.stringify(body)})}),
-        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser,REQUIRE_AAL2:requireAal2?'true':'false'});
+        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser,REQUIRE_AAL2:requireAal2?'true':'false',TOKEN_ENCRYPTION_KEY:'00'.repeat(32),PLAID_CLIENT_ID:'test',PLAID_SECRET:'test'});
       return {status:response.status,body:await response.json()};
     }
   };
@@ -169,4 +173,28 @@ test('optional MFA gate rejects AAL1 and accepts signed AAL2 token', async () =>
   } finally {
     f.close();
   }
+});
+
+test('actual sync route commits a valid Plaid page and advances its cursor', async () => {
+  const f = fixture();
+  try {
+    const key = await crypto.subtle.importKey('raw', new Uint8Array(32), 'AES-GCM', false, ['encrypt']);
+    const iv = new Uint8Array(12);
+    const ciphertext = await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode('synthetic-access-token'));
+    f.sql.prepare('UPDATE bank_connections SET encrypted_access_token=?,token_iv=? WHERE id=?')
+      .run(Buffer.from(ciphertext).toString('base64'),Buffer.from(iv).toString('base64'),CA);
+    f.setPlaidResponder(body => {
+      assert.equal(body.cursor, '');
+      return Response.json({
+        added:[{transaction_id:'new-plaid-tx',account_id:'account-A',amount:17.5,date:'2026-11-10',name:'Test merchant'}],
+        modified:[],removed:[],next_cursor:'cursor-1',has_more:false
+      });
+    });
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,200,JSON.stringify(response.body));
+    assert.equal(response.body.added,1);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,'cursor-1');
+    assert.equal(f.sql.prepare("SELECT amount FROM bank_transactions WHERE id='new-plaid-tx'").get().amount,17.5);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,1);
+  } finally { f.close(); }
 });
