@@ -1247,6 +1247,12 @@ window.addEventListener('DOMContentLoaded',init);
   freshButton.textContent = 'Start Fresh (empty account)';
   freshButton.style.cssText = 'display:none;margin-top:10px;background:#0d9488;color:white;padding:9px;border-radius:7px;cursor:pointer';
   notice.appendChild(freshButton);
+  const exportButton = document.createElement('button');
+  exportButton.id = 'flowpay-export-local-backup';
+  exportButton.type = 'button';
+  exportButton.textContent = 'Export local financial backup';
+  exportButton.style.cssText = 'display:none;margin-top:10px;background:#334155;color:white;border:1px solid #94a3b8;padding:9px;border-radius:7px;cursor:pointer';
+  notice.appendChild(exportButton);
   const cloudClose = notice.querySelector('#flowpay-cloud-close');
   cloudClose.addEventListener('click', () => {
     sessionStorage.setItem('flowpay-cloud-notice-dismissed', '1');
@@ -1264,6 +1270,7 @@ window.addEventListener('DOMContentLoaded',init);
     status.textContent = msg;
     importButton.style.display = showImport ? 'block' : 'none';
     freshButton.style.display = showFresh ? 'block' : 'none';
+    exportButton.style.display = activeId && (paused || changedDuringLoad || dirty) ? 'block' : 'none';
   };
   const isSample = data => !!(data && data.flowpay_test === true && data.message === 'Cloud storage is working');
   const normalized = data => {
@@ -1296,6 +1303,16 @@ window.addEventListener('DOMContentLoaded',init);
     const a = document.createElement('a');a.href=url;a.download=name;a.click();
     setTimeout(()=>URL.revokeObjectURL(url),10000);
   };
+  exportButton.addEventListener('click', () => {
+    if (!activeId) return;
+    const cached = localStorage.getItem(cacheKey(activeId));
+    let snapshot = state;
+    if (cached !== null) {
+      try { snapshot = JSON.parse(cached); }
+      catch { setStatus('Backup blocked: account browser cache is unreadable. Do not clear browser storage.'); return; }
+    }
+    backup(snapshot, 'flowpay-local-backup-' + new Date().toISOString().slice(0,10) + '.json');
+  });
   const flush = async () => {
     if (!ready || paused || writing || !activeId || !dirty) return;
     const id = activeId, gen = generation;
