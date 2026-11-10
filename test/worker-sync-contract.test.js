@@ -59,3 +59,11 @@ test('staging sync rejects malformed transaction identifiers and amounts before 
   assert.match(route, /Number\.isFinite\(tx\.amount\)/);
   assert.match(route, /Invalid removed transaction; no changes saved/);
 });
+
+test('staging validates transaction objects before reading account ownership', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
+  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const validation = route.indexOf('Invalid transaction fields; no changes saved');
+  const ownership = route.indexOf('if (!accountIds.has(tx.account_id))');
+  assert.ok(validation >= 0 && ownership > validation, 'malformed transaction validation must precede account lookup');
+});
