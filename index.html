@@ -1235,7 +1235,7 @@ window.addEventListener('DOMContentLoaded',init);
   'use strict';
   const API = 'https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev/user-data';
   let generation = 0, revision = 0, ready = false, paused = false, timer = null;
-  let remoteIsSample = false, activeId = null, writing = false, dirty = false;
+  let remoteIsSample = false, activeId = null, writing = false, dirty = false, changedDuringLoad = false;
   const notice = document.createElement('div');
   notice.id = 'flowpay-cloud-sync';
   notice.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:9100;background:#172033;color:#fff;padding:12px;border-radius:12px;max-width:300px;font:13px Arial,sans-serif;box-shadow:0 4px 20px #0005;display:none';
@@ -1329,7 +1329,9 @@ window.addEventListener('DOMContentLoaded',init);
   window.flowpayCloudChanged = () => {
     if (!activeId) return;
     if (!ready) {
-      if (!paused) setStatus('Loading cloud data. Local changes are not synced yet.');
+      changedDuringLoad = true;
+      paused = true;
+      setStatus('Local changes were made while cloud data was loading. Sync is paused to protect these changes. Export a backup before reconciling.');
       return;
     }
     dirty = true;
@@ -1339,7 +1341,7 @@ window.addEventListener('DOMContentLoaded',init);
     generation++;
     const gen = generation;
     clearTimeout(timer);
-    activeId = id;ready = false;paused = false;writing = false;dirty = false;revision=0;remoteIsSample=false;
+    activeId = id;ready = false;paused = false;writing = false;dirty = false;changedDuringLoad = false;revision=0;remoteIsSample=false;
     state = normalized({});theme();render();
     notice.style.display = id ? 'block' : 'none';
     if (!id) return;
@@ -1347,6 +1349,7 @@ window.addEventListener('DOMContentLoaded',init);
     try {
       const {res,body} = await request('GET');
       if (gen !== generation) return;
+      if (changedDuringLoad) { paused = true; setStatus('Cloud load stopped: browser records changed while loading. Your local data was preserved; export a backup before reconciling.'); return; }
       if (!res.ok) throw new Error(body.error || 'Cloud read failed ('+res.status+')');
       revision = body.revision || 0;
       remoteIsSample = !!body.exists && isSample(body.data);
@@ -1380,6 +1383,7 @@ window.addEventListener('DOMContentLoaded',init);
     } catch (err) {
       if (gen !== generation) return;
       paused = true;
+      if (changedDuringLoad) { setStatus('Cloud load stopped after local edits. Your browser records were preserved; export a backup before reconciling.'); return; }
       const cached = localStorage.getItem(cacheKey(id));
       if (cached) {try {useState(JSON.parse(cached),id);}catch{}}
       setStatus('Cloud unavailable: '+err.message+'. Saving is paused; browser data has not been deleted.');
