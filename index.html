@@ -1093,7 +1093,7 @@ window.addEventListener('DOMContentLoaded',init);
     const bank = $auth('flowpay-plaid-panel');
     if (bank && !activeUser) bank.style.display = 'none'; // Only the user's Bank Connections button may open this panel.
     const warning = $auth('flowpay-local-storage-warning');
-    if (warning) warning.style.display = activeUser ? '' : 'none';
+    if (warning) warning.style.display = activeUser && sessionStorage.getItem('flowpay_local_warning_dismissed') !== '1' ? '' : 'none';
   };
   // Override the legacy local-session gate without removing or modifying legacy data.
   showAuth = function () { gate(activeUser); };
@@ -1131,7 +1131,19 @@ window.addEventListener('DOMContentLoaded',init);
     const localWarning = document.createElement('div');
     localWarning.id = 'flowpay-local-storage-warning';
     localWarning.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:8000;max-width:310px;padding:10px 12px;border-radius:10px;background:#1e293b;color:white;font:12px Arial;box-shadow:0 4px 15px #0005';
+    localWarning.style.position = 'fixed';
+    localWarning.style.paddingRight = '36px';
     localWarning.textContent = 'Financial records remain in this browser, not your Supabase account. They are not yet isolated between users or cloud-synced.';
+    const closeLocalWarning = document.createElement('button');
+    closeLocalWarning.type = 'button';
+    closeLocalWarning.setAttribute('aria-label', 'Dismiss browser financial records notice');
+    closeLocalWarning.textContent = '×';
+    closeLocalWarning.style.cssText = 'position:absolute;top:3px;right:7px;background:transparent;border:0;color:white;font-size:22px;cursor:pointer';
+    closeLocalWarning.addEventListener('click', () => {
+      sessionStorage.setItem('flowpay_local_warning_dismissed', '1');
+      localWarning.style.display = 'none';
+    });
+    localWarning.appendChild(closeLocalWarning);
     document.body.append(localWarning);
     gate(null);
     // Capture these events before the old browser-local login handlers run.
