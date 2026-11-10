@@ -12,7 +12,7 @@ const originalFetch=globalThis.fetch;
 async function setup(aal) {
   const keyPair=await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const jwk=await crypto.subtle.exportKey('jwk',keyPair.publicKey);
-  const kid='integration-key';
+  const kid='integration-'+aal;
   const header=b64(enc.encode(JSON.stringify({alg:'ES256',kid,typ:'JWT'})));
   const payload=b64(enc.encode(JSON.stringify({
     iss:base+'/auth/v1',aud:'authenticated',role:'authenticated',sub:uuid,
