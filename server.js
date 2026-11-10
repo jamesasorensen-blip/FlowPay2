@@ -19,7 +19,7 @@ app.use('/api', (_req, res) => res.status(410).json({ error: 'Legacy API retired
 // Only explicitly approved frontend assets may be served from repository root.
 // Do not expose server.js, environment files, Git metadata, package files, or policies.
 const publicAssets = new Set([
-  'index.html', 'manifest.webmanifest', 'favicon.ico',
+  'index.html', 'manifest.json', 'manifest.webmanifest', 'favicon.ico',
   'icon-192.png', 'icon-512.png', 'sw.js', 'service-worker.js'
 ]);
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
