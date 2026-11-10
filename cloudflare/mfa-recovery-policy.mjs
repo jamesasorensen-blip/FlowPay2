@@ -37,6 +37,17 @@ export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
       errors.push("Approvals must be valid and less than 24 hours old");
     }
   }
+  if (record.status !== "pending_approval" || record.cancelledAt || record.suspiciousActivity === true) {
+    errors.push("Recovery case must be pending and not cancelled or escalated");
+  }
+  const requestedAt = Date.parse(record.requestedAt);
+  if (!Number.isFinite(requestedAt) || requestedAt > now ||
+      now - requestedAt < 48 * 60 * 60 * 1000) {
+    errors.push("48-hour recovery waiting period required");
+  }
+  if (record.revokeAllSessions !== true || record.requireFreshMfaEnrollment !== true) {
+    errors.push("Session revocation and MFA re-enrollment required");
+  }
   if (record.userNotified !== true || !evidence(record.notificationRef)) {
     errors.push("Documented recovery notification required");
   }
