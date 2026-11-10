@@ -12,11 +12,12 @@ const issuer = 'https://local-test.supabase.co/auth/v1';
 const keys = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
 const jwk = { ...await crypto.subtle.exportKey('jwk', keys.publicKey), kid: 'local-test', alg: 'ES256', use: 'sig' };
 const enc = value => Buffer.from(JSON.stringify(value)).toString('base64url');
-async function token(id) {
-  const text = enc({alg: 'ES256', kid: 'local-test'}) + '.' + enc({sub: id, iss: issuer, aud: 'authenticated', role: 'authenticated', exp: Math.floor(Date.now()/1000)+600});
+async function token(id, aal) {
+  const text = enc({alg: 'ES256', kid: 'local-test'}) + '.' + enc({sub: id, iss: issuer, aud: 'authenticated', role: 'authenticated', ...(aal ? {aal} : {}), exp: Math.floor(Date.now()/1000)+600});
   return text + '.' + Buffer.from(await crypto.subtle.sign({name: 'ECDSA', hash: 'SHA-256'}, keys.privateKey, new TextEncoder().encode(text))).toString('base64url');
 }
 const tokens = { [A]: await token(A), [B]: await token(B) };
+const aal2Token = await token(A, 'aal2');
 function fixture() {
   const sql = new DatabaseSync(':memory:');
   sql.exec(`
@@ -62,9 +63,9 @@ function fixture() {
     throw Error('External network call blocked');
   };
   return { sql, db, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
-    async call(uid,path,method='GET',body,allowedUser=uid) {
-      const response=await worker.fetch(new Request('https://worker.test'+path, {method, headers:{Origin:'https://flowpay-6aay.onrender.com',Authorization:'Bearer '+tokens[uid],'Content-Type':'application/json'}, ...(body===undefined?{}:{body:JSON.stringify(body)})}),
-        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser});
+    async call(uid,path,method='GET',body,allowedUser=uid,requireAal2=false,overrideToken) {
+      const response=await worker.fetch(new Request('https://worker.test'+path, {method, headers:{Origin:'https://flowpay-6aay.onrender.com',Authorization:'Bearer '+(overrideToken || tokens[uid]),'Content-Type':'application/json'}, ...(body===undefined?{}:{body:JSON.stringify(body)})}),
+        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser,REQUIRE_AAL2:requireAal2?'true':'false'});
       return {status:response.status,body:await response.json()};
     }
   };
@@ -153,6 +154,18 @@ test('failed sync batch rolls back transaction changes, cursor and audit togethe
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor, before);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='new-sync-tx'").get().n, 0);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE id='new-sync-audit'").get().n, 0);
+  } finally {
+    f.close();
+  }
+});
+
+test('optional MFA gate rejects AAL1 and accepts signed AAL2 token', async () => {
+  const f = fixture();
+  try {
+    const denied = await f.call(A, '/me', 'GET', undefined, A, true);
+    assert.notEqual(denied.status, 200);
+    const accepted = await f.call(A, '/me', 'GET', undefined, A, true, aal2Token);
+    assert.equal(accepted.status, 200);
   } finally {
     f.close();
   }
