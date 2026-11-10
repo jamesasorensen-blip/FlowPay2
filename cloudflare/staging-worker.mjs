@@ -211,7 +211,8 @@ async function saveAccounts(env, connectionId, accounts) {
          subtype = excluded.subtype,
          current_balance = excluded.current_balance,
          available_balance = excluded.available_balance,
-         balance_updated_at = CURRENT_TIMESTAMP`
+         balance_updated_at = CURRENT_TIMESTAMP
+       WHERE bank_accounts.connection_id = excluded.connection_id`
     ).bind(
       a.account_id,
       connectionId,
@@ -241,7 +242,8 @@ async function saveTransaction(env, tx) {
        merchant_name = excluded.merchant_name,
        description = excluded.description,
        pending = excluded.pending,
-       category = excluded.category`
+       category = excluded.category
+     WHERE bank_transactions.account_id = excluded.account_id`
   ).bind(
     tx.transaction_id,
     tx.account_id,
