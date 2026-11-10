@@ -756,9 +756,21 @@ export default {
             cursor,
             count: 100
           });
-          additions.push(...(page.added || []));
-          modifications.push(...(page.modified || []));
-          removals.push(...(page.removed || []));
+          // Reject malformed pages before persisting any transactions or cursor.
+          // An invalid cursor must never replace the last committed sync position.
+          if (
+            !page || !Array.isArray(page.added) ||
+            !Array.isArray(page.modified) ||
+            !Array.isArray(page.removed) ||
+            typeof page.next_cursor !== "string" ||
+            typeof page.has_more !== "boolean" ||
+            (page.has_more && page.next_cursor === cursor)
+          ) {
+            return send({ error: "Invalid transaction sync response; no changes saved" }, 502);
+          }
+          additions.push(...page.added);
+          modifications.push(...page.modified);
+          removals.push(...page.removed);
           cursor = page.next_cursor;
           hasMore = page.has_more;
         }
