@@ -8,6 +8,8 @@ const valid = () => ({
   identityEvidenceRef: "evidence-001", identityVerified: true,
   identityMethod: "verified-callback", factorIds: [uuid(2)],
   confirmedNoUsableBackupFactor: true, userNotified: true, notificationRef: "notice-001",
+  status: "pending_approval", requestedAt: "2026-11-07T10:00:00Z",
+  revokeAllSessions: true, requireFreshMfaEnrollment: true,
   approvals: [
     { approverId: "reviewer-001", approved: true, evidenceRef: "approval-001", approvedAt: "2026-11-09T19:00:00Z" },
     { approverId: "reviewer-002", approved: true, evidenceRef: "approval-002", approvedAt: "2026-11-09T19:10:00Z" }
