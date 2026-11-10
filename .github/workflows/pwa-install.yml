@@ -4,12 +4,14 @@ on:
     branches:
       - main
       - 'audit/pwa-install-*'
+      - 'fix/pwa-*'
   pull_request:
     paths:
       - 'manifest.json'
       - 'icon-192.png'
       - 'icon-512.png'
       - 'server.js'
+      - 'Dockerfile'
       - 'test/pwa-install.test.js'
       - '.github/workflows/pwa-install.yml'
   workflow_dispatch:
