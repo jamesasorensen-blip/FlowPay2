@@ -787,11 +787,6 @@ export default {
         const accountIds = new Set(
           (accounts.results || []).map(a => a.id)
         );
-        for (const tx of [...additions, ...modifications]) {
-          if (!accountIds.has(tx.account_id)) {
-            return send({ error: "Transaction account mismatch" }, 502);
-          }
-        }
         // Validate Plaid identifiers and required transaction fields before
         // building any statements; malformed payloads must not advance cursor.
         for (const tx of [...additions, ...modifications]) {
@@ -801,6 +796,11 @@ export default {
               !Number.isFinite(tx.amount) || typeof tx.date !== "string" ||
               !/^\\d{4}-\\d{2}-\\d{2}$/.test(tx.date)) {
             return send({ error: "Invalid transaction fields; no changes saved" }, 502);
+          }
+        }
+        for (const tx of [...additions, ...modifications]) {
+          if (!accountIds.has(tx.account_id)) {
+            return send({ error: "Transaction account mismatch" }, 502);
           }
         }
         for (const tx of removals) {
