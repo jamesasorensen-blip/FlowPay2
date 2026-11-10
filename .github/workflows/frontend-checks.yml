@@ -17,3 +17,5 @@ jobs:
       # Repository currently has no package-lock.json; npm ci requires one.
       - run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
       - run: npm test
+      - name: Verify production Docker image builds
+        run: docker build --tag flowpay-frontend-ci .
