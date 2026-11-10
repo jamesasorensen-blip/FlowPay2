@@ -1153,6 +1153,52 @@ window.addEventListener('DOMContentLoaded',init);
     if (!window.supabase?.createClient) { notify('Supabase library could not load. Check your internet connection.', true); return; }
     try {
       client = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
+      // Staging MFA enrollment and challenge UI. Never bypass the Worker AAL2 gate.
+      // The user's browser-only financial records are not changed by this UI.
+      const settingsModal = document.getElementById('modal-settings');
+      const settingsBody = settingsModal?.querySelector('.glass');
+      if (settingsBody && !document.getElementById('flowpay-mfa-settings-entry')) {
+        const section = document.createElement('section');
+        section.id = 'flowpay-mfa-settings-entry';
+        section.style.cssText = 'border-top:1px solid #94a3b8;margin-top:18px;padding-top:16px;display:grid;gap:10px;min-width:0';
+        const heading = document.createElement('h3');
+        heading.textContent = 'Two-factor authentication';
+        heading.style.cssText = 'font-size:16px;font-weight:700';
+        const info = document.createElement('p');
+        info.textContent = 'Your staging cloud storage requires an authenticator-verified session. Set up or verify your authenticator here.';
+        info.style.cssText = 'font-size:13px;line-height:1.5';
+        const launch = document.createElement('button');
+        launch.type = 'button';
+        launch.textContent = 'Set up or verify authenticator';
+        launch.style.cssText = 'background:#4f46e5;color:#fff;padding:12px;border-radius:9px;font-weight:600;min-height:44px';
+        const error = document.createElement('p');
+        error.setAttribute('role','alert');
+        error.style.cssText = 'color:#dc2626;font-size:13px;overflow-wrap:anywhere';
+        const host = document.createElement('div');
+        host.hidden = true;
+        host.style.cssText = 'max-width:100%;min-width:0;overflow-wrap:anywhere';
+        section.append(heading,info,launch,error,host);
+        settingsBody.append(section);
+        launch.addEventListener('click', async () => {
+          if (!host.hidden) { host.hidden = true; launch.textContent = 'Set up or verify authenticator'; return; }
+          launch.disabled = true;
+          error.textContent = '';
+          try {
+            const {data, error:sessionError} = await client.auth.getSession();
+            if (sessionError) throw sessionError;
+            if (!data.session) throw new Error('Sign in before setting up an authenticator.');
+            const {mountFlowPayMfa} = await import('/mfa/flowpay-mfa-ui.mjs');
+            await mountFlowPayMfa({supabase:client,host,onReady:()=>{
+              info.textContent = 'Authenticator verified for this session. Refresh FlowPay to retry cloud synchronization.';
+            }});
+            host.hidden = false;
+            launch.textContent = 'Hide authenticator settings';
+          } catch (e) {
+            error.textContent = e?.message || 'Authenticator setup could not be opened.';
+          } finally { launch.disabled = false; }
+        });
+      }
+
       client.auth.onAuthStateChange((_event, session) => gate(session?.user || null));
       const {data, error} = await client.auth.getSession();
       if (error) throw error;
