@@ -27,6 +27,18 @@ test('frontend server smoke and security checks', async (t) => {
   assert.equal(home.headers.get('x-frame-options'), 'DENY');
   assert.equal(home.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
   assert.match(home.headers.get('strict-transport-security') || '', /max-age=/);
+  const manifest = await get('/manifest.json');
+  assert.equal(manifest.status, 200);
+  const appManifest = await manifest.json();
+  assert.equal(appManifest.display, 'standalone');
+  assert.equal(appManifest.start_url, '/');
+  assert.ok(appManifest.icons.some(icon => icon.sizes === '192x192'));
+  assert.ok(appManifest.icons.some(icon => icon.sizes === '512x512'));
+  for (const icon of appManifest.icons) {
+    const asset = await get(icon.src);
+    assert.equal(asset.status, 200, 'Manifest icon missing: ' + icon.src);
+    assert.match(asset.headers.get('content-type') || '', /^image\//);
+  }
   const retired = await get('/api/plaid');
   assert.equal(retired.status, 410);
   assert.deepEqual(await retired.json(), { error: 'Legacy API retired' });
