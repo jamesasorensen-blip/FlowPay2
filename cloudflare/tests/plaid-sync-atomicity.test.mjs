@@ -26,3 +26,9 @@ test("sync rejects a stale cursor before any transaction write in the atomic bat
   assert.ok(sync.indexOf("SYNC_CURSOR_CONFLICT") < sync.indexOf("INSERT INTO bank_transactions"));
   assert.match(sync, /results\.slice\(changes\.length \+ 1, changes\.length \+ 1 \+ removals\.length\)/);
 });
+
+test("pagination mutation rejects without writing partial changes or cursor", () => {
+  assert.match(sync, /TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION/);
+  assert.match(sync, /retry from saved cursor/);
+  assert.ok(sync.indexOf("TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION") < sync.indexOf("env.DB.batch(statements)"));
+});
