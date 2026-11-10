@@ -4,7 +4,7 @@ test('FlowPay renders its basic interface in each browser engine',async({page})=
   const errors=[];
   page.on('pageerror',error=>errors.push(error.message));
   await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded'});
-  await expect(page.locator('title')).toHaveText(/FlowPay/);
+  expect(await page.title()).toMatch(/FlowPay/);
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content',/width=device-width/);
   await expect(page.locator('link[rel="manifest"]')).toHaveAttribute('href','manifest.webmanifest');
   const response=await page.request.get('http://127.0.0.1:8765/manifest.webmanifest');
