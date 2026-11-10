@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - run: npm ci
+      # Repository currently has no package-lock.json; npm ci requires one.
+      - run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
       - run: npm test
