@@ -35,8 +35,8 @@ test('frontend server allowlists manifest and blocks retired API', () => {
 
 test('Docker image includes required PWA installation assets', () => {
   const dockerfile = fs.readFileSync(path.join(root, 'Dockerfile'), 'utf8');
-  const copies = [...dockerfile.matchAll(/^COPY\\s+([^\\n]+)$/gm)].map(match => match[1]);
+  const copies = [...dockerfile.matchAll(/^COPY\s+([^\n]+)$/gm)].map(match => match[1]);
   for (const asset of ['index.html', 'server.js', 'manifest.json', 'icon-192.png', 'icon-512.png']) {
-    assert.ok(copies.some(line => line.split(/\\s+/).slice(0, -1).includes(asset)), 'Dockerfile does not copy ' + asset);
+    assert.ok(copies.some(line => line.split(/\s+/).slice(0, -1).includes(asset)), 'Dockerfile does not copy ' + asset);
   }
 });
