@@ -803,7 +803,8 @@ export default {
           return send({ error: "Bank connection consent required" }, 403);
         }
         const token = await decryptToken(connection, env);
-        let cursor = connection.sync_cursor || "";
+        const initialCursor = connection.sync_cursor || "";
+        let cursor = initialCursor;
         let hasMore = true;
         let pages = 0;
         let added = 0;
@@ -850,6 +851,100 @@ export default {
         // both transaction changes and the cursor advance.
         const changes = [...additions, ...modifications];
         const statements = [];
+        // Guard the entire batch against another sync advancing this cursor.
+        // SQLite raises an error on malformed JSON, rolling back the D1 batch.
+        // This guard must remain the FIRST statement in the atomic batch.
+        statements.push(env.DB.prepare(
+          `SELECT CASE WHEN EXISTS (
+             SELECT 1 FROM bank_connections
+             WHERE id = ? AND user_id = ? AND COALESCE(sync_cursor, '') = ?
+           ) THEN 1 ELSE json_extract('SYNC_CURSOR_CONFLICT', '
+          const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
+          statements.push(env.DB.prepare(
+            `INSERT INTO bank_transactions
+             (id, account_id, amount, transaction_date, merchant_name, description, pending, category)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT(id) DO UPDATE SET
+               account_id = excluded.account_id,
+               amount = excluded.amount,
+               transaction_date = excluded.transaction_date,
+               merchant_name = excluded.merchant_name,
+               description = excluded.description,
+               pending = excluded.pending,
+               category = excluded.category`
+          ).bind(tx.transaction_id, tx.account_id, tx.amount, tx.date,
+            tx.merchant_name || null, tx.name || null, tx.pending ? 1 : 0, category));
+        }
+        for (const tx of removals) {
+          statements.push(env.DB.prepare(
+            `DELETE FROM bank_transactions
+             WHERE id = ? AND account_id IN (
+               SELECT id FROM bank_accounts WHERE connection_id = ?
+             )`
+          ).bind(tx.transaction_id, connection.id));
+        }
+        statements.push(env.DB.prepare(
+          `UPDATE bank_connections SET sync_cursor = ?,
+             last_synced_at = CURRENT_TIMESTAMP
+           WHERE id = ? AND user_id = ?`
+        ).bind(cursor, connection.id, user.id));
+        statements.push(env.DB.prepare(
+          `INSERT INTO security_audit_log
+           (id, user_id, action, resource_type, resource_id)
+           VALUES (?, ?, 'transactions_synced', 'bank_connection', ?)`
+        ).bind(crypto.randomUUID(), user.id, connection.id));
+        const results = await env.DB.batch(statements);
+        added = additions.length;
+        modified = modifications.length;
+        removed = results.slice(changes.length + 1, changes.length + 1 + removals.length)
+          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
+        return send({
+          success: true,
+          added,
+          modified,
+          removed,
+          pages,
+          has_more: false
+        });
+      }
+      // TRANSACTION HISTORY
+      if (url.pathname === "/bank-transactions" &&
+          request.method === "GET") {
+        const rows = await env.DB.prepare(
+          `SELECT t.id, t.account_id, t.amount,
+                  t.transaction_date, t.merchant_name,
+                  t.description, t.pending, t.category,
+                  a.name AS account_name, c.institution_name
+           FROM bank_transactions t
+           JOIN bank_accounts a ON a.id = t.account_id
+           JOIN bank_connections c ON c.id = a.connection_id
+           WHERE c.user_id = ?
+           ORDER BY t.transaction_date DESC, t.id DESC
+           LIMIT 200`
+        ).bind(user.id).all();
+        return send({
+          success: true,
+          transactions: rows.results || []
+        });
+      }
+      return send({ error: "Method not allowed" }, 405);
+    } catch (error) {
+      console.error(
+        "FlowPay API error:",
+        error.code || "INTERNAL_ERROR"
+      );
+      if (error.status === 400 || error.status === 413) {
+        return send({ success: false, error: error.message }, error.status);
+      }
+      return send({
+        success: false,
+        error: "Request failed"
+      }, 500);
+    }
+  }
+};
+) END AS cursor_guard`
+        ).bind(connection.id, user.id, initialCursor));
         for (const tx of changes) {
           const category = tx.personal_finance_category?.primary || tx.category?.[0] || null;
           statements.push(env.DB.prepare(
