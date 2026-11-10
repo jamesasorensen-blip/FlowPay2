@@ -32,7 +32,7 @@ function fixture() {
   for (const [uid, cid, label] of [[A, CA, 'A'], [B, CB, 'B']]) {
     sql.prepare('INSERT INTO users VALUES (?)').run(uid);
     sql.prepare('INSERT INTO user_data VALUES (?,?,1,NULL)').run(uid, JSON.stringify({owner:label}));
-    sql.prepare('INSERT INTO bank_connections VALUES (?,?,?,NULL,NULL,?,NULL)').run(cid,uid,'item-'+label,'Bank '+label);
+    sql.prepare('INSERT INTO bank_connections (id,user_id,item_id,encrypted_access_token,token_iv,institution_name,created_at) VALUES (?,?,?,NULL,NULL,?,NULL)').run(cid,uid,'item-'+label,'Bank '+label);
     sql.prepare("INSERT INTO bank_accounts VALUES (?,?,?,'0000','depository','checking',100,100,NULL)").run('account-'+label,cid,'Account '+label);
     sql.prepare("INSERT INTO bank_transactions VALUES (?,?,1,'2026-01-01',?,NULL,0,NULL)").run('tx-'+label,'account-'+label,'Merchant '+label);
     sql.prepare("INSERT INTO user_consents VALUES (?,?,'bank_connection','test','2026-01-01',NULL,NULL)").run('consent-'+label,uid);
