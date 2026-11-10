@@ -217,3 +217,31 @@ test('actual sync route rejects foreign-account transactions without moving curs
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,0);
   } finally { f.close(); }
 });
+
+test('actual sync route restarts pagination after Plaid mutation without duplicate writes', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    const cursors = [];
+    f.setPlaidResponder(body => {
+      cursors.push(body.cursor);
+      if (cursors.length === 1) return Response.json({
+        added:[{transaction_id:'stale-tx',account_id:'account-A',amount:1,date:'2026-11-10'}],
+        modified:[],removed:[],next_cursor:'intermediate',has_more:true
+      });
+      if (cursors.length === 2) return Response.json({
+        error_code:'TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION'
+      },{status:400});
+      return Response.json({
+        added:[{transaction_id:'fresh-tx',account_id:'account-A',amount:2,date:'2026-11-10'}],
+        modified:[],removed:[],next_cursor:'final-cursor',has_more:false
+      });
+    });
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,200,JSON.stringify(response.body));
+    assert.deepEqual(cursors,['','intermediate','']);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='stale-tx'").get().n,0);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='fresh-tx'").get().n,1);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,'final-cursor');
+  } finally { f.close(); }
+});
