@@ -1189,7 +1189,8 @@ window.addEventListener('DOMContentLoaded',init);
             if (!data.session) throw new Error('Sign in before setting up an authenticator.');
             const {mountFlowPayMfa} = await import('/mfa/flowpay-mfa-ui.mjs');
             await mountFlowPayMfa({supabase:client,host,onReady:()=>{
-              info.textContent = 'Authenticator verified for this session. Refresh FlowPay to retry cloud synchronization.';
+              info.textContent = 'Authenticator verified. Checking cloud access without overwriting browser records.';
+              window.dispatchEvent(new Event('flowpay-mfa-verified'));
             }});
             host.hidden = false;
             launch.textContent = 'Hide authenticator settings';
@@ -1199,7 +1200,12 @@ window.addEventListener('DOMContentLoaded',init);
         });
       }
 
-      client.auth.onAuthStateChange((_event, session) => gate(session?.user || null));
+      client.auth.onAuthStateChange((event, session) => {
+        gate(session?.user || null);
+        if (session?.access_token && ['TOKEN_REFRESHED','SIGNED_IN','MFA_CHALLENGE_VERIFIED'].includes(event)) {
+          window.dispatchEvent(new Event('flowpay-auth-token-updated'));
+        }
+      });
       const {data, error} = await client.auth.getSession();
       if (error) throw error;
       gate(data.session?.user || null);
@@ -1337,8 +1343,18 @@ window.addEventListener('DOMContentLoaded',init);
       remoteIsSample = !!body.exists && isSample(body.data);
       if (body.exists && !remoteIsSample) {
         const cached = localStorage.getItem(cacheKey(id));
-        if (cached && cached !== JSON.stringify(normalized(body.data))) {
-          try {backup(JSON.parse(cached),'flowpay-local-pre-cloud-backup.json');} catch {}
+        // Never silently replace browser data with a different cloud snapshot.
+        // This also protects changes made while the cloud was blocked by MFA.
+        if (cached) {
+          let localData;
+          try { localData = JSON.parse(cached); }
+          catch { paused = true; setStatus('Browser cache could not be read. Cloud load stopped to protect local data.'); return; }
+          if (JSON.stringify(normalized(localData)) !== JSON.stringify(normalized(body.data))) {
+            useState(localData,id);
+            paused = true;
+            setStatus('Local and cloud records differ. Sync is paused to protect your browser changes. Export a backup before reconciling.');
+            return;
+          }
         }
         useState(body.data,id);
         ready = true;
@@ -1432,6 +1448,29 @@ window.addEventListener('DOMContentLoaded',init);
       if (gen === generation) setStatus('Import failed: '+err.message+'. Original browser data is untouched.',true);
     } finally {importButton.disabled=false;}
   });
+  // MFA may upgrade the same user's session without changing their user ID.
+  // Retry a READ only, and retain the browser cache if it differs from cloud.
+  let retryingMfa = false;
+  async function retryAfterMfa() {
+    if (!activeId || retryingMfa) return;
+    retryingMfa = true;
+    try {
+      const token = await window.flowpayGetAccessToken();
+      const response = await fetch('https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev/me', {
+        headers: {'Authorization':'Bearer '+token}
+      });
+      const result = await response.json();
+      if (!response.ok || result.user?.aal !== 'aal2') {
+        setStatus('Authenticator session is not yet AAL2. Cloud saving remains paused.');
+        return;
+      }
+      await switchUser(activeId);
+    } catch (err) {
+      setStatus('MFA session check failed: '+(err?.message || 'Unknown error')+'. Browser records are preserved.');
+    } finally { retryingMfa = false; }
+  }
+  window.addEventListener('flowpay-mfa-verified', retryAfterMfa);
+  window.addEventListener('flowpay-auth-token-updated', retryAfterMfa);
   window.addEventListener('flowpay-auth-user-changed',e=>switchUser(e.detail.userId));
   // The auth script may resolve before this listener is registered.
   if (window.flowpayActiveUserId) switchUser(window.flowpayActiveUserId);
