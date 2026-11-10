@@ -32,7 +32,8 @@ jobs:
             tests/mfa-recovery-guards.test.mjs \
             tests/mfa-recovery-policy.test.mjs \
             tests/mfa-signed-jwt-integration.test.mjs \
-            tests/staging-session-security.test.mjs
+            tests/staging-session-security.test.mjs \
+            tests/staging-bank-panel-static.test.mjs
       - name: Validate static-site manifest and logo
         run: |
           node --input-type=module <<'NODE'
