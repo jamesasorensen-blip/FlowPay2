@@ -30,7 +30,9 @@ async function setup(aal,{active=true}={}) {
   };
   const env={
     SUPABASE_URL:base,STAGING_TEST_USER_ID:uuid,PLAID_ENV:'sandbox',
-    REQUIRE_MFA_AAL2:'true',REQUIRE_ACTIVE_SESSION:'true',\n    SESSION_LOOKUP_URL:base+'/functions/v1/flowpay-session-lookup',\n    SESSION_LOOKUP_SECRET:'test-only-secret-at-least-32-characters'
+    REQUIRE_MFA_AAL2:'true',REQUIRE_ACTIVE_SESSION:'true',
+    SESSION_LOOKUP_URL:base+'/functions/v1/flowpay-session-lookup',
+    SESSION_LOOKUP_SECRET:'test-only-secret-at-least-32-characters'
   };
   return async path=>{
     const request=new Request('https://worker.example'+path,{headers:{
