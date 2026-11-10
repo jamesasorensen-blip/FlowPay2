@@ -67,3 +67,11 @@ test('staging validates transaction objects before reading account ownership', (
   const ownership = route.indexOf('if (!accountIds.has(tx.account_id))');
   assert.ok(validation >= 0 && ownership > validation, 'malformed transaction validation must precede account lookup');
 });
+
+test('staging sync bounds pagination accumulation before pushing records', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
+  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const bound = route.indexOf('additions.length + modifications.length + removals.length +');
+  const push = route.indexOf('additions.push(...page.added)');
+  assert.ok(bound >= 0 && push > bound, 'limit records before accumulation');
+});
