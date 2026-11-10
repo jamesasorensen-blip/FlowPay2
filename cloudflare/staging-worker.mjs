@@ -150,15 +150,21 @@ async function plaid(env, endpoint, body = {}) {
   if (!env.PLAID_CLIENT_ID || !env.PLAID_SECRET) {
     throw Error("Plaid credentials missing");
   }
+  // Do not follow redirects with Plaid credentials or wait indefinitely.
   const response = await fetch(`${PLAID_URL}${endpoint}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    redirect: "manual",
+    signal: AbortSignal.timeout(15000),
     body: JSON.stringify({
       client_id: env.PLAID_CLIENT_ID,
       secret: env.PLAID_SECRET,
       ...body
     })
   });
+  if (response.status >= 300 && response.status < 400) {
+    throw Error("Plaid redirect refused");
+  }
   const result = await response.json();
   if (!response.ok) {
     const error = Error("Plaid request failed");
