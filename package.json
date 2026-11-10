@@ -5,7 +5,8 @@
   "description": "FlowPay frontend static server; bank API is hosted separately on Cloudflare Worker",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.21.2"
