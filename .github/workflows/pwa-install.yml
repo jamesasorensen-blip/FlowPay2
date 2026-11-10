@@ -1,0 +1,28 @@
+name: PWA install regression
+on:
+  push:
+    branches:
+      - main
+      - 'audit/pwa-install-*'
+  pull_request:
+    paths:
+      - 'manifest.json'
+      - 'icon-192.png'
+      - 'icon-512.png'
+      - 'server.js'
+      - 'test/pwa-install.test.js'
+      - '.github/workflows/pwa-install.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pwa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify PWA assets and frontend protection
+        run: node --test test/pwa-install.test.js
