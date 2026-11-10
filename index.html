@@ -2584,5 +2584,36 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   #fp4-shortcuts, #fp2-save-status {display:none !important;}
 }
 </style>
+
+<!-- Bank panel remains closed unless explicitly opened; safe on mobile app resume. -->
+<style id="flowpay-bank-panel-explicit-open-style">
+#flowpay-plaid-panel[data-panel-open="false"] { display:none !important; }
+#flowpay-plaid-panel[data-panel-open="true"] { display:block !important; min-width:0 !important; width:min(430px,calc(100vw - 24px)) !important; max-width:calc(100vw - 24px) !important; overflow-wrap:anywhere; }
+#flowpay-plaid-panel select, #flowpay-plaid-panel input, #flowpay-plaid-panel button { box-sizing:border-box; max-width:100%; }
+@media(max-width:480px) { #flowpay-plaid-panel[data-panel-open="true"] { left:12px !important; right:12px !important; } }
+</style>
+<script id="flowpay-bank-panel-explicit-open-script">
+(function(){
+ 'use strict';
+ const panel=document.getElementById('flowpay-plaid-panel');
+ if(!panel)return;
+ panel.dataset.panelOpen='false';
+ panel.style.setProperty('display','none','important');
+ function close(){panel.dataset.panelOpen='false';panel.style.setProperty('display','none','important');trigger.setAttribute('aria-expanded','false');}
+ function open(){if(!window.flowpayActiveUserId)return;panel.dataset.userClosed='false';panel.dataset.panelOpen='true';panel.style.setProperty('display','block','important');trigger.setAttribute('aria-expanded','true');}
+ const trigger=document.createElement('button');
+ trigger.type='button';trigger.id='flowpay-open-bank-panel';trigger.textContent='Bank Connections';
+ trigger.setAttribute('aria-controls','flowpay-plaid-panel');trigger.setAttribute('aria-expanded','false');
+ trigger.setAttribute('aria-label','Open bank connections');
+ trigger.style.cssText='padding:9px 12px;border-radius:10px;background:#475569;color:white;border:1px solid #64748b;font:600 12px Arial;cursor:pointer;min-height:44px;';
+ trigger.addEventListener('click',()=>panel.dataset.panelOpen==='true'?close():open());
+ panel.querySelector('#flowpay-close-bank-panel')?.addEventListener('click',close);
+ const toolbar=document.getElementById('fp-toolbar');
+ (toolbar||document.querySelector('header')||document.body).appendChild(trigger);
+ window.addEventListener('flowpay-auth-user-changed',close);
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&panel.dataset.panelOpen!=='true')close();});
+ window.addEventListener('pageshow',()=>{if(panel.dataset.panelOpen!=='true')close();});
+})();
+</script>
 </body>
 </html>
