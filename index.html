@@ -959,34 +959,24 @@ const challenge=()=>crypto.getRandomValues(new Uint8Array(32));
 function biometricSupported(){return !!(window.isSecureContext&&window.PublicKeyCredential&&navigator.credentials&&crypto.getRandomValues)}
 function biometricRecord(){try{const x=JSON.parse(localStorage.getItem(biometricKey)||'null');return x&&x.id&&x.username?x:null}catch{return null}}
 function updateBiometricUI(){
- const a=account(),r=biometricRecord(),available=biometricSupported(),enabled=!!(a&&r&&r.username===a.username);
- const login=$('biometric-login-btn');login.classList.remove('hidden');login.classList.add('flex');
- $('biometric-enroll-btn').classList.toggle('hidden',enabled);$('biometric-enroll-btn').disabled=!available;
- $('biometric-remove-btn').classList.toggle('hidden',!enabled);
- $('biometric-settings-status').textContent=!available?'Requires HTTPS (or localhost) and a browser with passkey support.':enabled?'Enabled for this browser and account.':'Not enabled on this browser.';
- $('biometric-auth-hint').textContent=enabled&&available?'Use your device fingerprint, face, or screen lock.':'First sign in normally, then enable device sign-in in Settings.';
+ const login=$('biometric-login-btn');
+ login.classList.remove('hidden');login.classList.add('flex');
+ login.textContent='Use saved password / device unlock';
+ $('biometric-enroll-btn').classList.add('hidden');
+ $('biometric-enroll-btn').disabled=true;
+ $('biometric-remove-btn').classList.toggle('hidden',!biometricRecord());
+ $('biometric-settings-status').textContent='Verified passkey enrollment is not yet available. Existing device-only credentials cannot sign in securely.';
+ $('biometric-auth-hint').textContent='Choose your saved FlowPay login from your phone password manager. Complete the required authenticator step after signing in.';
 }
-async function enrollBiometric(){
- if(!biometricSupported()){toast('Device sign-in needs HTTPS and WebAuthn support.',true);return}
- const a=account();if(!a){toast('Create an account first.',true);return}
- try{
-  const credential=await navigator.credentials.create({publicKey:{challenge:challenge(),rp:{name:'FlowPay'},user:{id:new TextEncoder().encode(a.username),name:a.username,displayName:a.username},pubKeyCredParams:[{type:'public-key',alg:-7},{type:'public-key',alg:-257}],authenticatorSelection:{authenticatorAttachment:'platform',userVerification:'required',residentKey:'preferred'},timeout:60000,attestation:'none'}});
-  if(!credential){toast('Device enrollment was canceled.',true);return}
-  localStorage.setItem(biometricKey,JSON.stringify({id:b64url(credential.rawId),username:a.username}));
-  updateBiometricUI();toast('Device sign-in enabled on this browser.');
- }catch(e){toast('Could not enable device sign-in: '+(e.name||'unsupported device'),true)}
+function enrollBiometric(){
+ toast('Verified passkey enrollment is not yet available. Use your password manager and required MFA.',true);
 }
-async function signInBiometric(){
- const r=biometricRecord(),a=account();if(!biometricSupported()){toast('Device sign-in requires HTTPS and a compatible browser.',true);return}if(!a){toast('Register a FlowPay account first.',true);return}if(!r||r.username!==a.username){toast('First sign in with your password, then open Settings to enable fingerprint/device sign-in.',true);return}
- try{
-  const credential=await navigator.credentials.get({publicKey:{challenge:challenge(),allowCredentials:[{type:'public-key',id:unb64url(r.id)}],userVerification:'required',timeout:60000}});
-  if(!credential||b64url(credential.rawId)!==r.id){toast('Device credential did not match.',true);return}
-  // Client-only demo: no server signature verification is possible here.
-  sessionStorage.setItem('flowpay_session_active','true');
-  if($('remember-me-checkbox').checked)localStorage.setItem('flowpay_stay_logged_in','true');
-  else localStorage.removeItem('flowpay_stay_logged_in');
-  $('auth-modal').classList.add('hidden');toast('Device unlock successful');render();
- }catch(e){toast('Device sign-in canceled or unavailable: '+(e.name||'error'),true)}
+function signInBiometric(){
+ const user=$('auth-username');
+ if(user){user.focus();user.setAttribute('autocomplete','username');}
+ const password=$('auth-password');
+ if(password)password.setAttribute('autocomplete','current-password');
+ toast('Choose your saved FlowPay login from your phone password manager, then complete MFA. Device-only credentials cannot bypass account verification.');
 }
 function showAuth(){const signed=sessionStorage.getItem('flowpay_session_active')==='true'||localStorage.getItem('flowpay_stay_logged_in')==='true';$('auth-modal').classList.toggle('hidden',signed);if(!account())setAuthMode('register');updateBiometricUI()}
 function monthOptions(id,selected){const el=$(id);el.innerHTML='';for(let i=-12;i<=24;i++){const d=plusMonths(day().slice(0,7)+'-01',i),key=monthKey(d);const opt=document.createElement('option');opt.value=key;opt.textContent=date(d).toLocaleDateString('en-US',{month:'long',year:'numeric'});el.append(opt)}el.value=selected}
