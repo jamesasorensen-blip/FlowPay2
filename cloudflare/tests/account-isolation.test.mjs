@@ -136,3 +136,25 @@ test('local D1 batch simulator rolls back successful writes if a later statement
     f.close();
   }
 });
+
+test('failed sync batch rolls back transaction changes, cursor and audit together', async () => {
+  const f = fixture();
+  try {
+    f.sql.exec('ALTER TABLE bank_connections ADD COLUMN sync_cursor TEXT');
+    const before = f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor;
+    await assert.rejects(f.db.batch([
+      f.db.prepare('INSERT INTO bank_transactions (id,account_id,amount,transaction_date) VALUES (?,?,?,?)')
+        .bind('new-sync-tx', 'account-A', 9, '2026-01-02'),
+      f.db.prepare('UPDATE bank_connections SET sync_cursor=? WHERE id=?').bind('advanced-cursor', CA),
+      f.db.prepare('INSERT INTO security_audit_log (id,user_id,action,resource_type,resource_id) VALUES (?,?,?,?,?)')
+        .bind('new-sync-audit', A, 'transactions_synced', 'bank_connection', CA),
+      f.db.prepare('INSERT INTO bank_transactions (id,account_id,amount,transaction_date) VALUES (?,?,?,?)')
+        .bind('tx-A', 'account-A', 9, '2026-01-02')
+    ]));
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor, before);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='new-sync-tx'").get().n, 0);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE id='new-sync-audit'").get().n, 0);
+  } finally {
+    f.close();
+  }
+});
