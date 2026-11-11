@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import worker, { validPlaidWebhookEvent } from '../staging-worker.mjs';
+import worker, { validPlaidWebhookEvent, recordWebhookReceipt } from '../staging-worker.mjs';
 
 // Entirely local: generated signing keys, synthetic users, in-memory SQLite.
 const A = '11111111-1111-4111-8111-111111111111';
@@ -29,6 +30,7 @@ function fixture() {
     CREATE TABLE user_consents(id TEXT PRIMARY KEY,user_id TEXT,consent_type TEXT,policy_version TEXT,granted_at TEXT,withdrawn_at TEXT,connection_id TEXT);
     CREATE TABLE security_audit_log(id TEXT PRIMARY KEY,user_id TEXT,action TEXT,resource_type TEXT,resource_id TEXT);
   `);
+  sql.exec(readFileSync(new URL('../migrations/0001_webhook_receipts.sql', import.meta.url), 'utf8'));
   for (const [uid, cid, label] of [[A, CA, 'A'], [B, CB, 'B']]) {
     sql.prepare('INSERT INTO users VALUES (?)').run(uid);
     sql.prepare('INSERT INTO user_data VALUES (?,?,1,NULL)').run(uid, JSON.stringify({owner:label}));
@@ -463,10 +465,11 @@ test('Plaid webhook receiver never accepts GET or non-sandbox environment', asyn
 });
 
 test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching body hash', async () => {
+  const f = fixture();
   const pair = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const publicKey = {...await crypto.subtle.exportKey('jwk',pair.publicKey),kid:'synthetic-webhook-key',alg:'ES256'};
   const encode = value => Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64url');
-  const body = JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'sandbox-item'});
+  const body = JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'item-A'});
   const digest = Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body))).toString('hex');
   const signed = encode({alg:'ES256',kid:publicKey.kid})+'.'+encode({
     iat:Math.floor(Date.now()/1000),request_body_sha256:digest
@@ -485,19 +488,23 @@ test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching b
   try {
     const call = payload => worker.fetch(new Request('https://worker.test/plaid-webhook',{
       method:'POST',headers:{'Plaid-Verification':signed+'.'+signature},body:payload
-    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
+    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic', STAGING_TEST_USER_ID:A, DB:f.db});
     const accepted = await call(body);
     assert.equal(accepted.status,200,await accepted.text());
+    assert.equal((await call(body)).status, 200);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 1);
+    f.sql.exec('DROP TABLE plaid_webhook_receipts');
+    assert.equal((await call(body)).status, 503);
     const rejected = await call(body+' ');
     assert.equal(rejected.status,401);
     // An attacker cannot substitute another signing key or alter the signature.
     const badSignature = (signature.startsWith('A')?'B':'A')+signature.slice(1);
     const forged = await worker.fetch(new Request('https://worker.test/plaid-webhook',{
       method:'POST',headers:{'Plaid-Verification':signed+'.'+badSignature},body
-    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
+    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic', STAGING_TEST_USER_ID:A, DB:f.db});
     assert.equal(forged.status,401);
-    assert.equal(keyLookups,3);
-  } finally { globalThis.fetch = originalFetch; }
+    assert.equal(keyLookups,5);
+  } finally { globalThis.fetch = originalFetch; f.close(); }
 });
 
 test('Link token URL bindings accept only exact frontend and Worker HTTPS destinations', async () => {
@@ -550,5 +557,53 @@ test('staging item webhook diagnostic rejects malformed and foreign connections 
     const restricted=await f.call(B,'/diagnostics/item-webhook','POST',{connection_id:CB},A);
     assert.equal(restricted.status,403);
     assert.equal(f.externalCalls(),0);
+  } finally { f.close(); }
+});
+
+
+test('webhook receipts deduplicate deliveries, retain distinct tokens and expire old receipts', async () => {
+  const f = fixture();
+  const env = {DB:f.db, STAGING_TEST_USER_ID:A};
+  const event = {webhook_type:'TRANSACTIONS', webhook_code:'SYNC_UPDATES_AVAILABLE', item_id:'item-A'};
+  try {
+    f.sql.prepare("INSERT INTO plaid_webhook_receipts VALUES ('old','ITEM','ERROR',datetime('now','-8 days'))").run();
+    await recordWebhookReceipt(env, event, 'verified-token-1');
+    await recordWebhookReceipt(env, event, 'verified-token-1');
+    await recordWebhookReceipt(env, event, 'verified-token-2');
+    const rows = f.sql.prepare('SELECT * FROM plaid_webhook_receipts').all();
+    assert.equal(rows.length, 2);
+    for (const row of rows) {
+      assert.match(row.id, /^[a-f0-9]{64}$/);
+      assert.equal(row.webhook_code, 'SYNC_UPDATES_AVAILABLE');
+    }
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM bank_transactions').get().n, 2);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n, 0);
+  } finally { f.close(); }
+});
+
+test('webhook receipts require an unambiguous owned Item and active bank consent', async () => {
+  const f = fixture();
+  const event = {webhook_type:'ITEM', webhook_code:'NEW_ACCOUNTS_AVAILABLE', item_id:'item-A'};
+  try {
+    await assert.rejects(recordWebhookReceipt({DB:f.db}, event, 'token'));
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:B}, event, 'foreign');
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, {...event,item_id:'unknown'}, 'unknown');
+    f.sql.prepare('UPDATE bank_connections SET item_id = ? WHERE id = ?').run('item-A', CB);
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, event, 'ambiguous');
+    f.sql.prepare('UPDATE bank_connections SET item_id = ? WHERE id = ?').run('item-B', CB);
+    f.sql.prepare('UPDATE user_consents SET withdrawn_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(A);
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, event, 'withdrawn');
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 0);
+  } finally { f.close(); }
+});
+
+test('a receipt storage failure remains retryable without a partial receipt', async () => {
+  const f = fixture();
+  try {
+    f.sql.exec("CREATE TRIGGER fail_receipt BEFORE INSERT ON plaid_webhook_receipts BEGIN SELECT RAISE(ABORT, 'injected storage failure'); END;");
+    await assert.rejects(recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, {
+      webhook_type:'TRANSACTIONS', webhook_code:'SYNC_UPDATES_AVAILABLE', item_id:'item-A'
+    }, 'token'));
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 0);
   } finally { f.close(); }
 });
