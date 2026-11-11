@@ -60,16 +60,16 @@ function fixture() {
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async (url, options) => {
     if (String(url)===issuer+'/.well-known/jwks.json') return Response.json({keys:[jwk]});
-    if (['https://sandbox.plaid.com/transactions/sync', 'https://sandbox.plaid.com/accounts/get'].includes(String(url)) && plaidResponder) {
+    if (['https://sandbox.plaid.com/transactions/sync', 'https://sandbox.plaid.com/accounts/get', 'https://sandbox.plaid.com/link/token/create'].includes(String(url)) && plaidResponder) {
       return plaidResponder(JSON.parse(options.body), String(url));
     }
     externalCalls++;
     throw Error('External network call blocked');
   };
   return { sql, db, setPlaidResponder(fn) { plaidResponder = fn; }, externalCalls:()=>externalCalls, close() { globalThis.fetch=originalFetch; sql.close(); },
-    async call(uid,path,method='GET',body,allowedUser=uid,requireAal2=false,overrideToken) {
+    async call(uid,path,method='GET',body,allowedUser=uid,requireAal2=false,overrideToken, config={}) {
       const response=await worker.fetch(new Request('https://worker.test'+path, {method, headers:{Origin:'https://flowpay-6aay.onrender.com',Authorization:'Bearer '+(overrideToken || tokens[uid]),'Content-Type':'application/json'}, ...(body===undefined?{}:{body:JSON.stringify(body)})}),
-        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser,REQUIRE_AAL2:requireAal2?'true':'false',TOKEN_ENCRYPTION_KEY:'00'.repeat(32),PLAID_CLIENT_ID:'test',PLAID_SECRET:'test'});
+        {DB:db,SUPABASE_URL:'https://local-test.supabase.co',PLAID_ENV:'sandbox',STAGING_TEST_USER_ID:allowedUser,REQUIRE_AAL2:requireAal2?'true':'false',TOKEN_ENCRYPTION_KEY:'00'.repeat(32),PLAID_CLIENT_ID:'test',PLAID_SECRET:'test',...config});
       return {status:response.status,body:await response.json()};
     }
   };
@@ -498,4 +498,32 @@ test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching b
     assert.equal(forged.status,401);
     assert.equal(keyLookups,3);
   } finally { globalThis.fetch = originalFetch; }
+});
+
+test('Link token URL bindings accept only exact frontend and Worker HTTPS destinations', async () => {
+  const f=fixture();
+  try {
+    let sent=null;
+    f.setPlaidResponder(body=>{sent=body;return Response.json({link_token:'link-sandbox-test',expiration:'2026-12-01T00:00:00Z'});});
+    const valid=await f.call(A,'/link-token','POST',{},A,false,undefined,{
+      PLAID_OAUTH_REDIRECT_URI:'https://flowpay-6aay.onrender.com/',
+      PLAID_WEBHOOK_URL:'https://worker.test/plaid-webhook'
+    });
+    assert.equal(valid.status,200,JSON.stringify(valid.body));
+    assert.equal(sent.redirect_uri,'https://flowpay-6aay.onrender.com/');
+    assert.equal(sent.webhook,'https://worker.test/plaid-webhook');
+    for(const config of [
+      {PLAID_OAUTH_REDIRECT_URI:'https://evil.example/'},
+      {PLAID_OAUTH_REDIRECT_URI:'http://flowpay-6aay.onrender.com/'},
+      {PLAID_OAUTH_REDIRECT_URI:'https://flowpay-6aay.onrender.com/other'},
+      {PLAID_WEBHOOK_URL:'https://evil.example/plaid-webhook'},
+      {PLAID_WEBHOOK_URL:'https://worker.test/plaid-webhook?token=bad'},
+      {PLAID_WEBHOOK_URL:'https://worker.test/not-webhook'}
+    ]) {
+      sent=null;
+      const response=await f.call(A,'/link-token','POST',{},A,false,undefined,config);
+      assert.notEqual(response.status,200,JSON.stringify(config));
+      assert.equal(sent,null,'invalid config must not be sent to Plaid');
+    }
+  } finally {f.close();}
 });
