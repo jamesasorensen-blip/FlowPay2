@@ -203,6 +203,19 @@ async function hasBankConsent(env, userId, connectionId = null) {
   return !!row;
 }
 async function saveAccounts(env, connectionId, accounts) {
+  if (!Array.isArray(accounts)) throw Error("Invalid Plaid accounts response");
+  const ids = new Set();
+  for (const account of accounts) {
+    if (!account || typeof account.account_id !== "string" || !account.account_id ||
+        ids.has(account.account_id)) throw Error("Invalid or duplicate Plaid account ID");
+    ids.add(account.account_id);
+    const existing = await env.DB.prepare(
+      "SELECT connection_id FROM bank_accounts WHERE id = ?"
+    ).bind(account.account_id).first();
+    if (existing && existing.connection_id !== connectionId) {
+      throw Error("Plaid account ownership conflict");
+    }
+  }
   for (const a of accounts) {
     await env.DB.prepare(
       `INSERT INTO bank_accounts
