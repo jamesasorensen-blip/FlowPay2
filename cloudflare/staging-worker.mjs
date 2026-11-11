@@ -230,6 +230,14 @@ async function saveAccounts(env, connectionId, accounts) {
     ).run();
   }
 }
+function validPlaidDate(value) {
+  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  const [year, month, day] = value.split("-").map(Number);
+  const parsed = new Date(Date.UTC(year, month - 1, day));
+  return parsed.getUTCFullYear() === year &&
+    parsed.getUTCMonth() === month - 1 &&
+    parsed.getUTCDate() === day;
+}
 function transactionStatement(env, tx) {
   const category =
     tx.personal_finance_category?.primary ||
@@ -826,8 +834,7 @@ export default {
           if (!tx || typeof tx.transaction_id !== "string" ||
               !tx.transaction_id || typeof tx.account_id !== "string" ||
               !tx.account_id || typeof tx.amount !== "number" ||
-              !Number.isFinite(tx.amount) || typeof tx.date !== "string" ||
-              !/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) {
+              !Number.isFinite(tx.amount) || !validPlaidDate(tx.date)) {
             return send({ error: "Invalid transaction fields; no changes saved" }, 502);
           }
         }
