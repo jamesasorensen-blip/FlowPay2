@@ -282,3 +282,19 @@ test('actual sync route rejects cyclic Plaid cursors without saving partial page
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
   } finally { f.close(); }
 });
+
+test('actual sync route rejects transaction ID already owned by another account', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    f.setPlaidResponder(() => Response.json({
+      added:[{transaction_id:'tx-B',account_id:'account-A',amount:7,date:'2026-11-10'}],
+      modified:[],removed:[],next_cursor:'conflict-cursor',has_more:false
+    }));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,409,JSON.stringify(response.body));
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+    assert.equal(f.sql.prepare("SELECT amount FROM bank_transactions WHERE id='tx-B'").get().amount,1);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,0);
+  } finally { f.close(); }
+});
