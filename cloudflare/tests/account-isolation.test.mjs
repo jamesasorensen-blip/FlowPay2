@@ -370,3 +370,21 @@ test('withdrawn bank consent blocks actual sync before Plaid or cursor changes',
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
   } finally { f.close(); }
 });
+
+test('withdrawn bank consent blocks balance refresh before Plaid calls', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    let plaidCalls = 0;
+    f.setPlaidResponder(() => {
+      plaidCalls++;
+      return Response.json({accounts:[]});
+    });
+    const withdrawn = await f.call(A,'/consent/withdraw','POST',{consent_type:'bank_connection'});
+    assert.equal(withdrawn.status,200,JSON.stringify(withdrawn.body));
+    const response = await f.call(A,'/bank-accounts?refresh=true');
+    assert.equal(response.status,403,JSON.stringify(response.body));
+    assert.equal(plaidCalls,0);
+    assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-A'").get().current_balance,100);
+  } finally { f.close(); }
+});
