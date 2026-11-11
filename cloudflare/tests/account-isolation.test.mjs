@@ -461,3 +461,35 @@ test('Plaid webhook receiver never accepts GET or non-sandbox environment', asyn
   }), {PLAID_ENV:'production'});
   assert.equal(production.status,403);
 });
+
+test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching body hash', async () => {
+  const pair = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
+  const publicKey = {...await crypto.subtle.exportKey('jwk',pair.publicKey),kid:'synthetic-webhook-key',alg:'ES256'};
+  const encode = value => Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64url');
+  const body = JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'sandbox-item'});
+  const digest = Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body))).toString('hex');
+  const signed = encode({alg:'ES256',kid:publicKey.kid})+'.'+encode({
+    iat:Math.floor(Date.now()/1000),request_body_sha256:digest
+  });
+  const signature = Buffer.from(await crypto.subtle.sign(
+    {name:'ECDSA',hash:'SHA-256'},pair.privateKey,new TextEncoder().encode(signed)
+  )).toString('base64url');
+  const originalFetch = globalThis.fetch;
+  let keyLookups = 0;
+  globalThis.fetch = async (url,options) => {
+    assert.equal(String(url),'https://sandbox.plaid.com/webhook_verification_key/get');
+    assert.equal(JSON.parse(options.body).key_id,publicKey.kid);
+    keyLookups++;
+    return Response.json({key:publicKey});
+  };
+  try {
+    const call = payload => worker.fetch(new Request('https://worker.test/plaid-webhook',{
+      method:'POST',headers:{'Plaid-Verification':signed+'.'+signature},body:payload
+    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
+    const accepted = await call(body);
+    assert.equal(accepted.status,200,await accepted.text());
+    const rejected = await call(body+' ');
+    assert.equal(rejected.status,401);
+    assert.equal(keyLookups,2);
+  } finally { globalThis.fetch = originalFetch; }
+});
