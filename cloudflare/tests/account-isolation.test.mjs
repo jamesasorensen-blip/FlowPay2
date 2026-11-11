@@ -352,3 +352,21 @@ test('actual sync checks transaction ownership across multiple SQL lookup chunks
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id LIKE 'chunk-tx-%'").get().n,0);
   } finally { f.close(); }
 });
+
+test('withdrawn bank consent blocks actual sync before Plaid or cursor changes', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    let plaidCalls = 0;
+    f.setPlaidResponder(() => {
+      plaidCalls++;
+      return Response.json({added:[],modified:[],removed:[],next_cursor:'unexpected',has_more:false});
+    });
+    const withdrawn = await f.call(A,'/consent/withdraw','POST',{consent_type:'bank_connection'});
+    assert.equal(withdrawn.status,200,JSON.stringify(withdrawn.body));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,403,JSON.stringify(response.body));
+    assert.equal(plaidCalls,0);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+  } finally { f.close(); }
+});
