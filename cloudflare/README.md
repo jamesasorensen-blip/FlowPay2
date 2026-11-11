@@ -79,8 +79,10 @@ incomplete Wrangler config. No schema migrations or destructive D1 actions are
 included in this workflow.
 
 Remaining Worker concerns include live cross-user isolation testing, audit retention,
-rate limiting and live last-bank disconnection testing. Audit writes for connect,
-refresh and sync currently occur after their data changes, so they are not atomic.
+rate limiting and live last-bank disconnection testing. Some connection and refresh
+paths still need a review of audit atomicity. Transaction synchronization now
+batches transaction changes, cursor advancement, and its audit entry atomically
+in the checked-in staging source; this does not prove that source is deployed.
 
 ## Local validation
 
@@ -110,3 +112,19 @@ Passing these tests does not establish live two-account isolation, frontend
 browser-storage isolation, production behavior, or full deletion/connection
 lifecycle isolation. The SQLite adapter models only the D1 operations exercised
 here and does not simulate D1 transaction rollback.
+
+## CI verification and staging deployment status (November 10, 2026)
+
+GitHub pull request #18 passed the Worker isolation and synchronization contract
+suites, application security regression checks, frontend tests and Docker build.
+It was merged as commit `581a487615435310ad24eb1c52008fea8feaddb4`.
+Render reported that commit live for the frontend. This does **not** deploy the
+Cloudflare Worker. Worker code after the November 8 staging promotion remains
+unverified against the deployed script until an approved inspect/upload/promote
+sequence and staging smoke tests are completed.
+
+Before any staging promotion, capture the current active Worker version using the
+protected inspect workflow, review the source changes and bindings, upload an
+unrouted candidate, then separately approve promotion. Test a sandbox-only bank
+connection and sync against the actual staging Worker after promotion. Never
+assume that passing local SQLite tests proves the remote D1 schema or secrets.
