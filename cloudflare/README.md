@@ -133,3 +133,8 @@ The local integration suite additionally exercises consent withdrawal before
 transaction sync and balance refresh. Both paths must reject before calling Plaid
 and must not change the stored financial records. These are synthetic fixtures,
 not a substitute for protected staging checks.
+
+The staging source also validates Plaid account IDs before balance refresh:
+invalid/duplicate IDs and IDs already owned by a different connection are
+rejected before account updates. The synthetic integration test verifies that
+a foreign account balance and audit history remain unchanged.
