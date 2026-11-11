@@ -222,3 +222,8 @@ The Worker validates optional Plaid Link URL bindings before token creation:
 OAuth redirect must be the exact HTTPS frontend root, and webhook must be
 this Worker's own HTTPS origin at /plaid-webhook. Other hosts, paths, queries,
 credentials and fragments are rejected before contacting Plaid.
+
+Signed webhook events must also have a valid bounded event envelope. The
+validator accepts future uppercase Plaid event codes to avoid unnecessary
+retries when Plaid introduces a new code. Valid events are acknowledged only;
+no account data is changed, and a durable replay ledger/queue is not installed.
