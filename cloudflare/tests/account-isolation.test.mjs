@@ -196,6 +196,8 @@ test('actual sync route commits a valid Plaid page and advances its cursor', asy
     const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
     assert.equal(response.status,200,JSON.stringify(response.body));
     assert.equal(response.body.added,1);
+    assert.equal(response.body.modified,0);
+    assert.equal(response.body.removed,0);
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,'cursor-1');
     assert.equal(f.sql.prepare("SELECT amount FROM bank_transactions WHERE id='new-plaid-tx'").get().amount,17.5);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='transactions_synced'").get().n,1);
