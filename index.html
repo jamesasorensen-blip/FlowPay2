@@ -1632,7 +1632,12 @@ window.addEventListener('DOMContentLoaded',init);
     const details = document.createElement('details');
     label(details,'summary',linkedAccounts.length + ' test ' + (linkedAccounts.length === 1 ? 'account' : 'accounts'),'cursor:pointer;margin:8px 0');
     for (const account of linkedAccounts) {
-      label(details,'div',(account.name || 'Account') + ' · •••• ' + (account.mask || '—') + ' · ' + money(account.current_balance),'padding:4px 0');
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:6px 0';
+      label(item,'div',(account.name || 'Account') + ' · •••• ' + (account.mask || '—'),'font-weight:bold');
+      label(item,'div','Current ' + money(account.current_balance));
+      label(item,'div','Available ' + money(account.available_balance));
+      details.appendChild(item);
     }
     section.appendChild(details);
     const syncStatus = label(section,'div','Loading sync status…','margin:8px 0;color:#cbd5e1');
@@ -1976,7 +1981,9 @@ window.addEventListener('DOMContentLoaded',init);
           if(gen !== generation) return;
           setStatus('Test bank saved ('+(result.accounts_saved ?? 0)+' accounts). Loading accounts…');
           await loadBanks();
-          if(gen === generation) setStatus('Test bank connected. Select Sync transactions to import activity.');
+          if(gen === generation) setStatus(stagingMode
+            ? 'Test bank connected. Select Sync now to import staging transactions.'
+            : 'Test bank connected. Select Sync transactions to import activity.');
         } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
         finally {setBusy(false);}
       },

@@ -9,7 +9,7 @@ const bankSection = html.slice(html.indexOf('<!-- FlowPay Plaid Sandbox Bank Con
 const script = bankSection.match(/<script>([\s\S]*?)<\/script>/)[1];
 const connectionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const account = {id:'test-account', connection_id:connectionId, institution_name:'Test Bank',
-  name:'Checking', mask:'0000', current_balance:100};
+  name:'Checking', mask:'0000', current_balance:100, available_balance:80};
 
 // Only the DOM operations used by the banking module are modeled. Tests execute
 // its complete inline script and real event handlers with synthetic API replies.
@@ -115,6 +115,8 @@ test('staging shows named connections and failed attempts with retry timing', as
   const content = f.get('flowpay-bank-accounts').textContent;
   assert.match(content, /Test Bank/);
   assert.match(content, /Connection aaaaaaaa/);
+  assert.match(content, /Current \$100\.00/);
+  assert.match(content, /Available \$80\.00/);
   assert.match(content, /Sync delayed after 2 failed attempts/);
   assert.match(content, /Automatic retry scheduled for/);
   assert.match(content, /Last synced/);
@@ -220,4 +222,21 @@ test('existing Sandbox connections retain their existing manual sync action', as
   await f.button('Sync transactions').dispatch('click');
   const request = f.calls.find(call => new URL(call.url).pathname === '/sync-transactions');
   assert.equal(new URL(request.url).origin, 'https://flowpay-plaid-api.james-a-sorensen.workers.dev');
+});
+
+
+test('an environment change discards a delayed staging status response', async () => {
+  const f = fixture();
+  await settle();
+  const waiting = deferred();
+  f.setResponder(url => url.pathname === '/diagnostics/sync-status' ? waiting.promise : null);
+  const oldLoad = f.staging();
+  await settle();
+  f.get('flowpay-bank-environment').value = 'current';
+  await f.get('flowpay-bank-environment').dispatch('change');
+  const status = f.get('flowpay-plaid-status').textContent;
+  waiting.resolve(Response.json({pending:true,running:false,attempts:99}));
+  await oldLoad;
+  assert.doesNotMatch(f.get('flowpay-bank-accounts').textContent, /99 failed attempts|Refresh sync status/);
+  assert.equal(f.get('flowpay-plaid-status').textContent, status);
 });
