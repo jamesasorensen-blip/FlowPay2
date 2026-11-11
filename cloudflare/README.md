@@ -241,3 +241,27 @@ Plaid /item/get read-only and returns only webhook_configured,
 webhook_matches_staging, and expected_webhook_configured booleans. It does not
 return Plaid credentials, Item IDs, or the configured webhook URL, and never
 modifies bank data. It is staging-only; do not copy it into production.
+
+
+## Durable staging webhook delivery receipts
+
+Apply `cloudflare/migrations/0001_webhook_receipts.sql` to the verified staging
+D1 database before promoting the receipt-aware Worker. The migration creates
+an empty receipt table and timestamp index and can be reapplied.
+
+Verified deliveries for exactly one Item owned by the configured staging test
+user, with active bank consent, now record a receipt before acknowledgement.
+Repeated verification tokens share one receipt through a database uniqueness
+constraint. New tokens with identical bodies remain distinct deliveries.
+Receipts store only the verification token SHA-256 fingerprint, event type,
+event code and receipt time. Storage errors return HTTP 503 so Plaid can retry.
+Unknown, ambiguous, foreign and withdrawn-consent Items receive an acknowledgement
+without a receipt. No payload or token is logged or stored.
+
+Receipts older than seven days are pruned on the next eligible delivery. During
+idle periods they remain until that delivery. Token freshness verification rejects
+replay after five minutes. A receipt establishes delivery, and automatic transaction
+sync, its durable job lifecycle and retry monitoring remain to be implemented.
+Earlier acknowledgement-only descriptions above describe the previous source.
+This migration and Worker update require staging deployment and a live delivery
+check before they can be described as active.
