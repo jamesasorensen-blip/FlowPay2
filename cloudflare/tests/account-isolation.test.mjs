@@ -316,3 +316,18 @@ test('actual sync route rejects contradictory account IDs for one transaction', 
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='duplicate-tx'").get().n,0);
   } finally { f.close(); }
 });
+
+test('actual sync rejects impossible calendar dates without advancing cursor', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    f.setPlaidResponder(() => Response.json({
+      added:[{transaction_id:'impossible-date',account_id:'account-A',amount:4,date:'2026-02-30'}],
+      modified:[],removed:[],next_cursor:'impossible-cursor',has_more:false
+    }));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,502,JSON.stringify(response.body));
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='impossible-date'").get().n,0);
+  } finally { f.close(); }
+});
