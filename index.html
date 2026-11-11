@@ -1821,7 +1821,7 @@ window.addEventListener('DOMContentLoaded',init);
   window.addEventListener('flowpay-financial-state-loaded',()=>{if(txOverlay.style.display==='block')renderTransactionExplorer()});
   // OAuth bank redirects return to this same origin and browser tab.
   // The Link token is session-only and is never placed in a URL or persistent storage.
-  const oauthKey = userId => 'flowpay-plaid-oauth:'+(stagingMode?'staging:':'')+userId;
+  const oauthKey = userId => 'flowpay-plaid-oauth:'+userId+(stagingMode?':staging':'');
   function clearOAuthReturn() {
     const url = new URL(location.href);
     if (!url.searchParams.has('oauth_state_id')) return;
