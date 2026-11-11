@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
-import worker, { validPlaidWebhookEvent } from '../staging-worker.mjs';
+import worker, { validPlaidWebhookEvent, recordWebhookReceipt, processSyncJobs } from '../staging-worker.mjs';
 
 // Entirely local: generated signing keys, synthetic users, in-memory SQLite.
 const A = '11111111-1111-4111-8111-111111111111';
@@ -29,6 +30,8 @@ function fixture() {
     CREATE TABLE user_consents(id TEXT PRIMARY KEY,user_id TEXT,consent_type TEXT,policy_version TEXT,granted_at TEXT,withdrawn_at TEXT,connection_id TEXT);
     CREATE TABLE security_audit_log(id TEXT PRIMARY KEY,user_id TEXT,action TEXT,resource_type TEXT,resource_id TEXT);
   `);
+  sql.exec(readFileSync(new URL('../migrations/0001_webhook_receipts.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('../migrations/0002_webhook_sync_jobs.sql', import.meta.url), 'utf8'));
   for (const [uid, cid, label] of [[A, CA, 'A'], [B, CB, 'B']]) {
     sql.prepare('INSERT INTO users VALUES (?)').run(uid);
     sql.prepare('INSERT INTO user_data VALUES (?,?,1,NULL)').run(uid, JSON.stringify({owner:label}));
@@ -463,10 +466,11 @@ test('Plaid webhook receiver never accepts GET or non-sandbox environment', asyn
 });
 
 test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching body hash', async () => {
+  const f = fixture();
   const pair = await crypto.subtle.generateKey({name:'ECDSA',namedCurve:'P-256'},true,['sign','verify']);
   const publicKey = {...await crypto.subtle.exportKey('jwk',pair.publicKey),kid:'synthetic-webhook-key',alg:'ES256'};
   const encode = value => Buffer.from(typeof value === 'string' ? value : JSON.stringify(value)).toString('base64url');
-  const body = JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'sandbox-item'});
+  const body = JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'item-A'});
   const digest = Buffer.from(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(body))).toString('hex');
   const signed = encode({alg:'ES256',kid:publicKey.kid})+'.'+encode({
     iat:Math.floor(Date.now()/1000),request_body_sha256:digest
@@ -485,19 +489,23 @@ test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching b
   try {
     const call = payload => worker.fetch(new Request('https://worker.test/plaid-webhook',{
       method:'POST',headers:{'Plaid-Verification':signed+'.'+signature},body:payload
-    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
+    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic', STAGING_TEST_USER_ID:A, DB:f.db});
     const accepted = await call(body);
     assert.equal(accepted.status,200,await accepted.text());
+    assert.equal((await call(body)).status, 200);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 1);
+    f.sql.exec('DROP TABLE plaid_webhook_receipts');
+    assert.equal((await call(body)).status, 503);
     const rejected = await call(body+' ');
     assert.equal(rejected.status,401);
     // An attacker cannot substitute another signing key or alter the signature.
     const badSignature = (signature.startsWith('A')?'B':'A')+signature.slice(1);
     const forged = await worker.fetch(new Request('https://worker.test/plaid-webhook',{
       method:'POST',headers:{'Plaid-Verification':signed+'.'+badSignature},body
-    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
+    }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic', STAGING_TEST_USER_ID:A, DB:f.db});
     assert.equal(forged.status,401);
-    assert.equal(keyLookups,3);
-  } finally { globalThis.fetch = originalFetch; }
+    assert.equal(keyLookups,5);
+  } finally { globalThis.fetch = originalFetch; f.close(); }
 });
 
 test('Link token URL bindings accept only exact frontend and Worker HTTPS destinations', async () => {
@@ -550,5 +558,186 @@ test('staging item webhook diagnostic rejects malformed and foreign connections 
     const restricted=await f.call(B,'/diagnostics/item-webhook','POST',{connection_id:CB},A);
     assert.equal(restricted.status,403);
     assert.equal(f.externalCalls(),0);
+  } finally { f.close(); }
+});
+
+
+test('webhook receipts deduplicate deliveries, retain distinct tokens and expire old receipts', async () => {
+  const f = fixture();
+  const env = {DB:f.db, STAGING_TEST_USER_ID:A};
+  const event = {webhook_type:'TRANSACTIONS', webhook_code:'SYNC_UPDATES_AVAILABLE', item_id:'item-A'};
+  try {
+    f.sql.prepare("INSERT INTO plaid_webhook_receipts VALUES ('old','ITEM','ERROR',datetime('now','-8 days'))").run();
+    await recordWebhookReceipt(env, event, 'verified-token-1');
+    await recordWebhookReceipt(env, event, 'verified-token-1');
+    await recordWebhookReceipt(env, event, 'verified-token-2');
+    const rows = f.sql.prepare('SELECT * FROM plaid_webhook_receipts').all();
+    assert.equal(rows.length, 2);
+    for (const row of rows) {
+      assert.match(row.id, /^[a-f0-9]{64}$/);
+      assert.equal(row.webhook_code, 'SYNC_UPDATES_AVAILABLE');
+    }
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM bank_transactions').get().n, 2);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n, 0);
+  } finally { f.close(); }
+});
+
+test('webhook receipts require an unambiguous owned Item and active bank consent', async () => {
+  const f = fixture();
+  const event = {webhook_type:'ITEM', webhook_code:'NEW_ACCOUNTS_AVAILABLE', item_id:'item-A'};
+  try {
+    await assert.rejects(recordWebhookReceipt({DB:f.db}, event, 'token'));
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:B}, event, 'foreign');
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, {...event,item_id:'unknown'}, 'unknown');
+    f.sql.prepare('UPDATE bank_connections SET item_id = ? WHERE id = ?').run('item-A', CB);
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, event, 'ambiguous');
+    f.sql.prepare('UPDATE bank_connections SET item_id = ? WHERE id = ?').run('item-B', CB);
+    f.sql.prepare('UPDATE user_consents SET withdrawn_at = CURRENT_TIMESTAMP WHERE user_id = ?').run(A);
+    await recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, event, 'withdrawn');
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 0);
+  } finally { f.close(); }
+});
+
+test('a receipt storage failure remains retryable without a partial receipt', async () => {
+  const f = fixture();
+  try {
+    f.sql.exec("CREATE TRIGGER fail_receipt BEFORE INSERT ON plaid_webhook_receipts BEGIN SELECT RAISE(ABORT, 'injected storage failure'); END;");
+    await assert.rejects(recordWebhookReceipt({DB:f.db, STAGING_TEST_USER_ID:A}, {
+      webhook_type:'TRANSACTIONS', webhook_code:'SYNC_UPDATES_AVAILABLE', item_id:'item-A'
+    }, 'token'));
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 0);
+  } finally { f.close(); }
+});
+
+const syncEvent = {webhook_type:'TRANSACTIONS', webhook_code:'SYNC_UPDATES_AVAILABLE', item_id:'item-A'};
+const syncEnv = f => ({DB:f.db, PLAID_ENV:'sandbox', STAGING_TEST_USER_ID:A,
+  TOKEN_ENCRYPTION_KEY:'00'.repeat(32), PLAID_CLIENT_ID:'test', PLAID_SECRET:'test'});
+const emptySyncPage = cursor => Response.json({added:[],modified:[],removed:[],next_cursor:cursor,has_more:false});
+
+test('webhook enqueue is atomic, deduplicated and processed through the existing sync engine', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    const env = syncEnv(f);
+    await recordWebhookReceipt(env, syncEvent, 'delivery-1');
+    await recordWebhookReceipt(env, syncEvent, 'delivery-1');
+    assert.equal(f.sql.prepare('SELECT generation FROM plaid_sync_jobs').get().generation, 1);
+    f.setPlaidResponder(() => emptySyncPage('background-cursor'));
+    await processSyncJobs(env);
+    const job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.generation, job.processed_generation);
+    assert.equal(job.lease_token, '');
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id = ?').get(CA).sync_cursor, 'background-cursor');
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n, 1);
+    // Account availability notifications retain a receipt without queuing transaction work.
+    await recordWebhookReceipt(env, {...syncEvent,webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE'}, 'delivery-2');
+    assert.equal(f.sql.prepare('SELECT generation FROM plaid_sync_jobs').get().generation, 1);
+  } finally { f.close(); }
+});
+
+test('queue failure rolls back receipt so a redelivery can enqueue successfully', async () => {
+  const f = fixture();
+  try {
+    f.sql.exec("CREATE TRIGGER fail_job BEFORE INSERT ON plaid_sync_jobs BEGIN SELECT RAISE(ABORT, 'injected job failure'); END;");
+    await assert.rejects(recordWebhookReceipt(syncEnv(f), syncEvent, 'delivery'));
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_webhook_receipts').get().n, 0);
+    f.sql.exec('DROP TRIGGER fail_job');
+    await recordWebhookReceipt(syncEnv(f), syncEvent, 'delivery');
+    assert.equal(f.sql.prepare('SELECT generation FROM plaid_sync_jobs').get().generation, 1);
+  } finally { f.close(); }
+});
+
+test('failed background sync backs off and survives until a later successful retry', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f), syncEvent, 'retry-delivery');
+    let calls = 0;
+    f.setPlaidResponder(() => {calls++; throw Error('synthetic failure with private details');});
+    await processSyncJobs(syncEnv(f));
+    let job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.attempts, 1);
+    assert.equal(job.processed_generation, 0);
+    assert.ok(job.next_attempt_at > Date.now()/1000);
+    await processSyncJobs(syncEnv(f));
+    assert.equal(calls, 1);
+    f.sql.exec('UPDATE plaid_sync_jobs SET next_attempt_at = 0');
+    f.setPlaidResponder(() => emptySyncPage('retry-cursor'));
+    await processSyncJobs(syncEnv(f));
+    job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.attempts, 0);
+    assert.equal(job.processed_generation, job.generation);
+  } finally { f.close(); }
+});
+
+test('events arriving during sync remain pending and manual sync shares the lease', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    const env = syncEnv(f);
+    await recordWebhookReceipt(env, syncEvent, 'before-sync');
+    f.setPlaidResponder(async () => {
+      const manual = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+      assert.equal(manual.status, 409);
+      await recordWebhookReceipt(env, syncEvent, 'during-sync');
+      return emptySyncPage('first-cursor');
+    });
+    await processSyncJobs(env);
+    let job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.generation, 2);
+    assert.equal(job.processed_generation, 1);
+    f.setPlaidResponder(() => emptySyncPage('second-cursor'));
+    await processSyncJobs(env);
+    job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.processed_generation, 2);
+  } finally { f.close(); }
+});
+
+test('lost leases and consent withdrawn during a Plaid call prevent all financial writes', async () => {
+  for (const mutation of [
+    "UPDATE plaid_sync_jobs SET lease_token = 'replacement'",
+    'UPDATE plaid_sync_jobs SET lease_until = 0',
+    'UPDATE user_consents SET withdrawn_at = CURRENT_TIMESTAMP'
+  ]) {
+    const f = fixture();
+    try {
+      await enableSyntheticPlaid(f);
+      await recordWebhookReceipt(syncEnv(f), syncEvent, 'fenced-delivery');
+      f.setPlaidResponder(() => {
+        f.sql.exec(mutation);
+        return Response.json({added:[{transaction_id:'must-rollback',account_id:'account-A',amount:1,date:'2026-11-11'}],modified:[],removed:[],next_cursor:'must-rollback',has_more:false});
+      });
+      await processSyncJobs(syncEnv(f));
+      assert.equal(f.sql.prepare("SELECT count(*) AS n FROM bank_transactions WHERE id = 'must-rollback'").get().n, 0);
+      assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id = ?').get(CA).sync_cursor, null);
+      assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n, 0);
+    } finally { f.close(); }
+  }
+});
+
+test('sync status is private to the connection owner and exposes only operational fields', async () => {
+  const f = fixture();
+  try {
+    await recordWebhookReceipt(syncEnv(f), syncEvent, 'status-delivery');
+    const status = await f.call(A, '/diagnostics/sync-status?connection_id='+CA);
+    assert.equal(status.status, 200);
+    assert.deepEqual(status.body, {pending:true,running:false,attempts:0,next_retry_at:null,last_synced_at:null});
+    assert.equal((await f.call(B, '/diagnostics/sync-status?connection_id='+CA)).status, 404);
+  } finally { f.close(); }
+});
+
+test('withdrawn-consent jobs are cancelled before Plaid calls and scheduled processing is sandbox-only', async () => {
+  const f = fixture();
+  try {
+    await recordWebhookReceipt(syncEnv(f), syncEvent, 'withdrawn-job');
+    f.sql.exec('UPDATE user_consents SET withdrawn_at = CURRENT_TIMESTAMP');
+    let task;
+    await worker.scheduled({},syncEnv(f),{waitUntil(promise){task=promise;}});
+    await task;
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM plaid_sync_jobs').get().n, 0);
+    assert.equal(f.externalCalls(), 0);
+    // Guard before database access for both missing test-user configuration and production.
+    await processSyncJobs({PLAID_ENV:'production'});
+    await processSyncJobs({PLAID_ENV:'sandbox'});
   } finally { f.close(); }
 });

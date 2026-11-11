@@ -6,8 +6,8 @@ const path = require('node:path');
 
 test('staging Plaid sync validates every page before any database mutation', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const syncStart = worker.indexOf('if (url.pathname === "/sync-transactions"');
-  const historyStart = worker.indexOf('// TRANSACTION HISTORY', syncStart);
+  const syncStart = worker.indexOf('async function syncConnection(');
+  const historyStart = worker.indexOf('async function readJson(', syncStart);
   assert.ok(syncStart >= 0 && historyStart > syncStart, 'sync route missing');
   const route = worker.slice(syncStart, historyStart);
   for (const field of ['added', 'modified', 'removed']) {
@@ -31,7 +31,7 @@ test('staging bank upserts cannot overwrite records owned by another account', (
 
 test('staging sync commits transactions, cursor and audit together', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   assert.match(route, /\.\.\.additions\.map\(tx => transactionStatement\(env, tx\)\)/);
   assert.match(route, /\.\.\.modifications\.map\(tx => transactionStatement\(env, tx\)\)/);
   assert.match(route, /\.\.\.removals\.map\(tx => env\.DB\.prepare\(/);
@@ -43,7 +43,7 @@ test('staging sync commits transactions, cursor and audit together', () => {
 
 test('staging sync rejects oversized batches before database mutation', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   const guard = route.indexOf('if (statementCount > 500)');
   const batch = route.indexOf('await env.DB.batch(statements)');
   assert.ok(guard >= 0 && batch > guard, 'batch limit must precede atomic write');
@@ -52,7 +52,7 @@ test('staging sync rejects oversized batches before database mutation', () => {
 
 test('staging sync rejects malformed transaction identifiers and amounts before writes', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   const check = route.indexOf('Invalid transaction fields; no changes saved');
   const batch = route.indexOf('await env.DB.batch(statements)');
   assert.ok(check >= 0 && batch > check);
@@ -62,7 +62,7 @@ test('staging sync rejects malformed transaction identifiers and amounts before 
 
 test('staging validates transaction objects before reading account ownership', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   const validation = route.indexOf('Invalid transaction fields; no changes saved');
   const ownership = route.indexOf('if (!accountIds.has(tx.account_id))');
   assert.ok(validation >= 0 && ownership > validation, 'malformed transaction validation must precede account lookup');
@@ -70,7 +70,7 @@ test('staging validates transaction objects before reading account ownership', (
 
 test('staging sync bounds pagination accumulation before pushing records', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   const bound = route.indexOf('additions.length + modifications.length + removals.length +');
   const push = route.indexOf('additions.push(...page.added)');
   assert.ok(bound >= 0 && push > bound, 'limit records before accumulation');
@@ -78,7 +78,7 @@ test('staging sync bounds pagination accumulation before pushing records', () =>
 
 test('staging sync restarts mutation-affected pagination from committed cursor', () => {
   const worker = fs.readFileSync(path.join(__dirname, '..', 'cloudflare', 'staging-worker.mjs'), 'utf8');
-  const route = worker.slice(worker.indexOf('// TRANSACTION SYNCHRONIZATION'), worker.indexOf('// TRANSACTION HISTORY'));
+  const route = worker.slice(worker.indexOf('async function syncConnection('), worker.indexOf('async function readJson('));
   assert.match(route, /TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION/);
   assert.match(route, /paginationRestarts < 2/);
   assert.match(route, /cursor = initialCursor/);

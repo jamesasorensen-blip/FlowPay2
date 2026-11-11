@@ -241,3 +241,68 @@ Plaid /item/get read-only and returns only webhook_configured,
 webhook_matches_staging, and expected_webhook_configured booleans. It does not
 return Plaid credentials, Item IDs, or the configured webhook URL, and never
 modifies bank data. It is staging-only; do not copy it into production.
+
+
+## Durable staging webhook delivery receipts
+
+Apply `cloudflare/migrations/0001_webhook_receipts.sql` to the verified staging
+D1 database before promoting the receipt-aware Worker. The migration creates
+an empty receipt table and timestamp index and can be reapplied.
+
+Verified deliveries for exactly one Item owned by the configured staging test
+user, with active bank consent, now record a receipt before acknowledgement.
+Repeated verification tokens share one receipt through a database uniqueness
+constraint. New tokens with identical bodies remain distinct deliveries.
+Receipts store only the verification token SHA-256 fingerprint, event type,
+event code and receipt time. Storage errors return HTTP 503 so Plaid can retry.
+Unknown, ambiguous, foreign and withdrawn-consent Items receive an acknowledgement
+without a receipt. No payload or token is logged or stored.
+
+Receipts older than seven days are pruned on the next eligible delivery. During
+idle periods they remain until that delivery. Token freshness verification rejects
+replay after five minutes. A receipt establishes delivery, and automatic transaction
+sync, its durable job lifecycle and retry monitoring remain to be implemented.
+Earlier acknowledgement-only descriptions above describe the previous source.
+This migration and Worker update require staging deployment and a live delivery
+check before they can be described as active.
+
+## Automatic transaction sync and retries
+
+The updated Worker queues `TRANSACTIONS / SYNC_UPDATES_AVAILABLE` deliveries in
+an atomic receipt-and-job batch. It coalesces pending work by connection while
+preserving events that arrive during a sync. Manual refresh and background work
+share a five-minute database lease and the existing transaction validation engine.
+An in-transaction CHECK fence prevents a stale lease, changed starting cursor,
+removed connection or withdrawn consent from committing financial changes.
+
+Failures retain pending work with exponential backoff starting at 30 seconds,
+capped at one hour. Logs contain fixed operational messages. Authenticated
+`GET /diagnostics/sync-status?connection_id=<owned UUID>` returns pending/running
+flags, attempt count, next retry time (Unix seconds), and last sync time.
+Account availability notifications record delivery but do not import new accounts.
+
+Deployment order for staging:
+
+1. Apply migration `0001_webhook_receipts.sql`, then `0002_webhook_sync_jobs.sql`
+   to the verified staging D1 database. Both migrations can be reapplied.
+2. Use the existing protected staging inspect/upload/promote workflow for the
+   reviewed commit, preserving current bindings and the test-user restriction.
+3. Configure a Cron Trigger on the staging Worker with expression `* * * * *`.
+   The scheduled handler processes at most five due connections per invocation.
+   Webhook requests also attempt immediate processing through `waitUntil`.
+   Durable retries after idle periods depend on this Cron Trigger.
+4. Send a fresh Sandbox `SYNC_UPDATES_AVAILABLE` test webhook. Confirm HTTP 200,
+   then authenticated job status, cursor advancement and a sync audit entry.
+5. Check the next scheduled invocation and a synthetic retry before treating
+   background operation as live-verified.
+
+The job schema stores connection IDs and operational counters only. Jobs are
+removed in the existing financial-data deletion and bank-disconnection batches.
+The commit-fence table has one constant row with no user data. Local regression
+tests cover signed receipts, atomic enqueue rollback, successful background sync,
+retry scheduling, simultaneous manual refresh, events arriving during sync,
+stale leases and consent withdrawal during a Plaid request. Live D1 execution,
+Cron configuration and a Sandbox delivery still require deployment verification.
+
+Cloudflare scheduled-handler reference:
+https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
