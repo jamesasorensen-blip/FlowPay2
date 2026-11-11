@@ -1444,21 +1444,26 @@ window.addEventListener('DOMContentLoaded',init);
     consentActive = active;
     consentStatus.textContent = active ? 'Permission active.' : 'Permission not active. Check the box to agree before connecting.';
     consentCheck.checked = false;
+    updateBankActionButtons();
   }
   async function refreshConsent() {
+    const gen = generation;
     const result = await api('/consent');
+    if (gen !== generation) return;
     showConsent((result.consents || []).some(x => x.consent_type === 'bank_connection' && !x.withdrawn_at));
   }
   withdrawButton.addEventListener('click', async () => {
     if (!currentUser || busy) return;
     if (!window.confirm('Withdraw bank data permission? Existing stored test bank data and tokens will remain until you disconnect them.')) return;
+    const gen = generation;
     setBusy(true);
     try {
       await api('/consent/withdraw', 'POST', {consent_type:'bank_connection'});
+      if (gen !== generation) return;
       showConsent(false);
       setStatus('Bank data permission withdrawn. New bank connections and synchronization are blocked.');
-    } catch(e) { setStatus('Withdrawal failed: '+e.message); }
-    finally {setBusy(false);}
+    } catch(e) { if (gen === generation) setStatus('Withdrawal failed: '+e.message); }
+    finally {if (gen === generation) setBusy(false);}
   });
 
   const status = document.getElementById('flowpay-plaid-status');
@@ -1484,20 +1489,36 @@ window.addEventListener('DOMContentLoaded',init);
   };
   async function api(path, method='GET', payload) {
     if (!currentUser) throw new Error('Sign in to FlowPay first.');
+    const requestGeneration = generation;
+    const userId = currentUser;
+    const apiBase = stagingMode ? STAGING_API : DEFAULT_API;
     const token = await window.flowpayGetAccessToken();
-    const response = await fetch((stagingMode ? STAGING_API : DEFAULT_API) + path, {
+    if (requestGeneration !== generation || userId !== currentUser) {
+      throw new Error('Bank session changed. Refresh and try again.');
+    }
+    const response = await fetch(apiBase + path, {
       method,
       headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
       ...(payload === undefined ? {} : {body:JSON.stringify(payload)})
     });
     const result = await response.json().catch(() => ({}));
+    if (requestGeneration !== generation || userId !== currentUser) {
+      throw new Error('Bank session changed. Refresh and try again.');
+    }
     if (!response.ok || result.success === false) {
       throw new Error(result.error || 'Bank API failed ('+response.status+')');
     }
     return result;
   }
+  function updateBankActionButtons() {
+    for (const button of accountsEl.querySelectorAll('button')) {
+      button.disabled = busy || button.dataset.syncRunning === 'true' ||
+        (button.dataset.requiresConsent === 'true' && !consentActive);
+    }
+  }
   function setBusy(value) {
     busy = value;
+    updateBankActionButtons();
     connectButton.disabled = value;
     refreshButton.disabled = value;
     environmentSelect.disabled = value;
@@ -1553,7 +1574,11 @@ window.addEventListener('DOMContentLoaded',init);
       label(accountsEl,'div','No test bank accounts connected yet.');
     }
     for (const account of accounts.accounts || []) {
-      if (account.connection_id) connections.set(account.connection_id, true);
+      if (account.connection_id) {
+        if (!connections.has(account.connection_id)) connections.set(account.connection_id, []);
+        connections.get(account.connection_id).push(account);
+      }
+      if (stagingMode) continue;
       const item = document.createElement('div');
       item.style.cssText='padding:9px 0;border-top:1px solid #475569';
       label(item,'div',(account.institution_name || 'Test bank')+' — '+(account.name || 'Account'),'font-weight:bold');
@@ -1561,9 +1586,10 @@ window.addEventListener('DOMContentLoaded',init);
       label(item,'div','Available: '+money(account.available_balance));
       accountsEl.appendChild(item);
     }
+    const statusLoads = [];
     if (connections.size) {
       if (!stagingMode) label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
-      for (const id of connections.keys()) {
+      for (const [id, linkedAccounts] of connections) {
         if (!stagingMode) {
         const button = label(accountsEl,'button','Sync transactions','background:#0d9488;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
         button.type='button';
@@ -1577,49 +1603,142 @@ window.addEventListener('DOMContentLoaded',init);
             setStatus('Sync complete: '+r.added+' added, '+r.modified+' updated, '+r.removed+' removed.');
             await loadTransactions();
           } catch(e) { if(gen === generation) setStatus('Sync failed: '+e.message); }
-          finally {setBusy(false);button.disabled=false;}
+          finally {if (gen === generation) {setBusy(false);button.disabled=false;}}
         });
         }
-        if (!stagingMode) continue;
-        const check = label(accountsEl,'button','Check webhook configuration','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
-        check.type='button';
-        check.setAttribute('aria-label','Check Sandbox webhook for this bank connection');
-        check.addEventListener('click',async () => {
-          if (busy) return;
-          setBusy(true); check.disabled=true;
-          setStatus('Checking Plaid Sandbox webhook configuration…');
-          try {
-            const result = await api('/diagnostics/item-webhook','POST',{connection_id:id});
-            if (gen !== generation) return;
-            setStatus(result.webhook_matches_staging
-              ? 'Webhook configured correctly for this test bank.'
-              : result.webhook_configured
-                ? 'Webhook is configured, but does not match FlowPay staging.'
-                : 'No webhook is configured for this test bank.');
-          } catch(e) {
-            if(gen === generation) setStatus('Webhook check failed: '+e.message);
-          } finally {setBusy(false);check.disabled=false;}
-        });
-        const fire = label(accountsEl,'button','Send test webhook','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
-        fire.type='button';
-        fire.setAttribute('aria-label','Ask Plaid to send a test webhook for this Sandbox bank');
-        fire.addEventListener('click',async () => {
-          if (busy) return;
-          setBusy(true); fire.disabled=true;
-          setStatus('Requesting Sandbox webhook from Plaid…');
-          try {
-            const result = await api('/diagnostics/fire-webhook','POST',{connection_id:id});
-            if (gen !== generation) return;
-            setStatus(result.accepted_by_plaid
-              ? 'Plaid accepted the test webhook request. Check Cloudflare staging logs for POST /plaid-webhook and a 200 response to confirm delivery.'
-              : 'Plaid did not confirm the test request.');
-          } catch(e) {
-            if (gen === generation) setStatus('Test webhook request failed: '+e.message);
-          } finally {setBusy(false);fire.disabled=false;}
-        });
+        if (stagingMode) statusLoads.push(renderStagingConnection(id, linkedAccounts, gen));
       }
     }
+    await Promise.all(statusLoads);
+    if (gen !== generation) return;
     if (!stagingMode) await loadTransactions();
+  }
+  function syncTime(value) {
+    // D1 timestamps have no offset and represent UTC. Retry times are Unix seconds.
+    const normalized = typeof value === 'number' ? value * 1000 :
+      /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value || '')
+        ? value.replace(' ', 'T') + 'Z' : value;
+    const time = new Date(normalized);
+    return Number.isFinite(time.getTime()) ? time.toLocaleString() : 'time unavailable';
+  }
+  async function renderStagingConnection(id, linkedAccounts, gen) {
+    const name = linkedAccounts[0]?.institution_name || 'Test bank';
+    const connectionLabel = name + ' connection ' + id.slice(0,8);
+    const section = document.createElement('section');
+    section.setAttribute('aria-label', connectionLabel);
+    section.style.cssText = 'padding:12px 0;border-top:1px solid #475569';
+    label(section,'h3',name,'font-weight:bold');
+    label(section,'div','Connection ' + id.slice(0,8),'font-size:12px;color:#cbd5e1;margin:4px 0');
+    const details = document.createElement('details');
+    label(details,'summary',linkedAccounts.length + ' test ' + (linkedAccounts.length === 1 ? 'account' : 'accounts'),'cursor:pointer;margin:8px 0');
+    for (const account of linkedAccounts) {
+      const item = document.createElement('div');
+      item.style.cssText = 'padding:6px 0';
+      label(item,'div',(account.name || 'Account') + ' · •••• ' + (account.mask || '—'),'font-weight:bold');
+      label(item,'div','Current ' + money(account.current_balance));
+      label(item,'div','Available ' + money(account.available_balance));
+      details.appendChild(item);
+    }
+    section.appendChild(details);
+    const syncStatus = label(section,'div','Loading sync status…','margin:8px 0;color:#cbd5e1');
+    syncStatus.setAttribute('role','status');
+    syncStatus.setAttribute('aria-live','polite');
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px';
+    section.appendChild(actions);
+    const buttonStyle = 'background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer';
+    const refresh = label(actions,'button','Refresh sync status',buttonStyle);
+    refresh.type = 'button';
+    const retry = label(actions,'button','Sync now',buttonStyle);
+    retry.type = 'button';
+    retry.dataset.requiresConsent = 'true';
+    retry.disabled = true;
+    async function refreshSyncStatus() {
+      try {
+        const result = await api('/diagnostics/sync-status?connection_id=' + encodeURIComponent(id));
+        if (gen !== generation) return;
+        const messages = [];
+        if (result.running) messages.push('Sync in progress.');
+        else if (result.pending) {
+          messages.push(result.attempts > 0
+            ? 'Sync delayed after ' + result.attempts + ' failed ' + (result.attempts === 1 ? 'attempt.' : 'attempts.')
+            : 'Sync queued.');
+          if (result.next_retry_at) messages.push('Automatic retry scheduled for ' + syncTime(result.next_retry_at) + '.');
+        }
+        if (result.last_synced_at) messages.push('Last synced ' + syncTime(result.last_synced_at) + '.');
+        if (!messages.length) messages.push('No transaction sync has completed yet.');
+        syncStatus.textContent = messages.join(' ');
+        retry.textContent = result.attempts > 0 ? 'Retry sync now' : 'Sync now';
+        retry.dataset.syncRunning = String(!!result.running);
+      } catch {
+        if (gen !== generation) return;
+        syncStatus.textContent = 'Sync status unavailable. Select Refresh sync status to try again.';
+      }
+      if (gen === generation) updateBankActionButtons();
+    }
+    refresh.addEventListener('click', async () => {
+      if (busy || gen !== generation) return;
+      setBusy(true);
+      try { await refreshSyncStatus(); }
+      finally { if (gen === generation) setBusy(false); }
+    });
+    retry.addEventListener('click', async () => {
+      if (busy || gen !== generation || !consentActive) return;
+      setBusy(true);
+      syncStatus.textContent = 'Syncing staging transactions…';
+      try {
+        const result = await api('/sync-transactions','POST',{connection_id:id});
+        if (gen !== generation) return;
+        setStatus('Staging sync completed with ' + result.added + ' added, ' + result.modified + ' updated and ' + result.removed + ' removed.');
+      } catch (e) {
+        if (gen === generation) setStatus('Staging sync failed. ' + e.message);
+      } finally {
+        if (gen === generation) {
+          await refreshSyncStatus();
+          if (gen === generation) setBusy(false);
+        }
+      }
+    });
+    const check = label(actions,'button','Check webhook configuration',buttonStyle);
+    check.type='button';
+    check.setAttribute('aria-label','Check Sandbox webhook for ' + connectionLabel);
+    check.addEventListener('click',async () => {
+      if (busy || gen !== generation) return;
+      setBusy(true);
+      setStatus('Checking Plaid Sandbox webhook configuration…');
+      try {
+        const result = await api('/diagnostics/item-webhook','POST',{connection_id:id});
+        if (gen !== generation) return;
+        setStatus(result.webhook_matches_staging
+          ? 'Webhook configured correctly for this test bank.'
+          : result.webhook_configured
+            ? 'Webhook is configured, but does not match FlowPay staging.'
+            : 'No webhook is configured for this test bank.');
+      } catch(e) {
+        if(gen === generation) setStatus('Webhook check failed. '+e.message);
+      } finally {if (gen === generation) setBusy(false);}
+    });
+    const fire = label(actions,'button','Send test webhook',buttonStyle);
+    fire.type='button';
+    fire.setAttribute('aria-label','Ask Plaid to send a test webhook for ' + connectionLabel);
+    fire.addEventListener('click',async () => {
+      if (busy || gen !== generation) return;
+      setBusy(true);
+      setStatus('Requesting Sandbox webhook from Plaid…');
+      try {
+        const result = await api('/diagnostics/fire-webhook','POST',{connection_id:id});
+        if (gen !== generation) return;
+        setStatus(result.accepted_by_plaid
+          ? 'Plaid accepted the test webhook request. Select Refresh sync status to check processing. Check Cloudflare staging logs to confirm delivery.'
+          : 'Plaid did not confirm the test request.');
+        await refreshSyncStatus();
+      } catch(e) {
+        if (gen === generation) setStatus('Test webhook request failed. '+e.message);
+      } finally {if (gen === generation) setBusy(false);}
+    });
+    accountsEl.appendChild(section);
+    updateBankActionButtons();
+    await refreshSyncStatus();
   }
   // Sandbox-only suggestions. Nothing is marked paid without explicit approval.
   function renderMatches() {
@@ -1862,7 +1981,9 @@ window.addEventListener('DOMContentLoaded',init);
           if(gen !== generation) return;
           setStatus('Test bank saved ('+(result.accounts_saved ?? 0)+' accounts). Loading accounts…');
           await loadBanks();
-          if(gen === generation) setStatus('Test bank connected. Select Sync transactions to import activity.');
+          if(gen === generation) setStatus(stagingMode
+            ? 'Test bank connected. Select Sync now to import staging transactions.'
+            : 'Test bank connected. Select Sync transactions to import activity.');
         } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
         finally {setBusy(false);}
       },
@@ -1903,12 +2024,14 @@ window.addEventListener('DOMContentLoaded',init);
   }
   connectButton.addEventListener('click',async () => {
     if(busy || !currentUser) return;
+    const gen=generation;
     setBusy(true);
     setStatus('Opening Plaid Sandbox…');
     try {
       if(!window.Plaid) throw new Error('Plaid Link library did not load.');
       const userCheckedConsent = consentCheck.checked;
       await refreshConsent();
+      if (gen !== generation) return;
       if (!consentActive) {
         if (!userCheckedConsent) throw new Error('Read the test bank data notice and check the agreement box first.');
         await api('/consent','POST',{agreed:true,consent_type:'bank_connection',policy_version:'production-v1'});
@@ -1917,14 +2040,14 @@ window.addEventListener('DOMContentLoaded',init);
       }
       const data=await api('/link-token','POST',{});
       if(!data.link_token) throw new Error('Missing Link token.');
-      const gen=generation;
+      if (gen !== generation) return;
       sessionStorage.setItem(oauthKey(currentUser),JSON.stringify({token:data.link_token,started:Date.now()}));
       createLink(data.link_token,gen);
-    } catch(e) {setStatus('Connection error: '+e.message);setBusy(false);}
+    } catch(e) {if (gen === generation) {setStatus('Connection error: '+e.message);setBusy(false);}}
   });
   environmentSelect.addEventListener('change', async () => {
     if (busy) return;
-    generation++;
+    const gen = ++generation;
     stagingMode = environmentSelect.value === 'staging';
     environmentNote.textContent = stagingMode
       ? 'STAGING TEST ONLY: separate Worker and database. Test accounts do not affect cash-flow balances, bill matching, or your existing bank connections.'
@@ -1941,19 +2064,22 @@ window.addEventListener('DOMContentLoaded',init);
     setStatus(stagingMode ? 'Loading isolated staging test banks…' : 'Loading existing Sandbox banks…');
     try {
       await refreshConsent();
+      if (gen !== generation) return;
       await loadBanks();
+      if (gen !== generation) return;
       setStatus(stagingMode ? 'Staging test ready. Connect a test bank or check its webhook.' : 'Existing Sandbox bank connections ready.');
-    } catch (e) { setStatus('Bank environment load failed: '+e.message); }
+    } catch (e) { if (gen === generation) setStatus('Bank environment load failed: '+e.message); }
   });
   refreshButton.addEventListener('click',async () => {
     if(busy || !currentUser) return;
+    const gen = generation;
     setBusy(true);setStatus('Loading linked test banks…');
-    try {await loadBanks();setStatus('Test bank list refreshed.');}
-    catch(e){setStatus('Refresh failed: '+e.message);}
-    finally{setBusy(false);}
+    try {await loadBanks();if (gen === generation) setStatus('Test bank list refreshed.');}
+    catch(e){if (gen === generation) setStatus('Refresh failed: '+e.message);}
+    finally{if (gen === generation) setBusy(false);}
   });
   function authChanged(id) {
-    generation++;
+    const gen = ++generation;
     stagingMode = false;
     environmentSelect.value = 'current';
     environmentNote.textContent = 'Existing Sandbox connections are unchanged.';
@@ -1967,16 +2093,16 @@ window.addEventListener('DOMContentLoaded',init);
     setBusy(false);
     showConsent(false);
     if(currentUser){
-      refreshConsent().catch(e=>{consentStatus.textContent='Unable to check permission: '+e.message;});
+      refreshConsent().catch(e=>{if (gen === generation) consentStatus.textContent='Unable to check permission: '+e.message;});
       setStatus('Loading Sandbox bank connections…');
       // Resume an OAuth callback immediately; an unrelated account-list failure
       // must not delay or block bank authorization completion.
       if(new URLSearchParams(location.search).has('oauth_state_id')) {
-        resumePlaidOAuth().catch(e=>setStatus('Bank return failed: '+e.message));
+        resumePlaidOAuth().catch(e=>{if (gen === generation) setStatus('Bank return failed: '+e.message);});
         loadBanks().catch(()=>{});
       } else {
-        loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
-          .catch(e=>setStatus('Bank loading failed: '+e.message));
+        loadBanks().then(()=>{if (gen === generation) setStatus('Sandbox bank connections ready.');})
+          .catch(e=>{if (gen === generation) setStatus('Bank loading failed: '+e.message);});
       }
     }
   }
