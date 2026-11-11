@@ -32,6 +32,7 @@ function fixture() {
   `);
   sql.exec(readFileSync(new URL('../migrations/0001_webhook_receipts.sql', import.meta.url), 'utf8'));
   sql.exec(readFileSync(new URL('../migrations/0002_webhook_sync_jobs.sql', import.meta.url), 'utf8'));
+  sql.exec(readFileSync(new URL('../migrations/0003_sync_reconnect_state.sql', import.meta.url), 'utf8'));
   for (const [uid, cid, label] of [[A, CA, 'A'], [B, CB, 'B']]) {
     sql.prepare('INSERT INTO users VALUES (?)').run(uid);
     sql.prepare('INSERT INTO user_data VALUES (?,?,1,NULL)').run(uid, JSON.stringify({owner:label}));
@@ -63,7 +64,7 @@ function fixture() {
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async (url, options) => {
     if (String(url)===issuer+'/.well-known/jwks.json') return Response.json({keys:[jwk]});
-    if (['https://sandbox.plaid.com/transactions/sync', 'https://sandbox.plaid.com/accounts/get', 'https://sandbox.plaid.com/link/token/create'].includes(String(url)) && plaidResponder) {
+    if (['https://sandbox.plaid.com/transactions/sync', 'https://sandbox.plaid.com/accounts/get', 'https://sandbox.plaid.com/link/token/create', 'https://sandbox.plaid.com/item/get'].includes(String(url)) && plaidResponder) {
       return plaidResponder(JSON.parse(options.body), String(url));
     }
     externalCalls++;
@@ -721,7 +722,7 @@ test('sync status is private to the connection owner and exposes only operationa
     await recordWebhookReceipt(syncEnv(f), syncEvent, 'status-delivery');
     const status = await f.call(A, '/diagnostics/sync-status?connection_id='+CA);
     assert.equal(status.status, 200);
-    assert.deepEqual(status.body, {pending:true,running:false,attempts:0,next_retry_at:null,last_synced_at:null});
+    assert.deepEqual(status.body, {pending:true,requires_reconnect:false,running:false,attempts:0,next_retry_at:null,last_synced_at:null});
     assert.equal((await f.call(B, '/diagnostics/sync-status?connection_id='+CA)).status, 404);
   } finally { f.close(); }
 });
@@ -740,4 +741,205 @@ test('withdrawn-consent jobs are cancelled before Plaid calls and scheduled proc
     await processSyncJobs({PLAID_ENV:'production'});
     await processSyncJobs({PLAID_ENV:'sandbox'});
   } finally { f.close(); }
+});
+
+const loginErrorEvent = {webhook_type:'ITEM',webhook_code:'ERROR',item_id:'item-A',error:{error_code:'ITEM_LOGIN_REQUIRED'}};
+
+test('login-required sync pauses both scheduled and manual retries without exposing Plaid details', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),syncEvent,'login-required-sync');
+    let calls = 0;
+    f.setPlaidResponder(() => {
+      calls++;
+      return Response.json({error_code:'ITEM_LOGIN_REQUIRED',error_message:'private upstream detail'},{status:400});
+    });
+    const first = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(first.status,409);
+    assert.equal(first.body.code,'ITEM_LOGIN_REQUIRED');
+    assert.doesNotMatch(JSON.stringify(first),/private upstream detail/);
+    const job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.last_error_code,'ITEM_LOGIN_REQUIRED');
+    assert.equal(job.attempts,1);
+    assert.equal(job.next_attempt_at,0);
+    await recordWebhookReceipt(syncEnv(f),syncEvent,'another-sync-event');
+    await processSyncJobs(syncEnv(f));
+    assert.equal((await f.call(A,'/sync-transactions','POST',{connection_id:CA})).status,409);
+    assert.equal(calls,1);
+    const status = await f.call(A,'/diagnostics/sync-status?connection_id='+CA);
+    assert.equal(status.body.requires_reconnect,true);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id = ?').get(CA).sync_cursor,null);
+  } finally {f.close();}
+});
+
+test('owned login-error and login-repaired events persist and deduplicate recovery state', async () => {
+  const f = fixture();
+  try {
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'login-error-event');
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'login-error-event');
+    let job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.generation,1);
+    assert.equal(job.last_error_code,'ITEM_LOGIN_REQUIRED');
+    f.sql.prepare("UPDATE plaid_sync_jobs SET lease_token='old',lease_until=unixepoch()+300").run();
+    const repaired = {webhook_type:'ITEM',webhook_code:'LOGIN_REPAIRED',item_id:'item-A'};
+    await recordWebhookReceipt(syncEnv(f),repaired,'login-repaired-event');
+    await recordWebhookReceipt(syncEnv(f),repaired,'login-repaired-event');
+    job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.generation,2);
+    assert.equal(job.last_error_code,null);
+    assert.equal(job.lease_token,'');
+    assert.equal(job.lease_until,0);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM bank_transactions').get().n,2);
+  } finally {f.close();}
+});
+
+test('Link update tokens use only an owned consented connection and keep access tokens server-side', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    let requests = 0;
+    f.setPlaidResponder((body,url) => {
+      requests++;
+      assert.ok(url.endsWith('/link/token/create'));
+      assert.equal(body.access_token,'synthetic-access-token');
+      assert.equal(Object.hasOwn(body,'products'),false);
+      assert.equal(body.user.client_user_id,A);
+      return Response.json({link_token:'link-sandbox-update',expiration:'2026-11-12T00:00:00Z'});
+    });
+    assert.equal((await f.call(A,'/link-token','POST',{connection_id:CB})).status,404);
+    assert.equal((await f.call(A,'/link-token','POST',{connection_id:'invalid'})).status,400);
+    assert.equal((await f.call(A,'/link-token','POST',null)).status,400);
+    const result = await f.call(A,'/link-token','POST',{connection_id:CA});
+    assert.equal(result.status,200);
+    assert.equal(result.body.link_token,'link-sandbox-update');
+    assert.doesNotMatch(JSON.stringify(result),/synthetic-token|access_token/);
+    f.sql.prepare('UPDATE user_consents SET withdrawn_at=CURRENT_TIMESTAMP').run();
+    assert.equal((await f.call(A,'/link-token','POST',{connection_id:CA})).status,403);
+    assert.equal(requests,1);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM bank_connections').get().n,2);
+  } finally {f.close();}
+});
+
+test('bodyless Link creation retains the original new-connection contract', async () => {
+  const f = fixture();
+  try {
+    f.setPlaidResponder(body => {
+      assert.deepEqual(body.products,['transactions']);
+      assert.equal(Object.hasOwn(body,'access_token'),false);
+      return Response.json({link_token:'link-sandbox-new'});
+    });
+    assert.equal((await f.call(A,'/link-token','POST')).status,200);
+  } finally {f.close();}
+});
+
+test('reconnection completion requires a healthy matching Plaid Item before resuming', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'unrepaired');
+    assert.equal((await f.call(A,'/reconnect-complete','POST',{connection_id:CB})).status,404);
+    for (const item of [
+      {item_id:'item-A',error:{error_code:'ITEM_LOGIN_REQUIRED'}},
+      {item_id:'foreign-item',error:null},
+      {item_id:'item-A'}
+    ]) {
+      f.setPlaidResponder(() => Response.json({item}));
+      const result = await f.call(A,'/reconnect-complete','POST',{connection_id:CA});
+      assert.ok([409,502].includes(result.status));
+      assert.equal(f.sql.prepare('SELECT last_error_code FROM plaid_sync_jobs').get().last_error_code,'ITEM_LOGIN_REQUIRED');
+      assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n,0);
+    }
+  } finally {f.close();}
+});
+
+test('verified reconnection queues sync once, audits atomically and preserves the existing connection', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'verified-reconnect');
+    const before = JSON.stringify(f.sql.prepare('SELECT * FROM bank_connections ORDER BY id').all());
+    f.setPlaidResponder((body,url) => {
+      assert.ok(url.endsWith('/item/get'));
+      assert.equal(body.access_token,'synthetic-access-token');
+      return Response.json({item:{item_id:'item-A',error:null}});
+    });
+    const result = await f.call(A,'/reconnect-complete','POST',{connection_id:CA});
+    assert.deepEqual(result,{status:200,body:{success:true,sync_queued:true}});
+    const job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.last_error_code,null);
+    assert.equal(job.generation,2);
+    assert.equal(job.processed_generation,0);
+    const repeated = await f.call(A,'/reconnect-complete','POST',{connection_id:CA});
+    assert.equal(repeated.body.sync_queued,false);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n,1);
+    assert.equal(JSON.stringify(f.sql.prepare('SELECT * FROM bank_connections ORDER BY id').all()),before);
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM bank_accounts').get().n,2);
+  } finally {f.close();}
+});
+
+test('reconnection audit failure rolls back the released job and consent revocation prevents release', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'atomic-reconnect');
+    f.setPlaidResponder(() => Response.json({item:{item_id:'item-A',error:null}}));
+    f.sql.exec("CREATE TRIGGER fail_reconnect_audit BEFORE INSERT ON security_audit_log BEGIN SELECT RAISE(ABORT,'synthetic audit failure'); END;");
+    assert.equal((await f.call(A,'/reconnect-complete','POST',{connection_id:CA})).status,500);
+    assert.equal(f.sql.prepare('SELECT last_error_code FROM plaid_sync_jobs').get().last_error_code,'ITEM_LOGIN_REQUIRED');
+    f.sql.exec('DROP TRIGGER fail_reconnect_audit');
+    f.setPlaidResponder(() => {
+      f.sql.prepare('UPDATE user_consents SET withdrawn_at=CURRENT_TIMESTAMP').run();
+      return Response.json({item:{item_id:'item-A',error:null}});
+    });
+    assert.equal((await f.call(A,'/reconnect-complete','POST',{connection_id:CA})).status,403);
+    assert.equal(f.sql.prepare('SELECT last_error_code FROM plaid_sync_jobs').get().last_error_code,'ITEM_LOGIN_REQUIRED');
+    assert.equal(f.sql.prepare('SELECT count(*) AS n FROM security_audit_log').get().n,0);
+  } finally {f.close();}
+});
+
+test('an old in-flight login error cannot overwrite a verified reconnection', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),syncEvent,'inflight-reconnect');
+    let release, started;
+    const waiting = new Promise(resolve => {release=resolve;});
+    const requested = new Promise(resolve => {started=resolve;});
+    f.setPlaidResponder(async (body,url) => {
+      if (url.endsWith('/item/get')) return Response.json({item:{item_id:'item-A',error:null}});
+      started();
+      await waiting;
+      return Response.json({error_code:'ITEM_LOGIN_REQUIRED'},{status:400});
+    });
+    const syncing = processSyncJobs(syncEnv(f));
+    await requested;
+    await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'inflight-login-error');
+    assert.equal((await f.call(A,'/reconnect-complete','POST',{connection_id:CA})).status,200);
+    release();
+    await syncing;
+    const job = f.sql.prepare('SELECT * FROM plaid_sync_jobs').get();
+    assert.equal(job.last_error_code,null);
+    assert.equal(job.attempts,0);
+    assert.equal(job.generation,3);
+    f.setPlaidResponder(() => emptySyncPage('reconnected-cursor'));
+    await processSyncJobs(syncEnv(f));
+    assert.equal(f.sql.prepare('SELECT processed_generation FROM plaid_sync_jobs').get().processed_generation,3);
+  } finally {f.close();}
+});
+
+test('a login-error webhook during sync fences the commit and retains the reconnection requirement', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    await recordWebhookReceipt(syncEnv(f),syncEvent,'before-login-error');
+    f.setPlaidResponder(async () => {
+      await recordWebhookReceipt(syncEnv(f),loginErrorEvent,'during-successful-page');
+      return Response.json({added:[{transaction_id:'blocked-by-login',account_id:'account-A',amount:1,date:'2026-11-11'}],modified:[],removed:[],next_cursor:'must-not-save',has_more:false});
+    });
+    await processSyncJobs(syncEnv(f));
+    assert.equal(f.sql.prepare('SELECT last_error_code FROM plaid_sync_jobs').get().last_error_code,'ITEM_LOGIN_REQUIRED');
+    assert.equal(f.sql.prepare("SELECT count(*) AS n FROM bank_transactions WHERE id='blocked-by-login'").get().n,0);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+  } finally {f.close();}
 });

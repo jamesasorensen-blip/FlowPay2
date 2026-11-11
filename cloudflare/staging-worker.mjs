@@ -265,6 +265,22 @@ export async function recordWebhookReceipt(env, event, verificationToken) {
        SELECT ?, 1 WHERE changes() = 1
        ON CONFLICT(connection_id) DO UPDATE SET generation = generation + 1`
     ).bind(connection.id));
+  } else if (event.webhook_type === "ITEM" && event.webhook_code === "ERROR" &&
+             event.error?.error_code === "ITEM_LOGIN_REQUIRED") {
+    statements.push(env.DB.prepare(
+      `INSERT INTO plaid_sync_jobs (connection_id, generation, last_error_code)
+       SELECT ?, 1, 'ITEM_LOGIN_REQUIRED' WHERE changes() = 1
+       ON CONFLICT(connection_id) DO UPDATE SET generation = generation + 1,
+         last_error_code = 'ITEM_LOGIN_REQUIRED', next_attempt_at = 0`
+    ).bind(connection.id));
+  } else if (event.webhook_type === "ITEM" && event.webhook_code === "LOGIN_REPAIRED") {
+    statements.push(env.DB.prepare(
+      `INSERT INTO plaid_sync_jobs (connection_id, generation)
+       SELECT ?, 1 WHERE changes() = 1
+       ON CONFLICT(connection_id) DO UPDATE SET generation = generation + 1,
+         last_error_code = NULL, attempts = 0, next_attempt_at = 0,
+         lease_token = '', lease_until = 0`
+    ).bind(connection.id));
   }
   await env.DB.batch(statements);
 }
@@ -404,18 +420,27 @@ async function runConnectionSync(env, userId, connectionId, send = json) {
       ).bind(connectionId, leaseToken).run();
       return send({error: "Bank connection consent required"}, 403);
     }
+    if (job.last_error_code === "ITEM_LOGIN_REQUIRED") {
+      return send({error: "Bank sign-in required", code: "ITEM_LOGIN_REQUIRED"}, 409);
+    }
     response = await syncConnection(env, {id: userId}, connection, leaseToken);
     if (response.ok) {
       await env.DB.prepare(
         `UPDATE plaid_sync_jobs SET processed_generation = ?, attempts = 0,
-         next_attempt_at = 0 WHERE connection_id = ? AND lease_token = ?`
-      ).bind(job.generation, connectionId, leaseToken).run();
+         next_attempt_at = 0,
+         last_error_code = CASE WHEN generation = ? THEN NULL ELSE last_error_code END
+         WHERE connection_id = ? AND lease_token = ?`
+      ).bind(job.generation, job.generation, connectionId, leaseToken).run();
     } else {
       await deferSyncJob(env, connectionId, leaseToken, job.attempts);
     }
-  } catch {
-    await deferSyncJob(env, connectionId, leaseToken, job.attempts);
-    response = json({error: "Transaction sync temporarily unavailable"}, 503);
+  } catch (error) {
+    const needsReconnect = error?.code === "ITEM_LOGIN_REQUIRED";
+    await deferSyncJob(env, connectionId, leaseToken, job.attempts,
+      needsReconnect ? "ITEM_LOGIN_REQUIRED" : "SYNC_UNAVAILABLE");
+    response = json(needsReconnect
+      ? {error: "Bank sign-in required", code: "ITEM_LOGIN_REQUIRED"}
+      : {error: "Transaction sync temporarily unavailable"}, needsReconnect ? 409 : 503);
   } finally {
     await env.DB.prepare(
       `UPDATE plaid_sync_jobs SET lease_token = '', lease_until = 0
@@ -424,13 +449,16 @@ async function runConnectionSync(env, userId, connectionId, send = json) {
   }
   return send(await response.json(), response.status);
 }
-async function deferSyncJob(env, connectionId, leaseToken, attempts) {
+async function deferSyncJob(env, connectionId, leaseToken, attempts, code = "SYNC_UNAVAILABLE") {
   const delay = Math.min(3600, 30 * 2 ** Math.min(attempts, 7));
   await env.DB.prepare(
     `UPDATE plaid_sync_jobs SET attempts = attempts + 1,
      generation = MAX(generation, processed_generation + 1),
-     next_attempt_at = unixepoch() + ? WHERE connection_id = ? AND lease_token = ?`
-  ).bind(delay, connectionId, leaseToken).run();
+     next_attempt_at = CASE WHEN last_error_code = 'ITEM_LOGIN_REQUIRED' OR ? = 'ITEM_LOGIN_REQUIRED'
+       THEN 0 ELSE unixepoch() + ? END,
+     last_error_code = CASE WHEN last_error_code = 'ITEM_LOGIN_REQUIRED' THEN last_error_code ELSE ? END
+     WHERE connection_id = ? AND lease_token = ?`
+  ).bind(code, delay, code, connectionId, leaseToken).run();
 }
 export async function processSyncJobs(env) {
   if (env.PLAID_ENV !== "sandbox" || !env.STAGING_TEST_USER_ID) return;
@@ -439,6 +467,7 @@ export async function processSyncJobs(env) {
      JOIN bank_connections c ON c.id = j.connection_id
      WHERE j.generation > j.processed_generation AND j.next_attempt_at <= unixepoch()
        AND j.lease_until <= unixepoch() AND c.user_id = ?
+       AND (j.last_error_code IS NULL OR j.last_error_code <> 'ITEM_LOGIN_REQUIRED')
      ORDER BY j.next_attempt_at, j.connection_id LIMIT 5`
   ).bind(env.STAGING_TEST_USER_ID).all();
   for (const job of jobs.results || []) {
@@ -585,6 +614,7 @@ async function syncConnection(env, user, connection, leaseToken) {
        SELECT CASE WHEN EXISTS (
          SELECT 1 FROM plaid_sync_jobs j JOIN bank_connections c ON c.id = j.connection_id
          WHERE j.connection_id = ? AND j.lease_token = ? AND j.lease_until > unixepoch()
+           AND (j.last_error_code IS NULL OR j.last_error_code <> 'ITEM_LOGIN_REQUIRED')
            AND c.user_id = ? AND COALESCE(c.sync_cursor, '') = ?
            AND EXISTS (SELECT 1 FROM user_consents u WHERE u.user_id = c.user_id
              AND u.consent_type = 'bank_connection' AND u.withdrawn_at IS NULL
@@ -670,6 +700,7 @@ export default {
       "/me",
       "/test-plaid",
       "/link-token",
+      "/reconnect-complete",
       "/plaid-webhook",
       "/exchange-token",
       "/user-data",
@@ -1016,7 +1047,19 @@ export default {
       // PLAID LINK TOKEN
       if (url.pathname === "/link-token" && request.method === "POST") {
         if (!allowed) return send({ error: "Origin not allowed" }, 403);
-        if (!(await hasBankConsent(env, user.id))) {
+        const body = request.body ? await readJson(request) : {};
+        if (!body || typeof body !== "object" || Array.isArray(body)) {
+          return send({error: "Invalid request body"}, 400);
+        }
+        let connection = null;
+        if (body.connection_id !== undefined) {
+          if (typeof body.connection_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.connection_id)) {
+            return send({error: "Invalid connection_id"}, 400);
+          }
+          connection = await getConnection(env, user.id, body.connection_id);
+          if (!connection) return send({error: "Connection not found"}, 404);
+        }
+        if (!(await hasBankConsent(env, user.id, connection?.id))) {
           return send({ error: "Bank connection consent required" }, 403);
         }
         const redirectUri = configuredPlaidUrl(env.PLAID_OAUTH_REDIRECT_URI, FLOWPAY_ORIGIN, "/");
@@ -1025,7 +1068,7 @@ export default {
           client_name: "FlowPay",
           language: "en",
           country_codes: ["US"],
-          products: ["transactions"],
+          ...(connection ? {access_token: await decryptToken(connection, env)} : {products: ["transactions"]}),
           user: { client_user_id: user.id },
           ...(redirectUri ? { redirect_uri: redirectUri } : {}),
           ...(webhookUri ? { webhook: webhookUri } : {})
@@ -1035,6 +1078,53 @@ export default {
           link_token: result.link_token,
           expiration: result.expiration
         });
+      }
+      // Link update mode keeps the existing Item and access token. Verify the
+      // Item's current state before releasing a login-required job for retry.
+      if (url.pathname === "/reconnect-complete" && request.method === "POST") {
+        if (!allowed) return send({error: "Origin not allowed"}, 403);
+        const body = await readJson(request);
+        if (typeof body?.connection_id !== "string" || !/^[0-9a-f-]{36}$/i.test(body.connection_id)) {
+          return send({error: "Invalid connection_id"}, 400);
+        }
+        const connection = await getConnection(env, user.id, body.connection_id);
+        if (!connection) return send({error: "Connection not found"}, 404);
+        if (!(await hasBankConsent(env, user.id, connection.id))) {
+          return send({error: "Bank connection consent required"}, 403);
+        }
+        const result = await plaid(env, "/item/get", {access_token: await decryptToken(connection, env)});
+        if (!result.item || result.item.item_id !== connection.item_id ||
+            !Object.hasOwn(result.item, "error")) {
+          return send({error: "Unable to verify bank connection"}, 502);
+        }
+        if (result.item.error !== null) {
+          return send({error: "Bank connection still needs attention"}, 409);
+        }
+        const saved = await env.DB.batch([
+          env.DB.prepare(
+            `UPDATE plaid_sync_jobs SET generation = generation + 1,
+             attempts = 0, next_attempt_at = 0, last_error_code = NULL,
+             lease_token = '', lease_until = 0
+             WHERE connection_id = ? AND last_error_code = 'ITEM_LOGIN_REQUIRED'
+               AND EXISTS (SELECT 1 FROM bank_connections c WHERE c.id = plaid_sync_jobs.connection_id AND c.user_id = ?)
+               AND EXISTS (SELECT 1 FROM user_consents u WHERE u.user_id = ?
+                 AND u.consent_type = 'bank_connection' AND u.withdrawn_at IS NULL
+                 AND (u.connection_id IS NULL OR u.connection_id = plaid_sync_jobs.connection_id))`
+          ).bind(connection.id, user.id, user.id),
+          env.DB.prepare(
+            `INSERT INTO security_audit_log (id, user_id, action, resource_type, resource_id)
+             SELECT ?, ?, 'bank_reconnected', 'bank_connection', ? WHERE changes() = 1`
+          ).bind(crypto.randomUUID(), user.id, connection.id)
+        ]);
+        if (!(await getConnection(env, user.id, connection.id))) return send({error: "Connection not found"}, 404);
+        if (!(await hasBankConsent(env, user.id, connection.id))) {
+          return send({error: "Bank connection consent required"}, 403);
+        }
+        const queued = (saved[0].meta?.changes || 0) > 0;
+        if (queued && ctx) ctx.waitUntil(processSyncJobs(env).catch(() => {
+          console.error("FlowPay reconnected bank sync unavailable");
+        }));
+        return send({success: true, sync_queued: queued});
       }
       // EXCHANGE PUBLIC TOKEN
       if (url.pathname === "/exchange-token" && request.method === "POST") {
@@ -1198,6 +1288,7 @@ export default {
         ).bind(connection.id).first();
         return send({
           pending: !!job && job.generation > job.processed_generation,
+          requires_reconnect: job?.last_error_code === "ITEM_LOGIN_REQUIRED",
           running: !!job && job.lease_until > Math.floor(Date.now() / 1000),
           attempts: job?.attempts || 0,
           next_retry_at: job?.next_attempt_at || null,

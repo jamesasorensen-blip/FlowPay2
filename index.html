@@ -1512,7 +1512,7 @@ window.addEventListener('DOMContentLoaded',init);
   }
   function updateBankActionButtons() {
     for (const button of accountsEl.querySelectorAll('button')) {
-      button.disabled = busy || button.dataset.syncRunning === 'true' ||
+      button.disabled = busy || button.dataset.syncBlocked === 'true' ||
         (button.dataset.requiresConsent === 'true' && !consentActive);
     }
   }
@@ -1653,12 +1653,35 @@ window.addEventListener('DOMContentLoaded',init);
     retry.type = 'button';
     retry.dataset.requiresConsent = 'true';
     retry.disabled = true;
+    const reconnect = label(actions,'button','Reconnect bank',buttonStyle);
+    reconnect.type = 'button';
+    reconnect.dataset.requiresConsent = 'true';
+    reconnect.hidden = true;
+    reconnect.addEventListener('click', async () => {
+      if (busy || gen !== generation || !consentActive) return;
+      setBusy(true);
+      setStatus('Opening bank sign-in…');
+      try {
+        if (!window.Plaid) throw new Error('Plaid Link library did not load.');
+        const result = await api('/link-token','POST',{connection_id:id});
+        if (gen !== generation) return;
+        if (!result.link_token) throw new Error('Missing Link token.');
+        savePlaidSession(result.link_token, id);
+        createLink(result.link_token, gen, undefined, id);
+      } catch (e) {
+        if (gen === generation) {
+          setStatus('Bank reconnection failed. ' + e.message);
+          setBusy(false);
+        }
+      }
+    });
     async function refreshSyncStatus() {
       try {
         const result = await api('/diagnostics/sync-status?connection_id=' + encodeURIComponent(id));
         if (gen !== generation) return;
         const messages = [];
-        if (result.running) messages.push('Sync in progress.');
+        if (result.requires_reconnect) messages.push('Bank sign-in required. Select Reconnect bank to resume syncing.');
+        else if (result.running) messages.push('Sync in progress.');
         else if (result.pending) {
           messages.push(result.attempts > 0
             ? 'Sync delayed after ' + result.attempts + ' failed ' + (result.attempts === 1 ? 'attempt.' : 'attempts.')
@@ -1669,7 +1692,8 @@ window.addEventListener('DOMContentLoaded',init);
         if (!messages.length) messages.push('No transaction sync has completed yet.');
         syncStatus.textContent = messages.join(' ');
         retry.textContent = result.attempts > 0 ? 'Retry sync now' : 'Sync now';
-        retry.dataset.syncRunning = String(!!result.running);
+        retry.dataset.syncBlocked = String(!!result.running || !!result.requires_reconnect);
+        reconnect.hidden = !result.requires_reconnect;
       } catch {
         if (gen !== generation) return;
         syncStatus.textContent = 'Sync status unavailable. Select Refresh sync status to try again.';
@@ -1958,13 +1982,30 @@ window.addEventListener('DOMContentLoaded',init);
   // OAuth bank redirects return to this same origin and browser tab.
   // The Link token is session-only and is never placed in a URL or persistent storage.
   const oauthKey = userId => 'flowpay-plaid-oauth:'+userId+(stagingMode?':staging':'');
+  function savePlaidSession(token, connectionId) {
+    const baseKey = 'flowpay-plaid-oauth:' + currentUser;
+    sessionStorage.removeItem(baseKey);
+    sessionStorage.removeItem(baseKey + ':staging');
+    sessionStorage.setItem(oauthKey(currentUser),JSON.stringify({token,started:Date.now(),connectionId}));
+  }
+  function applyBankEnvironment(isStaging) {
+    stagingMode = isStaging;
+    environmentSelect.value = stagingMode ? 'staging' : 'current';
+    environmentNote.textContent = stagingMode
+      ? 'STAGING TEST ONLY: separate Worker and database. Test accounts do not affect cash-flow balances, bill matching, or your existing bank connections.'
+      : 'Existing Sandbox connections are unchanged.';
+    document.getElementById('flowpay-balance-settings').style.display = stagingMode ? 'none' : '';
+    matchesEl.style.display = stagingMode ? 'none' : '';
+    transactionsEl.style.display = stagingMode ? 'none' : '';
+    document.getElementById('flowpay-open-transactions').style.display = stagingMode ? 'none' : '';
+  }
   function clearOAuthReturn() {
     const url = new URL(location.href);
     if (!url.searchParams.has('oauth_state_id')) return;
     url.searchParams.delete('oauth_state_id');
     history.replaceState(history.state, '', url.pathname + url.search + url.hash);
   }
-  function createLink(token, gen, redirectUrl) {
+  function createLink(token, gen, redirectUrl, connectionId) {
     const handler=window.Plaid.create({
       token,
       ...(redirectUrl ? {receivedRedirectUri:redirectUrl} : {}),
@@ -1972,8 +2013,15 @@ window.addEventListener('DOMContentLoaded',init);
         if(gen !== generation) return;
         sessionStorage.removeItem(oauthKey(currentUser));
         clearOAuthReturn();
-        setStatus('Saving encrypted test bank connection…');
+        setStatus(connectionId ? 'Checking bank sign-in…' : 'Saving encrypted test bank connection…');
         try {
+          if (connectionId) {
+            await api('/reconnect-complete','POST',{connection_id:connectionId});
+            if (gen !== generation) return;
+            await loadBanks();
+            if (gen === generation) setStatus('Bank sign-in updated. Automatic sync can continue.');
+            return;
+          }
           const result=await api('/exchange-token','POST',{
             public_token:publicToken,
             institution_name:metadata?.institution?.name || 'Sandbox bank'
@@ -1984,8 +2032,8 @@ window.addEventListener('DOMContentLoaded',init);
           if(gen === generation) setStatus(stagingMode
             ? 'Test bank connected. Select Sync now to import staging transactions.'
             : 'Test bank connected. Select Sync transactions to import activity.');
-        } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
-        finally {setBusy(false);}
+        } catch(e) {if(gen === generation) setStatus((connectionId ? 'Bank reconnection failed. ' : 'Bank save failed. ')+e.message);}
+        finally {if (gen === generation) setBusy(false);}
       },
       onExit:(error) => {
         if(gen !== generation) return;
@@ -2001,25 +2049,34 @@ window.addEventListener('DOMContentLoaded',init);
   }
   async function resumePlaidOAuth() {
     if(!currentUser || !new URLSearchParams(location.search).has('oauth_state_id')) return false;
-    const key=oauthKey(currentUser);
-    const saved=sessionStorage.getItem(key);
-    if(!saved) {
-      setStatus('Bank authorization session expired. Start a new connection.');
+    const baseKey = 'flowpay-plaid-oauth:' + currentUser;
+    const sessions = [];
+    for (const key of [baseKey, baseKey + ':staging']) {
+      const saved = sessionStorage.getItem(key);
+      if (!saved) continue;
+      let data;
+      try { data = JSON.parse(saved); } catch { sessionStorage.removeItem(key); continue; }
+      const isStaging = key.endsWith(':staging');
+      if (!data || typeof data.token !== 'string' || !data.token ||
+          !Number.isFinite(data.started) || Date.now()-data.started > 25*60*1000 ||
+          data.started > Date.now()+60000 ||
+          (data.connectionId !== undefined && (!isStaging || typeof data.connectionId !== 'string' ||
+            !/^[0-9a-f-]{36}$/i.test(data.connectionId)))) {
+        sessionStorage.removeItem(key);
+        continue;
+      }
+      sessions.push({data,isStaging});
+    }
+    if (sessions.length !== 1) {
+      setStatus('Bank authorization session expired or ambiguous. Start a new connection.');
       return false;
     }
-    let data;
-    try { data=JSON.parse(saved); } catch { sessionStorage.removeItem(key); return false; }
-    if(typeof data.token!=='string' || !data.token ||
-       !Number.isFinite(data.started) || Date.now()-data.started>25*60*1000 ||
-       data.started>Date.now()+60000) {
-      sessionStorage.removeItem(key);
-      setStatus('Bank authorization session expired. Start a new connection.');
-      return false;
-    }
+    const {data,isStaging} = sessions[0];
+    applyBankEnvironment(isStaging);
     if(!window.Plaid) {setStatus('Plaid Link library did not load.');return false;}
     setBusy(true);
     setStatus('Returning to bank authorization…');
-    createLink(data.token,generation,location.href);
+    createLink(data.token,generation,location.href,data.connectionId);
     return true;
   }
   connectButton.addEventListener('click',async () => {
@@ -2041,21 +2098,14 @@ window.addEventListener('DOMContentLoaded',init);
       const data=await api('/link-token','POST',{});
       if(!data.link_token) throw new Error('Missing Link token.');
       if (gen !== generation) return;
-      sessionStorage.setItem(oauthKey(currentUser),JSON.stringify({token:data.link_token,started:Date.now()}));
+      savePlaidSession(data.link_token);
       createLink(data.link_token,gen);
     } catch(e) {if (gen === generation) {setStatus('Connection error: '+e.message);setBusy(false);}}
   });
   environmentSelect.addEventListener('change', async () => {
     if (busy) return;
     const gen = ++generation;
-    stagingMode = environmentSelect.value === 'staging';
-    environmentNote.textContent = stagingMode
-      ? 'STAGING TEST ONLY: separate Worker and database. Test accounts do not affect cash-flow balances, bill matching, or your existing bank connections.'
-      : 'Existing Sandbox connections are unchanged.';
-    document.getElementById('flowpay-balance-settings').style.display = stagingMode ? 'none' : '';
-    matchesEl.style.display = stagingMode ? 'none' : '';
-    transactionsEl.style.display = stagingMode ? 'none' : '';
-    document.getElementById('flowpay-open-transactions').style.display = stagingMode ? 'none' : '';
+    applyBankEnvironment(environmentSelect.value === 'staging');
     accountsEl.replaceChildren();
     lastAccounts = []; lastTransactions = [];
     showConsent(false);
@@ -2080,27 +2130,22 @@ window.addEventListener('DOMContentLoaded',init);
   });
   function authChanged(id) {
     const gen = ++generation;
-    stagingMode = false;
-    environmentSelect.value = 'current';
-    environmentNote.textContent = 'Existing Sandbox connections are unchanged.';
-    document.getElementById('flowpay-balance-settings').style.display = '';
-    matchesEl.style.display = '';
-    transactionsEl.style.display = '';
-    document.getElementById('flowpay-open-transactions').style.display = '';
+    applyBankEnvironment(false);
     currentUser=id || null;
     panel.style.display=currentUser ? 'block' : 'none';
     accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];txOverlay.style.display='none';window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
     setBusy(false);
     showConsent(false);
     if(currentUser){
-      refreshConsent().catch(e=>{if (gen === generation) consentStatus.textContent='Unable to check permission: '+e.message;});
       setStatus('Loading Sandbox bank connections…');
       // Resume an OAuth callback immediately; an unrelated account-list failure
       // must not delay or block bank authorization completion.
       if(new URLSearchParams(location.search).has('oauth_state_id')) {
         resumePlaidOAuth().catch(e=>{if (gen === generation) setStatus('Bank return failed: '+e.message);});
+        refreshConsent().catch(e=>{if (gen === generation) consentStatus.textContent='Unable to check permission: '+e.message;});
         loadBanks().catch(()=>{});
       } else {
+        refreshConsent().catch(e=>{if (gen === generation) consentStatus.textContent='Unable to check permission: '+e.message;});
         loadBanks().then(()=>{if (gen === generation) setStatus('Sandbox bank connections ready.');})
           .catch(e=>{if (gen === generation) setStatus('Bank loading failed: '+e.message);});
       }
