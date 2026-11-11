@@ -184,3 +184,8 @@ altered request body is rejected. It does not substitute for sandbox delivery.
 
 Webhook synthetic regression checks also reject an altered ES256 signature,
 not just a modified event body.
+
+The frontend now preserves the Link token in user-scoped sessionStorage and
+passes the returning OAuth URL as receivedRedirectUri. This remains unverified
+against a real Sandbox OAuth institution until staging is deployed and Plaid
+Dashboard has the exact HTTPS frontend redirect URL registered.
