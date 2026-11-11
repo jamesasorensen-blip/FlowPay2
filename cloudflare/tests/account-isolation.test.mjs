@@ -538,3 +538,17 @@ test('Plaid webhook envelope rejects malformed fields but accepts future event c
     {...valid,webhook_code:'X'.repeat(129)}, {...valid,webhook_code:42}
   ]) assert.equal(validPlaidWebhookEvent(event),false,JSON.stringify(event));
 });
+
+test('staging item webhook diagnostic rejects malformed and foreign connections without Plaid calls', async () => {
+  const f=fixture(); try {
+    for (const connection_id of ['', '../other', 4, null]) {
+      const r=await f.call(A,'/diagnostics/item-webhook','POST',{connection_id});
+      assert.equal(r.status,400);
+    }
+    const foreign=await f.call(A,'/diagnostics/item-webhook','POST',{connection_id:CB});
+    assert.equal(foreign.status,404);
+    const restricted=await f.call(B,'/diagnostics/item-webhook','POST',{connection_id:CB},A);
+    assert.equal(restricted.status,403);
+    assert.equal(f.externalCalls(),0);
+  } finally { f.close(); }
+});
