@@ -491,7 +491,7 @@ test('signed NEW_ACCOUNTS_AVAILABLE webhook is acknowledged only with matching b
     const rejected = await call(body+' ');
     assert.equal(rejected.status,401);
     // An attacker cannot substitute another signing key or alter the signature.
-    const badSignature = signature.slice(0,-1)+(signature.endsWith('A')?'B':'A');
+    const badSignature = (signature.startsWith('A')?'B':'A')+signature.slice(1);
     const forged = await worker.fetch(new Request('https://worker.test/plaid-webhook',{
       method:'POST',headers:{'Plaid-Verification':signed+'.'+badSignature},body
     }),{PLAID_ENV:'sandbox',PLAID_CLIENT_ID:'synthetic',PLAID_SECRET:'synthetic'});
