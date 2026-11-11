@@ -217,3 +217,8 @@ are authorized by these staging steps.
 
 The OAuth callback path resumes Plaid Link independently of bank account list
 retrieval. This prevents a transient listing error from blocking OAuth return.
+
+The Worker validates optional Plaid Link URL bindings before token creation:
+OAuth redirect must be the exact HTTPS frontend root, and webhook must be
+this Worker's own HTTPS origin at /plaid-webhook. Other hosts, paths, queries,
+credentials and fragments are rejected before contacting Plaid.
