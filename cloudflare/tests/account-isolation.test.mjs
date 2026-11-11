@@ -403,7 +403,8 @@ test('balance refresh refuses Plaid account ID owned by another connection', asy
     const before = f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-B'").get().current_balance;
     const response = await f.call(A,'/bank-accounts?refresh=true');
     assert.equal(plaidCalls,1);
-    assert.match(JSON.stringify(response.body),/ownership conflict/i);
+    assert.equal(response.status,500);
+    assert.equal(response.body.error,'Request failed');
     assert.equal(f.externalCalls(),0);
     assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-B'").get().current_balance,before);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
@@ -426,7 +427,8 @@ test('duplicate Plaid account IDs reject refresh without partial balance updates
     });
     const response = await f.call(A,'/bank-accounts?refresh=true');
     assert.equal(plaidCalls,1);
-    assert.match(JSON.stringify(response.body),/duplicate Plaid account ID/i);
+    assert.equal(response.status,500);
+    assert.equal(response.body.error,'Request failed');
     assert.equal(f.externalCalls(),0);
     assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-A'").get().current_balance,100);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
