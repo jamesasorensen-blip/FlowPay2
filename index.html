@@ -1600,6 +1600,23 @@ window.addEventListener('DOMContentLoaded',init);
             if(gen === generation) setStatus('Webhook check failed: '+e.message);
           } finally {setBusy(false);check.disabled=false;}
         });
+        const fire = label(accountsEl,'button','Send test webhook','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
+        fire.type='button';
+        fire.setAttribute('aria-label','Ask Plaid to send a test webhook for this Sandbox bank');
+        fire.addEventListener('click',async () => {
+          if (busy) return;
+          setBusy(true); fire.disabled=true;
+          setStatus('Requesting Sandbox webhook from Plaid…');
+          try {
+            const result = await api('/diagnostics/fire-webhook','POST',{connection_id:id});
+            if (gen !== generation) return;
+            setStatus(result.accepted_by_plaid
+              ? 'Plaid accepted the test webhook request. Check Cloudflare staging logs for POST /plaid-webhook and a 200 response to confirm delivery.'
+              : 'Plaid did not confirm the test request.');
+          } catch(e) {
+            if (gen === generation) setStatus('Test webhook request failed: '+e.message);
+          } finally {setBusy(false);fire.disabled=false;}
+        });
       }
     }
     if (!stagingMode) await loadTransactions();

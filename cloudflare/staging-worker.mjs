@@ -387,6 +387,7 @@ export default {
       "/user-data",
       "/bank-accounts",
       "/diagnostics/item-webhook",
+      "/diagnostics/fire-webhook",
       "/bank-transactions",
       "/sync-transactions",
       "/consent",
@@ -822,6 +823,36 @@ export default {
           webhook_matches_staging: !!expected && actual === expected,
           expected_webhook_configured: !!expected
         });
+      }
+      // Explicitly requested Sandbox-only test webhook for an owned, consented connection.
+      // Plaid's acknowledgement is not proof of delivery; check Worker logs separately.
+      if (url.pathname === "/diagnostics/fire-webhook" && request.method === "POST") {
+        if (!allowed) return send({ error: "Origin not allowed" }, 403);
+        const body = await readJson(request);
+        if (typeof body?.connection_id !== "string" ||
+            !/^[0-9a-f-]{36}$/i.test(body.connection_id)) {
+          return send({ error: "Invalid connection_id" }, 400);
+        }
+        const connection = await getConnection(env, user.id, body.connection_id);
+        if (!connection) return send({ error: "Connection not found" }, 404);
+        if (!(await hasBankConsent(env, user.id, connection.id))) {
+          return send({ error: "Bank connection consent required" }, 403);
+        }
+        const expected = configuredPlaidUrl(
+          env.PLAID_WEBHOOK_URL, new URL(request.url).origin, "/plaid-webhook"
+        );
+        if (!expected) return send({ error: "Staging webhook not configured" }, 503);
+        const accessToken = await decryptToken(connection, env);
+        const item = await plaid(env, "/item/get", { access_token: accessToken });
+        if (item?.item?.webhook !== expected) {
+          return send({ error: "Staging webhook does not match this connection" }, 409);
+        }
+        await plaid(env, "/sandbox/item/fire_webhook", {
+          access_token: accessToken,
+          webhook_type: "TRANSACTIONS",
+          webhook_code: "SYNC_UPDATES_AVAILABLE"
+        });
+        return send({ success: true, accepted_by_plaid: true, delivery_verified: false });
       }
       // BANK ACCOUNTS
       if (url.pathname === "/bank-accounts" && request.method === "GET") {
