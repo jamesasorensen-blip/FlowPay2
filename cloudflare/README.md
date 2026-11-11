@@ -181,3 +181,6 @@ is still required before considering the integration end-to-end verified.
 The synthetic webhook suite now also signs a NEW_ACCOUNTS_AVAILABLE event
 using a generated ES256 key, mocks Plaid key retrieval, and checks that an
 altered request body is rejected. It does not substitute for sandbox delivery.
+
+Webhook synthetic regression checks also reject an altered ES256 signature,
+not just a modified event body.
