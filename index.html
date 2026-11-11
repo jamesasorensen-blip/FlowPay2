@@ -1803,9 +1803,9 @@ window.addEventListener('DOMContentLoaded',init);
       token,
       ...(redirectUrl ? {receivedRedirectUri:redirectUrl} : {}),
       onSuccess:async (publicToken,metadata) => {
+        if(gen !== generation) return;
         sessionStorage.removeItem(oauthKey(currentUser));
         clearOAuthReturn();
-        if(gen !== generation) return;
         setStatus('Saving encrypted test bank connection…');
         try {
           const result=await api('/exchange-token','POST',{
