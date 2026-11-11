@@ -35,3 +35,7 @@ test('OAuth callback state is cleared from browser URL after Link completes', ()
   assert.match(section, /onSuccess:async[^]*?clearOAuthReturn\(\)/);
   assert.match(section, /onExit:\(error\)[^]*?clearOAuthReturn\(\)/);
 });
+
+test('stale Plaid success callback cannot clear another user session', () => {
+  assert.match(section, /onSuccess:async \(publicToken,metadata\) => \{\s*if\(gen !== generation\) return;\s*sessionStorage\.removeItem/);
+});
