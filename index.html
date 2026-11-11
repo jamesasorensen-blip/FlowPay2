@@ -1387,6 +1387,9 @@ window.addEventListener('DOMContentLoaded',init);
 <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 <div id="flowpay-plaid-panel" style="position:fixed;bottom:20px;right:20px;z-index:9000;background:#1e293b;color:white;padding:14px;border-radius:14px;box-shadow:0 5px 25px #0005;width:min(330px, calc(100vw - 40px));box-sizing:border-box;max-height:75vh;overflow:auto;font-family:Arial,sans-serif;display:none;">
   <div style="font-weight:bold;margin-bottom:8px;">Bank Connections (Sandbox)</div>
+  <label for="flowpay-bank-environment" style="display:block;font-size:12px;margin-bottom:7px">Connection environment</label>
+  <select id="flowpay-bank-environment" style="width:100%;padding:7px;margin-bottom:9px;border-radius:7px;color:#111827"><option value="current">Existing Sandbox connections</option><option value="staging">Isolated staging webhook test</option></select>
+  <div id="flowpay-bank-environment-note" role="status" style="font-size:12px;margin-bottom:9px;color:#cbd5e1">Existing Sandbox connections are unchanged.</div>
   <button id="flowpay-connect-bank" type="button" style="background:#6366f1;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:bold;">Connect Test Bank</button>
   <button id="flowpay-refresh-banks" type="button" style="background:#475569;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;">Refresh</button>
   <section id="flowpay-consent-panel" aria-label="Test bank data consent" style="margin-top:10px;padding:10px;border:1px solid #64748b;border-radius:8px;font-size:12px">
@@ -1425,7 +1428,11 @@ window.addEventListener('DOMContentLoaded',init);
 <script>
 (function () {
   'use strict';
-  const API = 'https://flowpay-plaid-api.james-a-sorensen.workers.dev';
+  const DEFAULT_API = 'https://flowpay-plaid-api.james-a-sorensen.workers.dev';
+  const STAGING_API = 'https://flowpay-plaid-api-staging.james-a-sorensen.workers.dev';
+  let stagingMode = false;
+  const environmentSelect = document.getElementById('flowpay-bank-environment');
+  const environmentNote = document.getElementById('flowpay-bank-environment-note');
   const panel = document.getElementById('flowpay-plaid-panel');
   const connectButton = document.getElementById('flowpay-connect-bank');
   const refreshButton = document.getElementById('flowpay-refresh-banks');
@@ -1478,7 +1485,7 @@ window.addEventListener('DOMContentLoaded',init);
   async function api(path, method='GET', payload) {
     if (!currentUser) throw new Error('Sign in to FlowPay first.');
     const token = await window.flowpayGetAccessToken();
-    const response = await fetch(API + path, {
+    const response = await fetch((stagingMode ? STAGING_API : DEFAULT_API) + path, {
       method,
       headers: {'Authorization':'Bearer '+token,'Content-Type':'application/json'},
       ...(payload === undefined ? {} : {body:JSON.stringify(payload)})
@@ -1493,6 +1500,7 @@ window.addEventListener('DOMContentLoaded',init);
     busy = value;
     connectButton.disabled = value;
     refreshButton.disabled = value;
+    environmentSelect.disabled = value;
     connectButton.style.opacity = value ? '0.5' : '1';
   }
   function renderBalanceControls(){
@@ -1538,7 +1546,7 @@ window.addEventListener('DOMContentLoaded',init);
     const accounts = await api('/bank-accounts');
     if (gen !== generation) return;
     lastAccounts=Array.isArray(accounts.accounts)?accounts.accounts:[];
-    renderBalanceControls();
+    if (!stagingMode) renderBalanceControls();
     accountsEl.replaceChildren();
     const connections = new Map();
     if (!accounts.accounts?.length) {
@@ -1554,8 +1562,9 @@ window.addEventListener('DOMContentLoaded',init);
       accountsEl.appendChild(item);
     }
     if (connections.size) {
-      label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
+      if (!stagingMode) label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
       for (const id of connections.keys()) {
+        if (!stagingMode) {
         const button = label(accountsEl,'button','Sync transactions','background:#0d9488;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
         button.type='button';
         button.addEventListener('click',async () => {
@@ -1570,6 +1579,8 @@ window.addEventListener('DOMContentLoaded',init);
           } catch(e) { if(gen === generation) setStatus('Sync failed: '+e.message); }
           finally {setBusy(false);button.disabled=false;}
         });
+        }
+        if (!stagingMode) continue;
         const check = label(accountsEl,'button','Check webhook configuration','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
         check.type='button';
         check.setAttribute('aria-label','Check Sandbox webhook for this bank connection');
@@ -1591,7 +1602,7 @@ window.addEventListener('DOMContentLoaded',init);
         });
       }
     }
-    await loadTransactions();
+    if (!stagingMode) await loadTransactions();
   }
   // Sandbox-only suggestions. Nothing is marked paid without explicit approval.
   function renderMatches() {
@@ -1810,7 +1821,7 @@ window.addEventListener('DOMContentLoaded',init);
   window.addEventListener('flowpay-financial-state-loaded',()=>{if(txOverlay.style.display==='block')renderTransactionExplorer()});
   // OAuth bank redirects return to this same origin and browser tab.
   // The Link token is session-only and is never placed in a URL or persistent storage.
-  const oauthKey = userId => 'flowpay-plaid-oauth:'+userId;
+  const oauthKey = userId => 'flowpay-plaid-oauth:'+userId+(stagingMode?':staging':'');
   function clearOAuthReturn() {
     const url = new URL(location.href);
     if (!url.searchParams.has('oauth_state_id')) return;
@@ -1894,6 +1905,29 @@ window.addEventListener('DOMContentLoaded',init);
       createLink(data.link_token,gen);
     } catch(e) {setStatus('Connection error: '+e.message);setBusy(false);}
   });
+  environmentSelect.addEventListener('change', async () => {
+    if (busy) return;
+    generation++;
+    stagingMode = environmentSelect.value === 'staging';
+    environmentNote.textContent = stagingMode
+      ? 'STAGING TEST ONLY: separate Worker and database. Test accounts do not affect cash-flow balances, bill matching, or your existing bank connections.'
+      : 'Existing Sandbox connections are unchanged.';
+    document.getElementById('flowpay-balance-settings').style.display = stagingMode ? 'none' : '';
+    matchesEl.style.display = stagingMode ? 'none' : '';
+    transactionsEl.style.display = stagingMode ? 'none' : '';
+    document.getElementById('flowpay-open-transactions').style.display = stagingMode ? 'none' : '';
+    accountsEl.replaceChildren();
+    lastAccounts = []; lastTransactions = [];
+    showConsent(false);
+    setBusy(false);
+    if (!currentUser) return;
+    setStatus(stagingMode ? 'Loading isolated staging test banks…' : 'Loading existing Sandbox banks…');
+    try {
+      await refreshConsent();
+      await loadBanks();
+      setStatus(stagingMode ? 'Staging test ready. Connect a test bank or check its webhook.' : 'Existing Sandbox bank connections ready.');
+    } catch (e) { setStatus('Bank environment load failed: '+e.message); }
+  });
   refreshButton.addEventListener('click',async () => {
     if(busy || !currentUser) return;
     setBusy(true);setStatus('Loading linked test banks…');
@@ -1903,6 +1937,13 @@ window.addEventListener('DOMContentLoaded',init);
   });
   function authChanged(id) {
     generation++;
+    stagingMode = false;
+    environmentSelect.value = 'current';
+    environmentNote.textContent = 'Existing Sandbox connections are unchanged.';
+    document.getElementById('flowpay-balance-settings').style.display = '';
+    matchesEl.style.display = '';
+    transactionsEl.style.display = '';
+    document.getElementById('flowpay-open-transactions').style.display = '';
     currentUser=id || null;
     panel.style.display=currentUser ? 'block' : 'none';
     accountsEl.replaceChildren();transactionsEl.replaceChildren();matchesEl.replaceChildren();lastTransactions=[];lastAccounts=[];txOverlay.style.display='none';window.flowpaySetBankBalanceSnapshot?.(null);renderBalanceControls();
