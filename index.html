@@ -1792,12 +1792,19 @@ window.addEventListener('DOMContentLoaded',init);
   // OAuth bank redirects return to this same origin and browser tab.
   // The Link token is session-only and is never placed in a URL or persistent storage.
   const oauthKey = userId => 'flowpay-plaid-oauth:'+userId;
+  function clearOAuthReturn() {
+    const url = new URL(location.href);
+    if (!url.searchParams.has('oauth_state_id')) return;
+    url.searchParams.delete('oauth_state_id');
+    history.replaceState(history.state, '', url.pathname + url.search + url.hash);
+  }
   function createLink(token, gen, redirectUrl) {
     const handler=window.Plaid.create({
       token,
       ...(redirectUrl ? {receivedRedirectUri:redirectUrl} : {}),
       onSuccess:async (publicToken,metadata) => {
         sessionStorage.removeItem(oauthKey(currentUser));
+        clearOAuthReturn();
         if(gen !== generation) return;
         setStatus('Saving encrypted test bank connection…');
         try {
@@ -1815,6 +1822,7 @@ window.addEventListener('DOMContentLoaded',init);
       onExit:(error) => {
         if(gen !== generation) return;
         sessionStorage.removeItem(oauthKey(currentUser));
+        clearOAuthReturn();
         if(error) setStatus('Plaid: '+(error.display_message || error.error_message || 'Link error'));
         else setStatus('Bank connection window closed.');
         setBusy(false);
