@@ -403,3 +403,20 @@ test('balance refresh refuses Plaid account ID owned by another connection', asy
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
   } finally { f.close(); }
 });
+
+test('duplicate Plaid account IDs reject refresh without partial balance updates', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    f.setPlaidResponder(() => Response.json({
+      accounts:[
+        {account_id:'account-A',name:'Updated',balances:{current:900}},
+        {account_id:'account-A',name:'Duplicate',balances:{current:901}}
+      ]
+    }));
+    const response = await f.call(A,'/bank-accounts?refresh=true');
+    assert.notEqual(response.status,200);
+    assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-A'").get().current_balance,100);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
+  } finally { f.close(); }
+});
