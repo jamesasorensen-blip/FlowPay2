@@ -214,3 +214,6 @@ Dashboard has the exact HTTPS frontend redirect URL registered.
 
 No production Plaid rollout, account migration, or background financial writes
 are authorized by these staging steps.
+
+The OAuth callback path resumes Plaid Link independently of bank account list
+retrieval. This prevents a transient listing error from blocking OAuth return.
