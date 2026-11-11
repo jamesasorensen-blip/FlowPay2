@@ -167,6 +167,45 @@ async function plaid(env, endpoint, body = {}) {
   }
   return result;
 }
+// Public Plaid webhook receiver. Never accept unverified events or mutate bank data.
+async function verifyPlaidWebhook(request, env) {
+  const signature = request.headers.get("Plaid-Verification");
+  if (!signature || signature.length > 4096) return null;
+  const parts = signature.split(".");
+  if (parts.length !== 3) return null;
+  let header, claims;
+  try {
+    header = parseJwtPart(parts[0]);
+    claims = parseJwtPart(parts[1]);
+  } catch { return null; }
+  if (header.alg !== "ES256" || typeof header.kid !== "string" ||
+      !/^[a-zA-Z0-9-]{1,100}$/.test(header.kid)) return null;
+  const now = Math.floor(Date.now() / 1000);
+  if (!Number.isInteger(claims.iat) || claims.iat > now + 30 ||
+      now - claims.iat > 300 ||
+      typeof claims.request_body_sha256 !== "string" ||
+      !/^[0-9a-f]{64}$/i.test(claims.request_body_sha256)) return null;
+  const body = await request.text();
+  if (body.length > 65536) return null;
+  const response = await plaid(env, "/webhook_verification_key/get", { key_id: header.kid });
+  const jwk = response.key;
+  if (!jwk || jwk.kid !== header.kid || jwk.kty !== "EC" ||
+      jwk.crv !== "P-256" || jwk.alg !== "ES256") return null;
+  const key = await crypto.subtle.importKey("jwk", jwk,
+    { name: "ECDSA", namedCurve: "P-256" }, false, ["verify"]);
+  const verified = await crypto.subtle.verify(
+    { name: "ECDSA", hash: "SHA-256" }, key,
+    b64decode(parts[2]), encoder.encode(parts[0] + "." + parts[1]));
+  if (!verified) return null;
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", encoder.encode(body)));
+  const hex = Array.from(digest, b => b.toString(16).padStart(2, "0")).join("");
+  // Fixed-length comparison to avoid short-circuiting on the first mismatch.
+  const expected = claims.request_body_sha256.toLowerCase();
+  let diff = 0;
+  for (let i = 0; i < 64; i++) diff |= hex.charCodeAt(i) ^ expected.charCodeAt(i);
+  if (diff !== 0) return null;
+  try { return JSON.parse(body); } catch { return null; }
+}
 async function ensureUser(env, userId) {
   await env.DB.prepare(
     "INSERT OR IGNORE INTO users (id) VALUES (?)"
@@ -342,6 +381,22 @@ export default {
     }
     if (env.PLAID_ENV !== "sandbox") {
       return send({ error: "Sandbox only" }, 403);
+    }
+    if (url.pathname === "/plaid-webhook") {
+      if (request.method !== "POST") return send({ error: "Method not allowed" }, 405);
+      try {
+        const event = await verifyPlaidWebhook(request, env);
+        if (!event || typeof event.webhook_type !== "string" ||
+            typeof event.webhook_code !== "string" ||
+            typeof event.item_id !== "string") {
+          return send({ error: "Invalid webhook" }, 401);
+        }
+        // Acknowledge verified sandbox events without triggering financial writes.
+        // Automatic sync needs a separately reviewed, idempotent queue design.
+        return send({ success: true });
+      } catch {
+        return send({ error: "Webhook verification unavailable" }, 503);
+      }
     }
     const connectionMatch = url.pathname.match(
       /^\/bank-connections\/([0-9a-f-]{36})$/i
@@ -645,7 +700,13 @@ export default {
           language: "en",
           country_codes: ["US"],
           products: ["transactions"],
-          user: { client_user_id: user.id }
+          user: { client_user_id: user.id },
+          ...(env.PLAID_OAUTH_REDIRECT_URI
+            ? { redirect_uri: env.PLAID_OAUTH_REDIRECT_URI }
+            : {}),
+          ...(env.PLAID_WEBHOOK_URL
+            ? { webhook: env.PLAID_WEBHOOK_URL }
+            : {})
         });
         return send({
           success: true,
