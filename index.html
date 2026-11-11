@@ -1570,6 +1570,25 @@ window.addEventListener('DOMContentLoaded',init);
           } catch(e) { if(gen === generation) setStatus('Sync failed: '+e.message); }
           finally {setBusy(false);button.disabled=false;}
         });
+        const check = label(accountsEl,'button','Check webhook configuration','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
+        check.type='button';
+        check.setAttribute('aria-label','Check Sandbox webhook for this bank connection');
+        check.addEventListener('click',async () => {
+          if (busy) return;
+          setBusy(true); check.disabled=true;
+          setStatus('Checking Plaid Sandbox webhook configuration…');
+          try {
+            const result = await api('/diagnostics/item-webhook','POST',{connection_id:id});
+            if (gen !== generation) return;
+            setStatus(result.webhook_matches_staging
+              ? 'Webhook configured correctly for this test bank.'
+              : result.webhook_configured
+                ? 'Webhook is configured, but does not match FlowPay staging.'
+                : 'No webhook is configured for this test bank.');
+          } catch(e) {
+            if(gen === generation) setStatus('Webhook check failed: '+e.message);
+          } finally {setBusy(false);check.disabled=false;}
+        });
       }
     }
     await loadTransactions();
