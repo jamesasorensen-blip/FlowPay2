@@ -22,10 +22,17 @@ const publicAssets = new Set([
   'index.html', 'manifest.json', 'manifest.webmanifest', 'favicon.ico',
   'icon-192.png', 'icon-512.png', 'sw.js', 'service-worker.js'
 ]);
+const assetAliases = new Map([
+  ['manifest.webmanifest', 'manifest.json'],
+  ['favicon.ico', 'icon-192.png']
+]);
 app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/:filename', (req, res, next) => {
   if (!publicAssets.has(req.params.filename)) return next();
-  res.sendFile(path.join(__dirname, req.params.filename), err => {
+  const filename = assetAliases.get(req.params.filename) || req.params.filename;
+  if (req.params.filename === 'manifest.webmanifest') res.type('application/manifest+json');
+  res.sendFile(path.join(__dirname, filename), err => {
+    if (err?.status === 404 && !res.headersSent) return next();
     if (err && !res.headersSent) next(err);
   });
 });
