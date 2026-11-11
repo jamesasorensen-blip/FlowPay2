@@ -177,3 +177,7 @@ The protected Cloudflare staging upload/promotion workflow remains mandatory.
 The initial webhook route has synthetic negative-path tests for unsigned,
 malformed, and non-sandbox requests. A signed Plaid sandbox delivery test
 is still required before considering the integration end-to-end verified.
+
+The synthetic webhook suite now also signs a NEW_ACCOUNTS_AVAILABLE event
+using a generated ES256 key, mocks Plaid key retrieval, and checks that an
+altered request body is rejected. It does not substitute for sandbox delivery.
