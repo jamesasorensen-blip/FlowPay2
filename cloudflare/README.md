@@ -128,3 +128,8 @@ protected inspect workflow, review the source changes and bindings, upload an
 unrouted candidate, then separately approve promotion. Test a sandbox-only bank
 connection and sync against the actual staging Worker after promotion. Never
 assume that passing local SQLite tests proves the remote D1 schema or secrets.
+
+The local integration suite additionally exercises consent withdrawal before
+transaction sync and balance refresh. Both paths must reject before calling Plaid
+and must not change the stored financial records. These are synthetic fixtures,
+not a substitute for protected staging checks.
