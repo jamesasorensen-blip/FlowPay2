@@ -420,3 +420,11 @@ test('duplicate Plaid account IDs reject refresh without partial balance updates
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
   } finally { f.close(); }
 });
+
+test('staging health endpoint refuses non-sandbox Plaid configuration', async () => {
+  const response = await worker.fetch(new Request('https://worker.test/'), {
+    PLAID_ENV:'production'
+  });
+  assert.equal(response.status,403);
+  assert.equal((await response.json()).error,'Sandbox only');
+});
