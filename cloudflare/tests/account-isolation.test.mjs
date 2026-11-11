@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import worker from '../staging-worker.mjs';
+import worker, { validPlaidWebhookEvent } from '../staging-worker.mjs';
 
 // Entirely local: generated signing keys, synthetic users, in-memory SQLite.
 const A = '11111111-1111-4111-8111-111111111111';
@@ -526,4 +526,15 @@ test('Link token URL bindings accept only exact frontend and Worker HTTPS destin
       assert.equal(sent,null,'invalid config must not be sent to Plaid');
     }
   } finally {f.close();}
+});
+
+test('Plaid webhook envelope rejects malformed fields but accepts future event codes', () => {
+  const valid={webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'item_123-abc'};
+  assert.equal(validPlaidWebhookEvent(valid),true);
+  assert.equal(validPlaidWebhookEvent({...valid,webhook_code:'FUTURE_EVENT'}),true);
+  for(const event of [
+    null, [], 'not an object', {}, {...valid,item_id:''},
+    {...valid,item_id:'../other'}, {...valid,webhook_type:'item'},
+    {...valid,webhook_code:'X'.repeat(129)}, {...valid,webhook_code:42}
+  ]) assert.equal(validPlaidWebhookEvent(event),false,JSON.stringify(event));
 });
