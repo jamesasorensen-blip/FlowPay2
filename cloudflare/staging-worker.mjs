@@ -180,6 +180,20 @@ function configuredPlaidUrl(value, expectedOrigin, path = null) {
   }
   return parsed.href;
 }
+// Keep webhook acknowledgements narrow: only recognized Plaid notifications
+// are accepted, and none can trigger a financial write in this staging phase.
+const KNOWN_WEBHOOK_CODES = Object.freeze({
+  ITEM: new Set(["NEW_ACCOUNTS_AVAILABLE", "ERROR", "PENDING_EXPIRATION", "USER_PERMISSION_REVOKED", "WEBHOOK_UPDATE_ACKNOWLEDGED"]),
+  TRANSACTIONS: new Set(["SYNC_UPDATES_AVAILABLE", "INITIAL_UPDATE", "HISTORICAL_UPDATE", "DEFAULT_UPDATE", "TRANSACTIONS_REMOVED"])
+});
+function validPlaidWebhookEvent(event) {
+  if (!event || typeof event !== "object" || Array.isArray(event) ||
+      typeof event.webhook_type !== "string" ||
+      typeof event.webhook_code !== "string" ||
+      typeof event.item_id !== "string" ||
+      !/^[a-zA-Z0-9_-]{1,256}$/.test(event.item_id)) return false;
+  return KNOWN_WEBHOOK_CODES[event.webhook_type]?.has(event.webhook_code) === true;
+}
 // Public Plaid webhook receiver. Never accept unverified events or mutate bank data.
 async function verifyPlaidWebhook(request, env) {
   const signature = request.headers.get("Plaid-Verification");
@@ -400,9 +414,7 @@ export default {
       if (request.method !== "POST") return send({ error: "Method not allowed" }, 405);
       try {
         const event = await verifyPlaidWebhook(request, env);
-        if (!event || typeof event.webhook_type !== "string" ||
-            typeof event.webhook_code !== "string" ||
-            typeof event.item_id !== "string") {
+        if (!validPlaidWebhookEvent(event)) {
           return send({ error: "Invalid webhook" }, 401);
         }
         // Acknowledge verified sandbox events without triggering financial writes.
