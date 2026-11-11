@@ -34,6 +34,15 @@ test('frontend server smoke and security checks', async (t) => {
   assert.equal(appManifest.start_url, '/');
   assert.ok(appManifest.icons.some(icon => icon.sizes === '192x192'));
   assert.ok(appManifest.icons.some(icon => icon.sizes === '512x512'));
+  const manifestAlias = await get('/manifest.webmanifest');
+  assert.equal(manifestAlias.status, 200);
+  assert.match(manifestAlias.headers.get('content-type') || '', /^application\/manifest\+json/);
+  assert.deepEqual(await manifestAlias.json(), appManifest);
+  const favicon = await get('/favicon.ico');
+  assert.equal(favicon.status, 200);
+  assert.match(favicon.headers.get('content-type') || '', /^image\/png/);
+  const faviconBytes = Buffer.from(await favicon.arrayBuffer());
+  assert.equal(faviconBytes.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
   for (const icon of appManifest.icons) {
     const asset = await get(icon.src);
     assert.equal(asset.status, 200, 'Manifest icon missing: ' + icon.src);
@@ -54,4 +63,8 @@ test('frontend server smoke and security checks', async (t) => {
     const response = await get(path);
     assert.equal(response.status, 404, path + ' must not be public');
   }
+  for (const path of ['/sw.js', '/service-worker.js']) {
+    assert.equal((await get(path)).status, 404);
+  }
+  assert.equal(errors.length, 0, 'Missing optional assets must not emit server errors');
 });
