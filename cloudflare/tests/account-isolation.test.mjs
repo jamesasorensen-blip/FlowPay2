@@ -60,8 +60,8 @@ function fixture() {
   const originalFetch=globalThis.fetch;
   globalThis.fetch=async (url, options) => {
     if (String(url)===issuer+'/.well-known/jwks.json') return Response.json({keys:[jwk]});
-    if (String(url) === 'https://sandbox.plaid.com/transactions/sync' && plaidResponder) {
-      return plaidResponder(JSON.parse(options.body));
+    if (['https://sandbox.plaid.com/transactions/sync', 'https://sandbox.plaid.com/accounts/get'].includes(String(url)) && plaidResponder) {
+      return plaidResponder(JSON.parse(options.body), String(url));
     }
     externalCalls++;
     throw Error('External network call blocked');
@@ -393,12 +393,18 @@ test('balance refresh refuses Plaid account ID owned by another connection', asy
   const f = fixture();
   try {
     await enableSyntheticPlaid(f);
-    f.setPlaidResponder(() => Response.json({
-      accounts:[{account_id:'account-B',name:'Foreign account',balances:{current:999}}]
-    }));
+    let plaidCalls = 0;
+    f.setPlaidResponder(() => {
+      plaidCalls++;
+      return Response.json({
+        accounts:[{account_id:'account-B',name:'Foreign account',balances:{current:999}}]
+      });
+    });
     const before = f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-B'").get().current_balance;
     const response = await f.call(A,'/bank-accounts?refresh=true');
-    assert.notEqual(response.status,200);
+    assert.equal(plaidCalls,1);
+    assert.match(JSON.stringify(response.body),/ownership conflict/i);
+    assert.equal(f.externalCalls(),0);
     assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-B'").get().current_balance,before);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
   } finally { f.close(); }
@@ -408,14 +414,20 @@ test('duplicate Plaid account IDs reject refresh without partial balance updates
   const f = fixture();
   try {
     await enableSyntheticPlaid(f);
-    f.setPlaidResponder(() => Response.json({
-      accounts:[
-        {account_id:'account-A',name:'Updated',balances:{current:900}},
-        {account_id:'account-A',name:'Duplicate',balances:{current:901}}
-      ]
-    }));
+    let plaidCalls = 0;
+    f.setPlaidResponder(() => {
+      plaidCalls++;
+      return Response.json({
+        accounts:[
+          {account_id:'account-A',name:'Updated',balances:{current:900}},
+          {account_id:'account-A',name:'Duplicate',balances:{current:901}}
+        ]
+      });
+    });
     const response = await f.call(A,'/bank-accounts?refresh=true');
-    assert.notEqual(response.status,200);
+    assert.equal(plaidCalls,1);
+    assert.match(JSON.stringify(response.body),/duplicate Plaid account ID/i);
+    assert.equal(f.externalCalls(),0);
     assert.equal(f.sql.prepare("SELECT current_balance FROM bank_accounts WHERE id='account-A'").get().current_balance,100);
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM security_audit_log WHERE action='balances_refreshed'").get().n,0);
   } finally { f.close(); }
