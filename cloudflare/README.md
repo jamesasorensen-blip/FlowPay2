@@ -167,9 +167,10 @@ In particular, receiving `NEW_ACCOUNTS_AVAILABLE` does not automatically
 add accounts. Replay deduplication, persistence, item ownership checks and
 background sync must be implemented before event-driven financial writes.
 
-The frontend OAuth return page and Link reinitialization have NOT yet been
-implemented or tested. Do not set `PLAID_OAUTH_REDIRECT_URI` until that flow
-works and the exact URL has been registered in Plaid Dashboard. The webhook
+The frontend OAuth return logic is implemented and covered by static regression
+checks, but has NOT yet passed a live browser/Sandbox OAuth redirect test. Do not
+set `PLAID_OAUTH_REDIRECT_URI` until the exact URL is registered in Plaid Dashboard
+and a protected staging deployment and end-to-end test are planned. The webhook
 URL is also not registered on existing Plaid Items by a source-code change;
 existing Items may require `/item/webhook/update` once staging is approved.
 The protected Cloudflare staging upload/promotion workflow remains mandatory.
@@ -189,3 +190,27 @@ The frontend now preserves the Link token in user-scoped sessionStorage and
 passes the returning OAuth URL as receivedRedirectUri. This remains unverified
 against a real Sandbox OAuth institution until staging is deployed and Plaid
 Dashboard has the exact HTTPS frontend redirect URL registered.
+
+## Next protected staging checklist
+
+1. Confirm that the frontend deployed at `https://flowpay-6aay.onrender.com/`
+   includes the OAuth return changes and that a browser can reopen the app.
+2. In Plaid Dashboard register the **exact** HTTPS redirect URI
+   `https://flowpay-6aay.onrender.com/` (including trailing slash). This
+   is a browser/PWA redirect; no Android SDK package name is required.
+3. In the staging Worker's Cloudflare settings, set the plain-text binding
+   `PLAID_OAUTH_REDIRECT_URI=https://flowpay-6aay.onrender.com/` only after
+   confirming the dashboard entry. Set `PLAID_WEBHOOK_URL` to the staging
+   Worker's own exact HTTPS URL followed by `/plaid-webhook`. Never place
+   credentials in either URL. Confirm the live Worker route hostname first.
+4. Inspect the staging Worker version and binding metadata through the protected
+   GitHub Action; review the currently checked-in source and full main SHA.
+   Upload an unrouted version, then separately approve promotion. Do not bypass
+   the required GitHub environment review.
+5. After promotion, create a fresh Plaid Sandbox Item, perform a real OAuth
+   round trip, and call Plaid's `/sandbox/item/fire_webhook` with webhook
+   code `NEW_ACCOUNTS_AVAILABLE`. Confirm Plaid's delivery and the Worker
+   response. Existing Items do not inherit the new webhook URL automatically.
+
+No production Plaid rollout, account migration, or background financial writes
+are authorized by these staging steps.
