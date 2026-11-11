@@ -754,6 +754,7 @@ export default {
         let modifications = [];
         let removals = [];
         let paginationRestarts = 0;
+        let seenCursors = new Set([initialCursor]);
         while (hasMore) {
           if (++pages > 100) {
             return send({
@@ -779,6 +780,7 @@ export default {
               additions = [];
               modifications = [];
               removals = [];
+              seenCursors = new Set([initialCursor]);
               continue;
             }
             throw error;
@@ -800,6 +802,12 @@ export default {
               page.added.length + page.modified.length + page.removed.length > 498) {
             return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
           }
+          // Reject a repeated cursor anywhere in this pagination attempt.
+          // A cycle longer than one page would otherwise consume the page limit.
+          if (seenCursors.has(page.next_cursor) && page.has_more) {
+            return send({ error: "Repeated transaction sync cursor; no changes saved" }, 502);
+          }
+          seenCursors.add(page.next_cursor);
           additions.push(...page.added);
           modifications.push(...page.modified);
           removals.push(...page.removed);
