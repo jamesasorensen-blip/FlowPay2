@@ -167,6 +167,19 @@ async function plaid(env, endpoint, body = {}) {
   }
   return result;
 }
+// Never send Link tokens to an unintended OAuth or webhook destination.
+function configuredPlaidUrl(value, expectedOrigin, path = null) {
+  if (value == null || value === "") return undefined;
+  if (typeof value !== "string" || value.length > 2048) throw Error("Invalid Plaid URL configuration");
+  let parsed;
+  try { parsed = new URL(value); } catch { throw Error("Invalid Plaid URL configuration"); }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password ||
+      parsed.hash || parsed.search || parsed.origin !== expectedOrigin ||
+      (path !== null && parsed.pathname !== path)) {
+    throw Error("Invalid Plaid URL configuration");
+  }
+  return parsed.href;
+}
 // Public Plaid webhook receiver. Never accept unverified events or mutate bank data.
 async function verifyPlaidWebhook(request, env) {
   const signature = request.headers.get("Plaid-Verification");
@@ -696,18 +709,16 @@ export default {
         if (!(await hasBankConsent(env, user.id))) {
           return send({ error: "Bank connection consent required" }, 403);
         }
+        const redirectUri = configuredPlaidUrl(env.PLAID_OAUTH_REDIRECT_URI, FLOWPAY_ORIGIN, "/");
+        const webhookUri = configuredPlaidUrl(env.PLAID_WEBHOOK_URL, new URL(request.url).origin, "/plaid-webhook");
         const result = await plaid(env, "/link/token/create", {
           client_name: "FlowPay",
           language: "en",
           country_codes: ["US"],
           products: ["transactions"],
           user: { client_user_id: user.id },
-          ...(env.PLAID_OAUTH_REDIRECT_URI
-            ? { redirect_uri: env.PLAID_OAUTH_REDIRECT_URI }
-            : {}),
-          ...(env.PLAID_WEBHOOK_URL
-            ? { webhook: env.PLAID_WEBHOOK_URL }
-            : {})
+          ...(redirectUri ? { redirect_uri: redirectUri } : {}),
+          ...(webhookUri ? { webhook: webhookUri } : {})
         });
         return send({
           success: true,
