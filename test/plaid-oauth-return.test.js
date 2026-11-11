@@ -27,3 +27,11 @@ test('OAuth callback is resumed without waiting for account listing', () => {
   assert.match(section, /loadBanks\(\)\.catch\(\(\)=>\{\}\)/);
   assert.doesNotMatch(section, /loadBanks\(\)\.then[^]*?\.finally\(\(\)=>\{if\(currentUser===id\)resumePlaidOAuth/);
 });
+
+test('OAuth callback state is cleared from browser URL after Link completes', () => {
+  assert.match(section, /function clearOAuthReturn\(\)/);
+  assert.match(section, /url\.searchParams\.delete\('oauth_state_id'\)/);
+  assert.match(section, /history\.replaceState\(history\.state, '', url\.pathname \+ url\.search \+ url\.hash\)/);
+  assert.match(section, /onSuccess:async[^]*?clearOAuthReturn\(\)/);
+  assert.match(section, /onExit:\(error\)[^]*?clearOAuthReturn\(\)/);
+});
