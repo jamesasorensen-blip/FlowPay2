@@ -861,12 +861,16 @@ export default {
             expectedAccounts.set(tx.transaction_id, tx.account_id);
           }
           const ids = [...expectedAccounts.keys()];
-          const placeholders = ids.map(() => "?").join(",");
-          const existing = await env.DB.prepare(
-            `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
-          ).bind(...ids).all();
-          if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
-            return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
+          // Keep lookup parameter counts small for D1 and SQLite variants.
+          for (let offset = 0; offset < ids.length; offset += 90) {
+            const chunk = ids.slice(offset, offset + 90);
+            const placeholders = chunk.map(() => "?").join(",");
+            const existing = await env.DB.prepare(
+              `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
+            ).bind(...chunk).all();
+            if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
+              return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
+            }
           }
         }
         // Bound the atomic batch so unusually large syncs fail without
