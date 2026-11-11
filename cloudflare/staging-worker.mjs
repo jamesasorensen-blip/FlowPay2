@@ -180,19 +180,16 @@ function configuredPlaidUrl(value, expectedOrigin, path = null) {
   }
   return parsed.href;
 }
-// Keep webhook acknowledgements narrow: only recognized Plaid notifications
-// are accepted, and none can trigger a financial write in this staging phase.
-const KNOWN_WEBHOOK_CODES = Object.freeze({
-  ITEM: new Set(["NEW_ACCOUNTS_AVAILABLE", "ERROR", "PENDING_EXPIRATION", "USER_PERMISSION_REVOKED", "WEBHOOK_UPDATE_ACKNOWLEDGED"]),
-  TRANSACTIONS: new Set(["SYNC_UPDATES_AVAILABLE", "INITIAL_UPDATE", "HISTORICAL_UPDATE", "DEFAULT_UPDATE", "TRANSACTIONS_REMOVED"])
-});
+// Validate envelope shape without rejecting newly introduced Plaid event codes.
+// Verified events are acknowledged only; this route never mutates financial data.
 function validPlaidWebhookEvent(event) {
-  if (!event || typeof event !== "object" || Array.isArray(event) ||
-      typeof event.webhook_type !== "string" ||
-      typeof event.webhook_code !== "string" ||
-      typeof event.item_id !== "string" ||
-      !/^[a-zA-Z0-9_-]{1,256}$/.test(event.item_id)) return false;
-  return KNOWN_WEBHOOK_CODES[event.webhook_type]?.has(event.webhook_code) === true;
+  if (!event || typeof event !== "object" || Array.isArray(event)) return false;
+  return typeof event.webhook_type === "string" &&
+    /^[A-Z_]{2,64}$/.test(event.webhook_type) &&
+    typeof event.webhook_code === "string" &&
+    /^[A-Z_]{2,128}$/.test(event.webhook_code) &&
+    typeof event.item_id === "string" &&
+    /^[a-zA-Z0-9_-]{1,256}$/.test(event.item_id);
 }
 // Public Plaid webhook receiver. Never accept unverified events or mutate bank data.
 async function verifyPlaidWebhook(request, env) {
