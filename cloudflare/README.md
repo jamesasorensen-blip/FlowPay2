@@ -141,3 +141,6 @@ a foreign account balance and audit history remain unchanged.
 
 A further synthetic regression test ensures that duplicate Plaid account IDs are
 rejected before any balance update or refresh audit entry is written.
+
+The staging Worker root health endpoint also fails closed when PLAID_ENV is
+not sandbox, and its regression is included in the worker isolation CI suite.
