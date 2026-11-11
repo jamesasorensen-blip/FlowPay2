@@ -331,3 +331,24 @@ test('actual sync rejects impossible calendar dates without advancing cursor', a
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='impossible-date'").get().n,0);
   } finally { f.close(); }
 });
+
+test('actual sync checks transaction ownership across multiple SQL lookup chunks', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    const added = Array.from({length: 91}, (_,i) => ({
+      transaction_id: 'chunk-tx-'+i,
+      account_id:'account-A',
+      amount:i+1,
+      date:'2026-11-10'
+    }));
+    added[90].transaction_id = 'tx-B';
+    f.setPlaidResponder(() => Response.json({
+      added,modified:[],removed:[],next_cursor:'chunk-cursor',has_more:false
+    }));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,409,JSON.stringify(response.body));
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id LIKE 'chunk-tx-%'").get().n,0);
+  } finally { f.close(); }
+});
