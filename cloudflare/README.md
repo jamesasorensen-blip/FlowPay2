@@ -231,3 +231,13 @@ no account data is changed, and a durable replay ledger/queue is not installed.
 After Plaid Link succeeds or exits, the browser removes oauth_state_id from
 the current URL using replaceState. The token remains tab-scoped and is removed
 on completion, avoiding a stale callback prompt after refreshing the page.
+
+### Staging Item webhook diagnostic
+
+The authenticated POST /diagnostics/item-webhook endpoint accepts JSON
+`{"connection_id":"<UUID from bank-accounts>"}` from the FlowPay frontend origin,
+restricted to the configured staging test user and active bank consent. It calls
+Plaid /item/get read-only and returns only webhook_configured,
+webhook_matches_staging, and expected_webhook_configured booleans. It does not
+return Plaid credentials, Item IDs, or the configured webhook URL, and never
+modifies bank data. It is staging-only; do not copy it into production.
