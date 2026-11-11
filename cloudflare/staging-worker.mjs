@@ -845,12 +845,19 @@ export default {
         // must not silently succeed and advance the Plaid cursor.
         const incoming = [...additions, ...modifications];
         if (incoming.length) {
-          const ids = [...new Set(incoming.map(tx => tx.transaction_id))];
+          const expectedAccounts = new Map();
+          for (const tx of incoming) {
+            if (expectedAccounts.has(tx.transaction_id) &&
+                expectedAccounts.get(tx.transaction_id) !== tx.account_id) {
+              return send({ error: "Conflicting transaction account IDs; no changes saved" }, 409);
+            }
+            expectedAccounts.set(tx.transaction_id, tx.account_id);
+          }
+          const ids = [...expectedAccounts.keys()];
           const placeholders = ids.map(() => "?").join(",");
           const existing = await env.DB.prepare(
             `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
           ).bind(...ids).all();
-          const expectedAccounts = new Map(incoming.map(tx => [tx.transaction_id, tx.account_id]));
           if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
             return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
           }
