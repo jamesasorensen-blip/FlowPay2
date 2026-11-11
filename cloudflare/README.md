@@ -100,8 +100,9 @@ node --test cloudflare/tests/account-isolation.test.mjs
 ```
 
 These tests execute the unmodified staging Worker using locally generated ES256
-JWTs and an in-memory SQLite D1 adapter. All outbound requests except the local
-JWKS stub are blocked. No cloud credentials or real user records are used.
+JWTs and an in-memory SQLite D1 adapter. The local JWKS endpoint and
+explicitly stubbed Plaid sandbox calls are permitted; other outbound requests
+are blocked. No cloud credentials or real user records are used.
 They cover the staging allowlist, per-user cloud/account/transaction/consent
 reads, forged user IDs, foreign-connection sync and disconnect rejection,
 cloud-data writes, and consent withdrawal scope. To reach ownership checks for
@@ -110,8 +111,9 @@ no deployed restriction is changed.
 
 Passing these tests does not establish live two-account isolation, frontend
 browser-storage isolation, production behavior, or full deletion/connection
-lifecycle isolation. The SQLite adapter models only the D1 operations exercised
-here and does not simulate D1 transaction rollback.
+lifecycle isolation. The SQLite adapter models only the D1 operations exercised here. Its D1 batch
+simulator uses a SQLite transaction with rollback on failure, but it cannot
+establish parity with Cloudflare D1's remote execution semantics.
 
 ## CI verification and staging deployment status (November 10, 2026)
 
