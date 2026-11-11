@@ -1884,9 +1884,15 @@ window.addEventListener('DOMContentLoaded',init);
     if(currentUser){
       refreshConsent().catch(e=>{consentStatus.textContent='Unable to check permission: '+e.message;});
       setStatus('Loading Sandbox bank connections…');
-      loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
-        .catch(e=>setStatus('Bank loading failed: '+e.message))
-        .finally(()=>{if(currentUser===id)resumePlaidOAuth().catch(e=>setStatus('Bank return failed: '+e.message));});
+      // Resume an OAuth callback immediately; an unrelated account-list failure
+      // must not delay or block bank authorization completion.
+      if(new URLSearchParams(location.search).has('oauth_state_id')) {
+        resumePlaidOAuth().catch(e=>setStatus('Bank return failed: '+e.message));
+        loadBanks().catch(()=>{});
+      } else {
+        loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
+          .catch(e=>setStatus('Bank loading failed: '+e.message));
+      }
     }
   }
   window.addEventListener('flowpay-auth-user-changed',e=>authChanged(e.detail.userId));
