@@ -173,3 +173,7 @@ works and the exact URL has been registered in Plaid Dashboard. The webhook
 URL is also not registered on existing Plaid Items by a source-code change;
 existing Items may require `/item/webhook/update` once staging is approved.
 The protected Cloudflare staging upload/promotion workflow remains mandatory.
+
+The initial webhook route has synthetic negative-path tests for unsigned,
+malformed, and non-sandbox requests. A signed Plaid sandbox delivery test
+is still required before considering the integration end-to-end verified.
