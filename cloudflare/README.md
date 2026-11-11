@@ -146,3 +146,7 @@ rejected before any balance update or refresh audit entry is written.
 
 The staging Worker root health endpoint also fails closed when PLAID_ENV is
 not sandbox, and its regression is included in the worker isolation CI suite.
+
+The balance refresh ownership and duplicate-ID regressions now mock Plaid's
+`/accounts/get` endpoint explicitly and assert the specific rejection reason,
+so a blocked outbound request cannot produce a false-positive test pass.
