@@ -182,7 +182,7 @@ function configuredPlaidUrl(value, expectedOrigin, path = null) {
 }
 // Validate envelope shape without rejecting newly introduced Plaid event codes.
 // Verified events are acknowledged only; this route never mutates financial data.
-function validPlaidWebhookEvent(event) {
+export function validPlaidWebhookEvent(event) {
   if (!event || typeof event !== "object" || Array.isArray(event)) return false;
   return typeof event.webhook_type === "string" &&
     /^[A-Z_]{2,64}$/.test(event.webhook_type) &&
