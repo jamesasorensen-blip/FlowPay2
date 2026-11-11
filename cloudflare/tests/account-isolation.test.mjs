@@ -442,3 +442,22 @@ test('staging health endpoint refuses non-sandbox Plaid configuration', async ()
   assert.equal(response.status,403);
   assert.equal((await response.json()).error,'Sandbox only');
 });
+
+test('Plaid webhook receiver rejects unsigned and malformed events without database access', async () => {
+  for (const headers of [{}, {'Plaid-Verification':'invalid.jwt.value'}]) {
+    const response = await worker.fetch(new Request('https://worker.test/plaid-webhook', {
+      method:'POST',headers:{'Content-Type':'application/json',...headers},
+      body:JSON.stringify({webhook_type:'ITEM',webhook_code:'NEW_ACCOUNTS_AVAILABLE',item_id:'fake'})
+    }), {PLAID_ENV:'sandbox'});
+    assert.equal(response.status,401);
+  }
+});
+
+test('Plaid webhook receiver never accepts GET or non-sandbox environment', async () => {
+  const get = await worker.fetch(new Request('https://worker.test/plaid-webhook'), {PLAID_ENV:'sandbox'});
+  assert.equal(get.status,405);
+  const production = await worker.fetch(new Request('https://worker.test/plaid-webhook',{
+    method:'POST',body:'{}'
+  }), {PLAID_ENV:'production'});
+  assert.equal(production.status,403);
+});
