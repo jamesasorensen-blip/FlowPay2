@@ -31,5 +31,5 @@ jobs:
           node-version: '24'
       - name: Check staging Worker syntax
         run: node --check cloudflare/staging-worker.mjs
-      - name: Run local two-user isolation regression suite
-        run: node --test cloudflare/tests/account-isolation.test.mjs
+      - name: Run banking isolation and sync contract tests
+        run: node --test cloudflare/tests/account-isolation.test.mjs test/worker-sync-contract.test.js
