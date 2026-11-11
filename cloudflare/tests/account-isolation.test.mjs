@@ -247,3 +247,18 @@ test('actual sync route restarts pagination after Plaid mutation without duplica
     assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,'final-cursor');
   } finally { f.close(); }
 });
+
+test('actual sync route rejects malformed dates without committing the cursor', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    f.setPlaidResponder(() => Response.json({
+      added:[{transaction_id:'bad-date',account_id:'account-A',amount:3,date:'not-a-date'}],
+      modified:[],removed:[],next_cursor:'bad-cursor',has_more:false
+    }));
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,502,JSON.stringify(response.body));
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+    assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='bad-date'").get().n,0);
+  } finally { f.close(); }
+});
