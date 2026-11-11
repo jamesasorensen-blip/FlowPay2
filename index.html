@@ -1789,6 +1789,63 @@ window.addEventListener('DOMContentLoaded',init);
   txFilter.addEventListener('change',renderTransactionExplorer);
   txCategoryFilter.addEventListener('change',()=>{window.flowpaySelectedTxCategory=txCategoryFilter.value;renderTransactionExplorer()});
   window.addEventListener('flowpay-financial-state-loaded',()=>{if(txOverlay.style.display==='block')renderTransactionExplorer()});
+  // OAuth bank redirects return to this same origin and browser tab.
+  // The Link token is session-only and is never placed in a URL or persistent storage.
+  const oauthKey = userId => 'flowpay-plaid-oauth:'+userId;
+  function createLink(token, gen, redirectUrl) {
+    const handler=window.Plaid.create({
+      token,
+      ...(redirectUrl ? {receivedRedirectUri:redirectUrl} : {}),
+      onSuccess:async (publicToken,metadata) => {
+        sessionStorage.removeItem(oauthKey(currentUser));
+        if(gen !== generation) return;
+        setStatus('Saving encrypted test bank connection…');
+        try {
+          const result=await api('/exchange-token','POST',{
+            public_token:publicToken,
+            institution_name:metadata?.institution?.name || 'Sandbox bank'
+          });
+          if(gen !== generation) return;
+          setStatus('Test bank saved ('+(result.accounts_saved ?? 0)+' accounts). Loading accounts…');
+          await loadBanks();
+          if(gen === generation) setStatus('Test bank connected. Select Sync transactions to import activity.');
+        } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
+        finally {setBusy(false);}
+      },
+      onExit:(error) => {
+        if(gen !== generation) return;
+        sessionStorage.removeItem(oauthKey(currentUser));
+        if(error) setStatus('Plaid: '+(error.display_message || error.error_message || 'Link error'));
+        else setStatus('Bank connection window closed.');
+        setBusy(false);
+      },
+      onLoad:() => {if(gen === generation) setStatus('Choose a Sandbox test bank.');}
+    });
+    handler.open();
+  }
+  async function resumePlaidOAuth() {
+    if(!currentUser || !new URLSearchParams(location.search).has('oauth_state_id')) return false;
+    const key=oauthKey(currentUser);
+    const saved=sessionStorage.getItem(key);
+    if(!saved) {
+      setStatus('Bank authorization session expired. Start a new connection.');
+      return false;
+    }
+    let data;
+    try { data=JSON.parse(saved); } catch { sessionStorage.removeItem(key); return false; }
+    if(typeof data.token!=='string' || !data.token ||
+       !Number.isFinite(data.started) || Date.now()-data.started>25*60*1000 ||
+       data.started>Date.now()+60000) {
+      sessionStorage.removeItem(key);
+      setStatus('Bank authorization session expired. Start a new connection.');
+      return false;
+    }
+    if(!window.Plaid) {setStatus('Plaid Link library did not load.');return false;}
+    setBusy(true);
+    setStatus('Returning to bank authorization…');
+    createLink(data.token,generation,location.href);
+    return true;
+  }
   connectButton.addEventListener('click',async () => {
     if(busy || !currentUser) return;
     setBusy(true);
@@ -1806,32 +1863,8 @@ window.addEventListener('DOMContentLoaded',init);
       const data=await api('/link-token','POST',{});
       if(!data.link_token) throw new Error('Missing Link token.');
       const gen=generation;
-      const handler=window.Plaid.create({
-        token:data.link_token,
-        onSuccess:async (publicToken,metadata) => {
-          if(gen !== generation) return;
-          setStatus('Saving encrypted test bank connection…');
-          try {
-            const result=await api('/exchange-token','POST',{
-              public_token:publicToken,
-              institution_name:metadata?.institution?.name || 'Sandbox bank'
-            });
-            if(gen !== generation) return;
-            setStatus('Test bank saved ('+(result.accounts_saved ?? 0)+' accounts). Loading accounts…');
-            await loadBanks();
-            if(gen === generation) setStatus('Test bank connected. Select Sync transactions to import activity.');
-          } catch(e) {if(gen === generation) setStatus('Bank save failed: '+e.message);}
-          finally {setBusy(false);}
-        },
-        onExit:(error) => {
-          if(gen !== generation) return;
-          if(error) setStatus('Plaid: '+(error.display_message || error.error_message || 'Link error'));
-          else setStatus('Bank connection window closed.');
-          setBusy(false);
-        },
-        onLoad:() => {if(gen === generation) setStatus('Choose a Sandbox test bank.');}
-      });
-      handler.open();
+      sessionStorage.setItem(oauthKey(currentUser),JSON.stringify({token:data.link_token,started:Date.now()}));
+      createLink(data.link_token,gen);
     } catch(e) {setStatus('Connection error: '+e.message);setBusy(false);}
   });
   refreshButton.addEventListener('click',async () => {
@@ -1852,7 +1885,8 @@ window.addEventListener('DOMContentLoaded',init);
       refreshConsent().catch(e=>{consentStatus.textContent='Unable to check permission: '+e.message;});
       setStatus('Loading Sandbox bank connections…');
       loadBanks().then(()=>setStatus('Sandbox bank connections ready.'))
-        .catch(e=>setStatus('Bank loading failed: '+e.message));
+        .catch(e=>setStatus('Bank loading failed: '+e.message))
+        .finally(()=>{if(currentUser===id)resumePlaidOAuth().catch(e=>setStatus('Bank return failed: '+e.message));});
     }
   }
   window.addEventListener('flowpay-auth-user-changed',e=>authChanged(e.detail.userId));
