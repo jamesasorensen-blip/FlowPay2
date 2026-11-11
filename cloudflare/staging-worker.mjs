@@ -329,6 +329,9 @@ export default {
       "/my-data"
     ];
     if (url.pathname === "/" && request.method === "GET") {
+      if (env.PLAID_ENV !== "sandbox") {
+        return send({ error: "Sandbox only" }, 403);
+      }
       return send({
         app: "FlowPay Plaid API",
         status: "online",
