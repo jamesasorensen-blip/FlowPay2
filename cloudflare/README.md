@@ -138,3 +138,6 @@ The staging source also validates Plaid account IDs before balance refresh:
 invalid/duplicate IDs and IDs already owned by a different connection are
 rejected before account updates. The synthetic integration test verifies that
 a foreign account balance and audit history remain unchanged.
+
+A further synthetic regression test ensures that duplicate Plaid account IDs are
+rejected before any balance update or refresh audit entry is written.
