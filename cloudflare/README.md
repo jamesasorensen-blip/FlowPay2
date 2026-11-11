@@ -306,3 +306,41 @@ Cron configuration and a Sandbox delivery still require deployment verification.
 
 Cloudflare scheduled-handler reference:
 https://developers.cloudflare.com/workers/runtime-apis/handlers/scheduled/
+
+## Staging bank sign-in recovery
+
+Apply `0003_sync_reconnect_state.sql` once after verifying that
+`PRAGMA table_info(plaid_sync_jobs)` has no `last_error_code` column. Apply the
+migration before promoting this Worker. Existing rows start with a null error
+code and retain their normal retry behavior.
+
+A Plaid `ITEM_LOGIN_REQUIRED` sync failure or a verified owned `ITEM / ERROR`
+webhook records a fixed login-required state. Scheduled and manual sync pause
+until reconnection. The authenticated sync diagnostic exposes only a
+`requires_reconnect` boolean in addition to its existing operational fields.
+`ITEM / LOGIN_REPAIRED` deliveries can also release pending work when the bank
+repairs a connection outside FlowPay. Delivery fingerprints prevent replayed
+notifications from enqueueing the same work twice.
+
+In the isolated staging bank panel, Reconnect bank requests `/link-token` with
+the existing connection ID. The Worker validates ownership and active consent,
+then creates a Plaid update-mode token using the encrypted stored access token.
+The browser receives only the Link token. Update mode omits `products` and
+uses the existing Item. Its success callback calls `/reconnect-complete` and
+does not exchange a public token or create a bank connection.
+
+Completion checks `/item/get` for the matching Item with `error: null` before
+atomically releasing the paused job and writing its audit entry. Repeating
+completion is idempotent. Consent and ownership are checked again at the write
+boundary. Releasing a paused job invalidates its old lease, so an older sync
+response cannot overwrite recovery state or commit stale financial data.
+
+User-scoped, tab-scoped OAuth context retains the connection ID and restores
+the staging environment before consent/account requests. Expired, ambiguous,
+malformed and foreign-user contexts fail closed. Older new-connection sessions
+remain supported. Starting a new Link flow replaces only that user's pending
+Link sessions.
+
+Plaid references used for the update-mode and Item-state contract:
+https://plaid.com/docs/link/update-mode/
+https://plaid.com/docs/api/items/

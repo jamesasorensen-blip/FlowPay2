@@ -9,14 +9,14 @@ const section = html.slice(html.indexOf('<!-- FlowPay Plaid Sandbox Bank Connect
 test('OAuth return resumes Plaid Link with original tab-scoped token', () => {
   assert.match(section, /receivedRedirectUri:redirectUrl/);
   assert.match(section, /new URLSearchParams\(location\.search\)\.has\('oauth_state_id'\)/);
-  assert.match(section, /createLink\(data\.token,generation,location\.href\)/);
+  assert.match(section, /createLink\(data\.token,generation,location\.href,data\.connectionId\)/);
   assert.match(section, /sessionStorage\.setItem\(oauthKey\(currentUser\)/);
   assert.doesNotMatch(section, /localStorage\.setItem\(oauthKey/);
 });
 
 test('OAuth resume is scoped to authenticated user and expires', () => {
   assert.match(section, /const oauthKey = userId => 'flowpay-plaid-oauth:'\+userId/);
-  assert.match(section, /Date\.now\(\)-data\.started>25\*60\*1000/);
+  assert.match(section, /Date\.now\(\)-data\.started\s*>\s*25\*60\*1000/);
   assert.match(section, /sessionStorage\.removeItem\(oauthKey\(currentUser\)\)/);
   assert.match(section, /if\(!currentUser \|\| !new URLSearchParams/);
 });
