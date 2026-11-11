@@ -247,7 +247,7 @@ export async function recordWebhookReceipt(env, event, verificationToken) {
   const receiptId = Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
   // D1 serializes this batch, so concurrent redeliveries share one receipt.
   // Store no payload, Item ID, user ID, transaction data or verification token.
-  await env.DB.batch([
+  const statements = [
     env.DB.prepare(
       "DELETE FROM plaid_webhook_receipts WHERE received_at < datetime('now', '-7 days')"
     ),
@@ -255,7 +255,18 @@ export async function recordWebhookReceipt(env, event, verificationToken) {
       `INSERT INTO plaid_webhook_receipts (id, webhook_type, webhook_code)
        VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING`
     ).bind(receiptId, event.webhook_type, event.webhook_code)
-  ]);
+  ];
+  if (event.webhook_type === "TRANSACTIONS" && event.webhook_code === "SYNC_UPDATES_AVAILABLE") {
+    // changes() refers to the preceding receipt insert in the same D1 transaction.
+    // A redelivery does not enqueue again. Generations preserve events arriving
+    // while an earlier sync is running.
+    statements.push(env.DB.prepare(
+      `INSERT INTO plaid_sync_jobs (connection_id, generation)
+       SELECT ?, 1 WHERE changes() = 1
+       ON CONFLICT(connection_id) DO UPDATE SET generation = generation + 1`
+    ).bind(connection.id));
+  }
+  await env.DB.batch(statements);
 }
 async function ensureUser(env, userId) {
   await env.DB.prepare(
@@ -371,6 +382,251 @@ function transactionStatement(env, tx) {
     category
   );
 }
+// Both manual refresh and webhook processing use the same per-connection lease.
+async function runConnectionSync(env, userId, connectionId, send = json) {
+  await env.DB.prepare(
+    "INSERT INTO plaid_sync_jobs (connection_id) VALUES (?) ON CONFLICT(connection_id) DO NOTHING"
+  ).bind(connectionId).run();
+  const leaseToken = crypto.randomUUID();
+  const job = await env.DB.prepare(
+    `UPDATE plaid_sync_jobs SET lease_token = ?, lease_until = unixepoch() + 300
+     WHERE connection_id = ? AND lease_until <= unixepoch() RETURNING *`
+  ).bind(leaseToken, connectionId).first();
+  if (!job) return send({error: "Transaction sync already running"}, 409);
+  let response;
+  try {
+    const connection = await getConnection(env, userId, connectionId);
+    if (!connection || userId !== env.STAGING_TEST_USER_ID ||
+        !(await hasBankConsent(env, userId, connectionId))) {
+      // Cancel pending work for a disconnected or withdrawn-consent Item.
+      await env.DB.prepare(
+        "DELETE FROM plaid_sync_jobs WHERE connection_id = ? AND lease_token = ?"
+      ).bind(connectionId, leaseToken).run();
+      return send({error: "Bank connection consent required"}, 403);
+    }
+    response = await syncConnection(env, {id: userId}, connection, leaseToken);
+    if (response.ok) {
+      await env.DB.prepare(
+        `UPDATE plaid_sync_jobs SET processed_generation = ?, attempts = 0,
+         next_attempt_at = 0 WHERE connection_id = ? AND lease_token = ?`
+      ).bind(job.generation, connectionId, leaseToken).run();
+    } else {
+      await deferSyncJob(env, connectionId, leaseToken, job.attempts);
+    }
+  } catch {
+    await deferSyncJob(env, connectionId, leaseToken, job.attempts);
+    response = json({error: "Transaction sync temporarily unavailable"}, 503);
+  } finally {
+    await env.DB.prepare(
+      `UPDATE plaid_sync_jobs SET lease_token = '', lease_until = 0
+       WHERE connection_id = ? AND lease_token = ?`
+    ).bind(connectionId, leaseToken).run();
+  }
+  return send(await response.json(), response.status);
+}
+async function deferSyncJob(env, connectionId, leaseToken, attempts) {
+  const delay = Math.min(3600, 30 * 2 ** Math.min(attempts, 7));
+  await env.DB.prepare(
+    `UPDATE plaid_sync_jobs SET attempts = attempts + 1,
+     generation = MAX(generation, processed_generation + 1),
+     next_attempt_at = unixepoch() + ? WHERE connection_id = ? AND lease_token = ?`
+  ).bind(delay, connectionId, leaseToken).run();
+}
+export async function processSyncJobs(env) {
+  if (env.PLAID_ENV !== "sandbox" || !env.STAGING_TEST_USER_ID) return;
+  const jobs = await env.DB.prepare(
+    `SELECT j.connection_id FROM plaid_sync_jobs j
+     JOIN bank_connections c ON c.id = j.connection_id
+     WHERE j.generation > j.processed_generation AND j.next_attempt_at <= unixepoch()
+       AND j.lease_until <= unixepoch() AND c.user_id = ?
+     ORDER BY j.next_attempt_at, j.connection_id LIMIT 5`
+  ).bind(env.STAGING_TEST_USER_ID).all();
+  for (const job of jobs.results || []) {
+    const response = await runConnectionSync(env, env.STAGING_TEST_USER_ID, job.connection_id);
+    if (!response.ok) console.error("FlowPay background sync deferred");
+  }
+}
+async function syncConnection(env, user, connection, leaseToken) {
+  const send = json;
+  const token = await decryptToken(connection, env);
+  const initialCursor = connection.sync_cursor || "";
+  let cursor = initialCursor;
+  let hasMore = true;
+  let pages = 0;
+  let added = 0;
+  let modified = 0;
+  let removed = 0;
+  let additions = [];
+  let modifications = [];
+  let removals = [];
+  let paginationRestarts = 0;
+  let seenCursors = new Set([initialCursor]);
+  while (hasMore) {
+    if (++pages > 100) {
+      return send({
+        error: "Too many sync pages; no changes saved"
+      }, 503);
+    }
+    let page;
+    try {
+      page = await plaid(env, "/transactions/sync", {
+        access_token: token,
+        cursor,
+        count: 100
+      });
+    } catch (error) {
+      // Plaid requires a full restart from the last committed cursor
+      // when transactions mutate during pagination.
+      if (error.code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION" &&
+          paginationRestarts < 2) {
+        paginationRestarts++;
+        cursor = initialCursor;
+        hasMore = true;
+        pages = 0;
+        additions = [];
+        modifications = [];
+        removals = [];
+        seenCursors = new Set([initialCursor]);
+        continue;
+      }
+      throw error;
+    }
+    // Reject malformed pages before persisting any transactions or cursor.
+    // An invalid cursor must never replace the last committed sync position.
+    if (
+      !page || !Array.isArray(page.added) ||
+      !Array.isArray(page.modified) ||
+      !Array.isArray(page.removed) ||
+      typeof page.next_cursor !== "string" ||
+      typeof page.has_more !== "boolean" ||
+      (page.has_more && page.next_cursor === cursor)
+    ) {
+      return send({ error: "Invalid transaction sync response; no changes saved" }, 502);
+    }
+    if (page.added.length + page.modified.length + page.removed.length > 500 ||
+        additions.length + modifications.length + removals.length +
+        page.added.length + page.modified.length + page.removed.length > 497) {
+      return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
+    }
+    // Reject a repeated cursor anywhere in this pagination attempt.
+    // A cycle longer than one page would otherwise consume the page limit.
+    if (seenCursors.has(page.next_cursor) && page.has_more) {
+      return send({ error: "Repeated transaction sync cursor; no changes saved" }, 502);
+    }
+    seenCursors.add(page.next_cursor);
+    additions.push(...page.added);
+    modifications.push(...page.modified);
+    removals.push(...page.removed);
+    cursor = page.next_cursor;
+    hasMore = page.has_more;
+  }
+  const accounts = await env.DB.prepare(
+    "SELECT id FROM bank_accounts WHERE connection_id = ?"
+  ).bind(connection.id).all();
+  const accountIds = new Set(
+    (accounts.results || []).map(a => a.id)
+  );
+  // Validate Plaid identifiers and required transaction fields before
+  // building any statements; malformed payloads must not advance cursor.
+  for (const tx of [...additions, ...modifications]) {
+    if (!tx || typeof tx.transaction_id !== "string" ||
+        !tx.transaction_id || typeof tx.account_id !== "string" ||
+        !tx.account_id || typeof tx.amount !== "number" ||
+        !Number.isFinite(tx.amount) || !validPlaidDate(tx.date)) {
+      return send({ error: "Invalid transaction fields; no changes saved" }, 502);
+    }
+  }
+  for (const tx of [...additions, ...modifications]) {
+    if (!accountIds.has(tx.account_id)) {
+      return send({ error: "Transaction account mismatch" }, 502);
+    }
+  }
+  for (const tx of removals) {
+    if (!tx || typeof tx.transaction_id !== "string" || !tx.transaction_id) {
+      return send({ error: "Invalid removed transaction; no changes saved" }, 502);
+    }
+  }
+  // An upsert conflict on a transaction belonging to another account
+  // must not silently succeed and advance the Plaid cursor.
+  const incoming = [...additions, ...modifications];
+  if (incoming.length) {
+    const expectedAccounts = new Map();
+    for (const tx of incoming) {
+      if (expectedAccounts.has(tx.transaction_id) &&
+          expectedAccounts.get(tx.transaction_id) !== tx.account_id) {
+        return send({ error: "Conflicting transaction account IDs; no changes saved" }, 409);
+      }
+      expectedAccounts.set(tx.transaction_id, tx.account_id);
+    }
+    const ids = [...expectedAccounts.keys()];
+    // Keep lookup parameter counts small for D1 and SQLite variants.
+    for (let offset = 0; offset < ids.length; offset += 90) {
+      const chunk = ids.slice(offset, offset + 90);
+      const placeholders = chunk.map(() => "?").join(",");
+      const existing = await env.DB.prepare(
+        `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
+      ).bind(...chunk).all();
+      if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
+        return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
+      }
+    }
+  }
+  // Bound the atomic batch so unusually large syncs fail without
+  // advancing the cursor or risking D1 statement/CPU limits.
+  const statementCount = additions.length + modifications.length + removals.length + 3;
+  if (statementCount > 500) {
+    return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
+  }
+  // D1 batch executes these statements in a single transaction. The
+  // cursor is advanced only if every transaction change succeeds.
+  const statements = [
+    env.DB.prepare(
+      `INSERT OR REPLACE INTO plaid_sync_commit_fence (id)
+       SELECT CASE WHEN EXISTS (
+         SELECT 1 FROM plaid_sync_jobs j JOIN bank_connections c ON c.id = j.connection_id
+         WHERE j.connection_id = ? AND j.lease_token = ? AND j.lease_until > unixepoch()
+           AND c.user_id = ? AND COALESCE(c.sync_cursor, '') = ?
+           AND EXISTS (SELECT 1 FROM user_consents u WHERE u.user_id = c.user_id
+             AND u.consent_type = 'bank_connection' AND u.withdrawn_at IS NULL
+             AND (u.connection_id IS NULL OR u.connection_id = c.id))
+       ) THEN 1 ELSE 0 END`
+    ).bind(connection.id, leaseToken, user.id, initialCursor),
+    ...additions.map(tx => transactionStatement(env, tx)),
+    ...modifications.map(tx => transactionStatement(env, tx)),
+    ...removals.map(tx => env.DB.prepare(
+      `DELETE FROM bank_transactions
+       WHERE id = ?
+         AND account_id IN (
+           SELECT id FROM bank_accounts WHERE connection_id = ?
+         )`
+    ).bind(tx.transaction_id, connection.id)),
+    env.DB.prepare(
+      `UPDATE bank_connections
+       SET sync_cursor = ?, last_synced_at = CURRENT_TIMESTAMP
+       WHERE id = ? AND user_id = ?`
+    ).bind(cursor, connection.id, user.id),
+    env.DB.prepare(
+      `INSERT INTO security_audit_log
+       (id, user_id, action, resource_type, resource_id)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(crypto.randomUUID(), user.id, "transactions_synced", "bank_connection", connection.id)
+  ];
+  const results = await env.DB.batch(statements);
+  added = additions.length;
+  modified = modifications.length;
+  removed = results.slice(1 + additions.length + modifications.length,
+    1 + additions.length + modifications.length + removals.length)
+    .reduce((total, result) => total + (result.meta?.changes || 0), 0);
+  return send({
+    success: true,
+    added,
+    modified,
+    removed,
+    pages,
+    has_more: false
+  });
+}
+
 async function readJson(request, maxBytes = 4096) {
   const raw = await request.text();
   if (encoder.encode(raw).byteLength > maxBytes) {
@@ -387,7 +643,12 @@ async function readJson(request, maxBytes = 4096) {
   }
 }
 export default {
-  async fetch(request, env) {
+  async scheduled(controller, env, ctx) {
+    ctx.waitUntil(processSyncJobs(env).catch(() => {
+      console.error("FlowPay scheduled sync unavailable");
+    }));
+  },
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     const origin = request.headers.get("Origin");
     const allowed = origin === FLOWPAY_ORIGIN;
@@ -415,6 +676,7 @@ export default {
       "/bank-accounts",
       "/diagnostics/item-webhook",
       "/diagnostics/fire-webhook",
+      "/diagnostics/sync-status",
       "/bank-transactions",
       "/sync-transactions",
       "/consent",
@@ -444,6 +706,9 @@ export default {
           return send({ error: "Invalid webhook" }, 401);
         }
         await recordWebhookReceipt(env, event, request.headers.get("Plaid-Verification"));
+        if (ctx) ctx.waitUntil(processSyncJobs(env).catch(() => {
+          console.error("FlowPay background sync unavailable");
+        }));
         return send({ success: true });
       } catch {
         return send({ error: "Webhook processing unavailable" }, 503);
@@ -580,6 +845,9 @@ export default {
             "DELETE FROM bank_accounts WHERE connection_id = ?"
           ).bind(connectionId),
           env.DB.prepare(
+            "DELETE FROM plaid_sync_jobs WHERE connection_id = ?"
+          ).bind(connectionId),
+          env.DB.prepare(
             "DELETE FROM bank_connections WHERE id = ? AND user_id = ?"
           ).bind(connectionId, user.id),
           env.DB.prepare(
@@ -633,6 +901,11 @@ export default {
              WHERE connection_id IN (
                SELECT id FROM bank_connections WHERE user_id = ?
              )`
+          ).bind(user.id),
+          env.DB.prepare(
+            `DELETE FROM plaid_sync_jobs WHERE connection_id IN (
+              SELECT id FROM bank_connections WHERE user_id = ?
+            )`
           ).bind(user.id),
           env.DB.prepare(
             "DELETE FROM bank_connections WHERE user_id = ?"
@@ -916,6 +1189,21 @@ export default {
           accounts: rows.results || []
         });
       }
+      // Authenticated job status for the caller's own connection.
+      if (url.pathname === "/diagnostics/sync-status" && request.method === "GET") {
+        const connection = await getConnection(env, user.id, url.searchParams.get("connection_id") || "");
+        if (!connection) return send({error: "Connection not found"}, 404);
+        const job = await env.DB.prepare(
+          "SELECT * FROM plaid_sync_jobs WHERE connection_id = ?"
+        ).bind(connection.id).first();
+        return send({
+          pending: !!job && job.generation > job.processed_generation,
+          running: !!job && job.lease_until > Math.floor(Date.now() / 1000),
+          attempts: job?.attempts || 0,
+          next_retry_at: job?.next_attempt_at || null,
+          last_synced_at: connection.last_synced_at || null
+        });
+      }
       // TRANSACTION SYNCHRONIZATION
       if (url.pathname === "/sync-transactions" &&
           request.method === "POST") {
@@ -933,172 +1221,8 @@ export default {
         if (!(await hasBankConsent(env, user.id, connection.id))) {
           return send({ error: "Bank connection consent required" }, 403);
         }
-        const token = await decryptToken(connection, env);
-        const initialCursor = connection.sync_cursor || "";
-        let cursor = initialCursor;
-        let hasMore = true;
-        let pages = 0;
-        let added = 0;
-        let modified = 0;
-        let removed = 0;
-        let additions = [];
-        let modifications = [];
-        let removals = [];
-        let paginationRestarts = 0;
-        let seenCursors = new Set([initialCursor]);
-        while (hasMore) {
-          if (++pages > 100) {
-            return send({
-              error: "Too many sync pages; no changes saved"
-            }, 503);
-          }
-          let page;
-          try {
-            page = await plaid(env, "/transactions/sync", {
-              access_token: token,
-              cursor,
-              count: 100
-            });
-          } catch (error) {
-            // Plaid requires a full restart from the last committed cursor
-            // when transactions mutate during pagination.
-            if (error.code === "TRANSACTIONS_SYNC_MUTATION_DURING_PAGINATION" &&
-                paginationRestarts < 2) {
-              paginationRestarts++;
-              cursor = initialCursor;
-              hasMore = true;
-              pages = 0;
-              additions = [];
-              modifications = [];
-              removals = [];
-              seenCursors = new Set([initialCursor]);
-              continue;
-            }
-            throw error;
-          }
-          // Reject malformed pages before persisting any transactions or cursor.
-          // An invalid cursor must never replace the last committed sync position.
-          if (
-            !page || !Array.isArray(page.added) ||
-            !Array.isArray(page.modified) ||
-            !Array.isArray(page.removed) ||
-            typeof page.next_cursor !== "string" ||
-            typeof page.has_more !== "boolean" ||
-            (page.has_more && page.next_cursor === cursor)
-          ) {
-            return send({ error: "Invalid transaction sync response; no changes saved" }, 502);
-          }
-          if (page.added.length + page.modified.length + page.removed.length > 500 ||
-              additions.length + modifications.length + removals.length +
-              page.added.length + page.modified.length + page.removed.length > 498) {
-            return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
-          }
-          // Reject a repeated cursor anywhere in this pagination attempt.
-          // A cycle longer than one page would otherwise consume the page limit.
-          if (seenCursors.has(page.next_cursor) && page.has_more) {
-            return send({ error: "Repeated transaction sync cursor; no changes saved" }, 502);
-          }
-          seenCursors.add(page.next_cursor);
-          additions.push(...page.added);
-          modifications.push(...page.modified);
-          removals.push(...page.removed);
-          cursor = page.next_cursor;
-          hasMore = page.has_more;
-        }
-        const accounts = await env.DB.prepare(
-          "SELECT id FROM bank_accounts WHERE connection_id = ?"
-        ).bind(connection.id).all();
-        const accountIds = new Set(
-          (accounts.results || []).map(a => a.id)
-        );
-        // Validate Plaid identifiers and required transaction fields before
-        // building any statements; malformed payloads must not advance cursor.
-        for (const tx of [...additions, ...modifications]) {
-          if (!tx || typeof tx.transaction_id !== "string" ||
-              !tx.transaction_id || typeof tx.account_id !== "string" ||
-              !tx.account_id || typeof tx.amount !== "number" ||
-              !Number.isFinite(tx.amount) || !validPlaidDate(tx.date)) {
-            return send({ error: "Invalid transaction fields; no changes saved" }, 502);
-          }
-        }
-        for (const tx of [...additions, ...modifications]) {
-          if (!accountIds.has(tx.account_id)) {
-            return send({ error: "Transaction account mismatch" }, 502);
-          }
-        }
-        for (const tx of removals) {
-          if (!tx || typeof tx.transaction_id !== "string" || !tx.transaction_id) {
-            return send({ error: "Invalid removed transaction; no changes saved" }, 502);
-          }
-        }
-        // An upsert conflict on a transaction belonging to another account
-        // must not silently succeed and advance the Plaid cursor.
-        const incoming = [...additions, ...modifications];
-        if (incoming.length) {
-          const expectedAccounts = new Map();
-          for (const tx of incoming) {
-            if (expectedAccounts.has(tx.transaction_id) &&
-                expectedAccounts.get(tx.transaction_id) !== tx.account_id) {
-              return send({ error: "Conflicting transaction account IDs; no changes saved" }, 409);
-            }
-            expectedAccounts.set(tx.transaction_id, tx.account_id);
-          }
-          const ids = [...expectedAccounts.keys()];
-          // Keep lookup parameter counts small for D1 and SQLite variants.
-          for (let offset = 0; offset < ids.length; offset += 90) {
-            const chunk = ids.slice(offset, offset + 90);
-            const placeholders = chunk.map(() => "?").join(",");
-            const existing = await env.DB.prepare(
-              `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
-            ).bind(...chunk).all();
-            if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
-              return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
-            }
-          }
-        }
-        // Bound the atomic batch so unusually large syncs fail without
-        // advancing the cursor or risking D1 statement/CPU limits.
-        const statementCount = additions.length + modifications.length + removals.length + 2;
-        if (statementCount > 500) {
-          return send({ error: "Transaction sync batch too large; no changes saved" }, 503);
-        }
-        // D1 batch executes these statements in a single transaction. The
-        // cursor is advanced only if every transaction change succeeds.
-        const statements = [
-          ...additions.map(tx => transactionStatement(env, tx)),
-          ...modifications.map(tx => transactionStatement(env, tx)),
-          ...removals.map(tx => env.DB.prepare(
-            `DELETE FROM bank_transactions
-             WHERE id = ?
-               AND account_id IN (
-                 SELECT id FROM bank_accounts WHERE connection_id = ?
-               )`
-          ).bind(tx.transaction_id, connection.id)),
-          env.DB.prepare(
-            `UPDATE bank_connections
-             SET sync_cursor = ?, last_synced_at = CURRENT_TIMESTAMP
-             WHERE id = ? AND user_id = ?`
-          ).bind(cursor, connection.id, user.id),
-          env.DB.prepare(
-            `INSERT INTO security_audit_log
-             (id, user_id, action, resource_type, resource_id)
-             VALUES (?, ?, ?, ?, ?)`
-          ).bind(crypto.randomUUID(), user.id, "transactions_synced", "bank_connection", connection.id)
-        ];
-        const results = await env.DB.batch(statements);
-        added = additions.length;
-        modified = modifications.length;
-        removed = results.slice(additions.length + modifications.length,
-          additions.length + modifications.length + removals.length)
-          .reduce((total, result) => total + (result.meta?.changes || 0), 0);
-        return send({
-          success: true,
-          added,
-          modified,
-          removed,
-          pages,
-          has_more: false
-        });
+        return runConnectionSync(env, user.id, connection.id, send);
+
       }
       // TRANSACTION HISTORY
       if (url.pathname === "/bank-transactions" &&
