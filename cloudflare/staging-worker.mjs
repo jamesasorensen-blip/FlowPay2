@@ -386,6 +386,7 @@ export default {
       "/exchange-token",
       "/user-data",
       "/bank-accounts",
+      "/diagnostics/item-webhook",
       "/bank-transactions",
       "/sync-transactions",
       "/consent",
@@ -793,6 +794,33 @@ export default {
           success: true,
           connection_id: connectionId,
           accounts_saved: accounts.accounts?.length || 0
+        });
+      }
+      // Read-only, authenticated, staging-only Plaid webhook diagnostic.
+      // Never expose the Item ID, access token, or Plaid's raw response.
+      if (url.pathname === "/diagnostics/item-webhook" && request.method === "POST") {
+        if (!allowed) return send({ error: "Origin not allowed" }, 403);
+        const body = await readJson(request);
+        if (typeof body?.connection_id !== "string" ||
+            !/^[0-9a-f-]{36}$/i.test(body.connection_id)) {
+          return send({ error: "Invalid connection_id" }, 400);
+        }
+        const connection = await getConnection(env, user.id, body.connection_id);
+        if (!connection) return send({ error: "Connection not found" }, 404);
+        if (!(await hasBankConsent(env, user.id, connection.id))) {
+          return send({ error: "Bank connection consent required" }, 403);
+        }
+        const accessToken = await decryptToken(connection, env);
+        const item = await plaid(env, "/item/get", { access_token: accessToken });
+        const actual = item?.item?.webhook;
+        const expected = configuredPlaidUrl(
+          env.PLAID_WEBHOOK_URL, new URL(request.url).origin, "/plaid-webhook"
+        );
+        return send({
+          success: true,
+          webhook_configured: typeof actual === "string" && actual.length > 0,
+          webhook_matches_staging: !!expected && actual === expected,
+          expected_webhook_configured: !!expected
         });
       }
       // BANK ACCOUNTS
