@@ -150,3 +150,26 @@ not sandbox, and its regression is included in the worker isolation CI suite.
 The balance refresh ownership and duplicate-ID regressions now mock Plaid's
 `/accounts/get` endpoint explicitly and assert the specific rejection reason,
 so a blocked outbound request cannot produce a false-positive test pass.
+
+## Plaid OAuth and webhook staging preparation
+
+The checked-in staging Worker accepts optional environment bindings:
+`PLAID_OAUTH_REDIRECT_URI` (the HTTPS frontend OAuth return page, registered in
+Plaid Dashboard) and `PLAID_WEBHOOK_URL` (the HTTPS URL of the Worker
+`/plaid-webhook` route). Leave both unset until their corresponding routes and
+dashboard settings have been reviewed. These are not secret values.
+
+The `/plaid-webhook` route is public to Plaid but fails closed without a valid
+`Plaid-Verification` ES256 JWT, fresh issuance time, matching Plaid JWK and
+raw-body SHA-256. It currently only acknowledges valid events; it does not
+update financial data, queue transaction sync or store webhook history.
+In particular, receiving `NEW_ACCOUNTS_AVAILABLE` does not automatically
+add accounts. Replay deduplication, persistence, item ownership checks and
+background sync must be implemented before event-driven financial writes.
+
+The frontend OAuth return page and Link reinitialization have NOT yet been
+implemented or tested. Do not set `PLAID_OAUTH_REDIRECT_URI` until that flow
+works and the exact URL has been registered in Plaid Dashboard. The webhook
+URL is also not registered on existing Plaid Items by a source-code change;
+existing Items may require `/item/webhook/update` once staging is approved.
+The protected Cloudflare staging upload/promotion workflow remains mandatory.
