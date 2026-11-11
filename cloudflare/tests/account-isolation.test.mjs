@@ -262,3 +262,23 @@ test('actual sync route rejects malformed dates without committing the cursor', 
     assert.equal(f.sql.prepare("SELECT COUNT(*) AS n FROM bank_transactions WHERE id='bad-date'").get().n,0);
   } finally { f.close(); }
 });
+
+test('actual sync route rejects cyclic Plaid cursors without saving partial pages', async () => {
+  const f = fixture();
+  try {
+    await enableSyntheticPlaid(f);
+    const cursors = [];
+    f.setPlaidResponder(body => {
+      cursors.push(body.cursor);
+      return Response.json({
+        added:[],modified:[],removed:[],
+        next_cursor:cursors.length === 1 ? 'cursor-A' : 'cursor-A',
+        has_more:true
+      });
+    });
+    const response = await f.call(A,'/sync-transactions','POST',{connection_id:CA});
+    assert.equal(response.status,502,JSON.stringify(response.body));
+    assert.deepEqual(cursors,['','cursor-A']);
+    assert.equal(f.sql.prepare('SELECT sync_cursor FROM bank_connections WHERE id=?').get(CA).sync_cursor,null);
+  } finally { f.close(); }
+});
