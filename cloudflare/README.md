@@ -227,3 +227,7 @@ Signed webhook events must also have a valid bounded event envelope. The
 validator accepts future uppercase Plaid event codes to avoid unnecessary
 retries when Plaid introduces a new code. Valid events are acknowledged only;
 no account data is changed, and a durable replay ledger/queue is not installed.
+
+After Plaid Link succeeds or exits, the browser removes oauth_state_id from
+the current URL using replaceState. The token remains tab-scoped and is removed
+on completion, avoiding a stale callback prompt after refreshing the page.
