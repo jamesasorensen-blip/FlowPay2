@@ -358,6 +358,7 @@ export default {
       "/me",
       "/test-plaid",
       "/link-token",
+      "/plaid-webhook",
       "/exchange-token",
       "/user-data",
       "/bank-accounts",
