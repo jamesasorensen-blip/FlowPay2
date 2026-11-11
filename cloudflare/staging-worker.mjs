@@ -819,7 +819,7 @@ export default {
               !tx.transaction_id || typeof tx.account_id !== "string" ||
               !tx.account_id || typeof tx.amount !== "number" ||
               !Number.isFinite(tx.amount) || typeof tx.date !== "string" ||
-              !/^\\d{4}-\\d{2}-\\d{2}$/.test(tx.date)) {
+              !/^\d{4}-\d{2}-\d{2}$/.test(tx.date)) {
             return send({ error: "Invalid transaction fields; no changes saved" }, 502);
           }
         }
