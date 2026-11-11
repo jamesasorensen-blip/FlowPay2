@@ -20,3 +20,10 @@ test('OAuth resume is scoped to authenticated user and expires', () => {
   assert.match(section, /sessionStorage\.removeItem\(oauthKey\(currentUser\)\)/);
   assert.match(section, /if\(!currentUser \|\| !new URLSearchParams/);
 });
+
+test('OAuth callback is resumed without waiting for account listing', () => {
+  assert.match(section, /if\(new URLSearchParams\(location\.search\)\.has\('oauth_state_id'\)\)/);
+  assert.match(section, /resumePlaidOAuth\(\)\.catch/);
+  assert.match(section, /loadBanks\(\)\.catch\(\(\)=>\{\}\)/);
+  assert.doesNotMatch(section, /loadBanks\(\)\.then[^]*?\.finally\(\(\)=>\{if\(currentUser===id\)resumePlaidOAuth/);
+});
