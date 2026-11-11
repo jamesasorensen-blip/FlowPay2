@@ -841,6 +841,20 @@ export default {
             return send({ error: "Invalid removed transaction; no changes saved" }, 502);
           }
         }
+        // An upsert conflict on a transaction belonging to another account
+        // must not silently succeed and advance the Plaid cursor.
+        const incoming = [...additions, ...modifications];
+        if (incoming.length) {
+          const ids = [...new Set(incoming.map(tx => tx.transaction_id))];
+          const placeholders = ids.map(() => "?").join(",");
+          const existing = await env.DB.prepare(
+            `SELECT id, account_id FROM bank_transactions WHERE id IN (${placeholders})`
+          ).bind(...ids).all();
+          const expectedAccounts = new Map(incoming.map(tx => [tx.transaction_id, tx.account_id]));
+          if ((existing.results || []).some(tx => tx.account_id !== expectedAccounts.get(tx.id))) {
+            return send({ error: "Transaction ownership conflict; no changes saved" }, 409);
+          }
+        }
         // Bound the atomic batch so unusually large syncs fail without
         // advancing the cursor or risking D1 statement/CPU limits.
         const statementCount = additions.length + modifications.length + removals.length + 2;
