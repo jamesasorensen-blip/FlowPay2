@@ -1562,8 +1562,9 @@ window.addEventListener('DOMContentLoaded',init);
       accountsEl.appendChild(item);
     }
     if (connections.size) {
-      label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
+      if (!stagingMode) label(accountsEl,'div','Transaction sync (Sandbox)','font-weight:bold;margin-top:10px');
       for (const id of connections.keys()) {
+        if (!stagingMode) {
         const button = label(accountsEl,'button','Sync transactions','background:#0d9488;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
         button.type='button';
         button.addEventListener('click',async () => {
@@ -1578,6 +1579,7 @@ window.addEventListener('DOMContentLoaded',init);
           } catch(e) { if(gen === generation) setStatus('Sync failed: '+e.message); }
           finally {setBusy(false);button.disabled=false;}
         });
+        }
         if (!stagingMode) continue;
         const check = label(accountsEl,'button','Check webhook configuration','background:#475569;color:white;border:0;padding:8px;border-radius:7px;cursor:pointer;margin:5px 5px 5px 0');
         check.type='button';
@@ -1819,7 +1821,7 @@ window.addEventListener('DOMContentLoaded',init);
   window.addEventListener('flowpay-financial-state-loaded',()=>{if(txOverlay.style.display==='block')renderTransactionExplorer()});
   // OAuth bank redirects return to this same origin and browser tab.
   // The Link token is session-only and is never placed in a URL or persistent storage.
-  const oauthKey = userId => 'flowpay-plaid-oauth:'+(stagingMode?'staging:':'default:')+userId;
+  const oauthKey = userId => 'flowpay-plaid-oauth:'+(stagingMode?'staging:':'')+userId;
   function clearOAuthReturn() {
     const url = new URL(location.href);
     if (!url.searchParams.has('oauth_state_id')) return;
