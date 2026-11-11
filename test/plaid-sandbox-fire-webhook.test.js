@@ -11,7 +11,7 @@ test('Sandbox webhook trigger requires authenticated owned connection and consen
  assert.match(section,/item\?\.item\?\.webhook !== expected/);
  assert.match(section,/\/sandbox\/item\/fire_webhook/);
  assert.match(section,/delivery_verified: false/);
- assert.doesNotMatch(section,/access_token: accessToken\s*\}/);
+ assert.doesNotMatch(section,/return send\(\{[^}]*access_token/);
 });
 test('Staging test button reports acknowledgement separately from delivery',()=>{
  assert.match(html,/Send test webhook/);
