@@ -181,7 +181,7 @@ function configuredPlaidUrl(value, expectedOrigin, path = null) {
   return parsed.href;
 }
 // Validate envelope shape without rejecting newly introduced Plaid event codes.
-// Verified events are acknowledged only; this route never mutates financial data.
+// Verified events are acknowledged after recording a privacy-safe delivery receipt.
 export function validPlaidWebhookEvent(event) {
   if (!event || typeof event !== "object" || Array.isArray(event)) return false;
   return typeof event.webhook_type === "string" &&
@@ -229,6 +229,33 @@ async function verifyPlaidWebhook(request, env) {
   for (let i = 0; i < 64; i++) diff |= hex.charCodeAt(i) ^ expected.charCodeAt(i);
   if (diff !== 0) return null;
   try { return JSON.parse(body); } catch { return null; }
+}
+// Fingerprint the verified delivery token, rather than the body alone. Separate
+// updates can contain identical bodies and must still receive separate receipts.
+export async function recordWebhookReceipt(env, event, verificationToken) {
+  if (!env.STAGING_TEST_USER_ID) throw Error("Staging user not configured");
+  const connections = await env.DB.prepare(
+    "SELECT id, user_id FROM bank_connections WHERE item_id = ?"
+  ).bind(event.item_id).all();
+  const owners = connections.results || [];
+  if (owners.length !== 1 || owners[0].user_id !== env.STAGING_TEST_USER_ID) return;
+  const connection = owners[0];
+  if (!(await hasBankConsent(env, connection.user_id, connection.id))) return;
+  const digest = new Uint8Array(await crypto.subtle.digest(
+    "SHA-256", encoder.encode(verificationToken)
+  ));
+  const receiptId = Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
+  // D1 serializes this batch, so concurrent redeliveries share one receipt.
+  // Store no payload, Item ID, user ID, transaction data or verification token.
+  await env.DB.batch([
+    env.DB.prepare(
+      "DELETE FROM plaid_webhook_receipts WHERE received_at < datetime('now', '-7 days')"
+    ),
+    env.DB.prepare(
+      `INSERT INTO plaid_webhook_receipts (id, webhook_type, webhook_code)
+       VALUES (?, ?, ?) ON CONFLICT(id) DO NOTHING`
+    ).bind(receiptId, event.webhook_type, event.webhook_code)
+  ]);
 }
 async function ensureUser(env, userId) {
   await env.DB.prepare(
@@ -416,11 +443,10 @@ export default {
         if (!validPlaidWebhookEvent(event)) {
           return send({ error: "Invalid webhook" }, 401);
         }
-        // Acknowledge verified sandbox events without triggering financial writes.
-        // Automatic sync needs a separately reviewed, idempotent queue design.
+        await recordWebhookReceipt(env, event, request.headers.get("Plaid-Verification"));
         return send({ success: true });
       } catch {
-        return send({ error: "Webhook verification unavailable" }, 503);
+        return send({ error: "Webhook processing unavailable" }, 503);
       }
     }
     const connectionMatch = url.pathname.match(
