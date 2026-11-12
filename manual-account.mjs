@@ -1,4 +1,4 @@
-import {createMfaController} from './manual-mfa.mjs';
+import {createMfaController,createPasskeyController} from './manual-mfa.mjs';
 import {mountFlowPayMfa} from './manual-mfa-ui.mjs';
 import {toggleManualBillPayment} from './manual-ledger.mjs';
 import {createManualBudgetStore} from './manual-budget-store.mjs';
@@ -7,7 +7,7 @@ const $=id=>document.getElementById(id);
 const URL_BASE='https://sdiovjwtphqvfjlyoxeq.supabase.co';
 const PUBLIC_KEY='sb_publishable_rt8itouJe2nsO1wofOqROQ_-6aJ4zlM';
 const client=window.supabase.createClient(URL_BASE,PUBLIC_KEY,{auth:{storageKey:'flowpay-manual-auth-v1',experimental:{passkey:true},persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-const bridge=window.flowpayManualBridge,mfa=createMfaController(client);
+const bridge=window.flowpayManualBridge,mfa=createMfaController(client),passkeys=createPasskeyController(client.auth);
 let userId=null,authGeneration=0,authChecking=false,recheckPending=false,recovery=false,securityView=false;
 const message=text=>{$('manual-auth-status').textContent=text;};
 const status=text=>{$('guest-save-status').textContent=text;};
@@ -54,6 +54,8 @@ const store=createManualBudgetStore({
 window.flowpayManualPayBill=toggleManualBillPayment;
 window.flowpayManualChanged=data=>{try{store.edit(data)}catch(err){status(err.message)}};
 function lock(){
+ if($('manual-passkey-notice'))$('manual-passkey-notice').textContent='';
+ $('manual-security-status').textContent='';
  window.flowpayManualReady=false;bridge.lock();store.close();
  $('manual-workspace').hidden=true;$('manual-workspace').inert=true;$('manual-auth').hidden=false;
 }
@@ -126,12 +128,37 @@ $('manual-auth-signout').addEventListener('click',()=>run(signout));
 $('manual-signout').addEventListener('click',()=>run(signout));
 $('manual-auth-retry').addEventListener('click',()=>run(authenticate));
 $('manual-retry-save').addEventListener('click',()=>run(async()=>{await store.retry()}));
+let passkeyBusy=false;
+function passkeyNotice(text,error=false){
+ let banner=$('manual-passkey-notice');
+ if(!banner){banner=document.createElement('p');banner.id='manual-passkey-notice';banner.setAttribute('role','status');banner.className='text-sm font-semibold mt-3';$('guest-banner').append(banner);}
+ banner.textContent=text;
+ $('manual-security-status').textContent=text;
+ toast(text,error);
+}
+async function refreshPasskeyStatus(){
+ const owner=userId,generation=authGeneration;if(!owner)return;
+ const area=$('manual-security-status');area.textContent='Checking saved passkeys…';
+ try{
+  const rows=await passkeys.list();if(owner!==userId||generation!==authGeneration)return;
+  area.textContent=rows.length?rows.length+' saved passkey'+(rows.length===1?'':'s')+' on your account. Fingerprint / passkey sign-in is enabled.':'No passkeys saved yet. Enable one below.';
+  $('manual-enroll-passkey').textContent=rows.length?'Add another fingerprint / passkey':'Enable fingerprint / passkey';
+ }catch(error){if(owner===userId&&generation===authGeneration)area.textContent='Could not check saved passkeys: '+error.message;}
+}
+$('btn-settings').addEventListener('click',refreshPasskeyStatus);
 $('manual-enroll-passkey').addEventListener('click',async()=>{
+ if(passkeyBusy)return;
+ passkeyBusy=true;const button=$('manual-enroll-passkey'),owner=userId,generation=authGeneration;button.disabled=true;
+ $('manual-security-status').textContent='Waiting for device confirmation…';
  try{
   const security=await mfa.status();if(security.state!=='ready')throw Error('Verify your authenticator first.');
-  const {error}=await client.auth.registerPasskey();if(error)throw error;
-  $('manual-security-status').textContent='Passkey registered. You can now use fingerprint / passkey sign-in on compatible devices.';
- }catch(error){$('manual-security-status').textContent=error.message||'Passkey registration could not finish.';}
+  if(owner!==userId||generation!==authGeneration)return;
+  await passkeys.enroll();
+  if(owner!==userId||generation!==authGeneration)return;
+  passkeyNotice('Passkey registered. Fingerprint / passkey sign-in is now enabled.');
+  button.textContent='Add another fingerprint / passkey';
+ }catch(error){if(owner===userId&&generation===authGeneration)passkeyNotice(error.message||'Passkey registration could not finish.',true);}
+ finally{passkeyBusy=false;button.disabled=false;}
 });
 $('manual-security-mfa').addEventListener('click',async()=>{
  securityView=true;$('manual-auth').hidden=false;$('manual-signin').hidden=true;$('manual-auth-options').hidden=true;$('manual-mfa-host').hidden=false;
