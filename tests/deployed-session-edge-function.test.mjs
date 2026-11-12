@@ -23,7 +23,7 @@ function setup({ rows = [], env = {}, databaseError = false } = {}) {
     postgres: () => (strings, ...values) => {
       queries++;
       assert.match(strings.join('?'), /flowpay_session_private\.lookup_active_session/);
-      assert.deepEqual(values, [session, user]);
+      assert.equal(JSON.stringify(values), JSON.stringify([session, user]));
       if (databaseError) throw new Error('database down');
       return rows;
     },
