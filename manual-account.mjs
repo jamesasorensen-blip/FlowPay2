@@ -73,12 +73,12 @@ const store=createManualBudgetStore({
  }
 });
 window.flowpayManualPayBill=toggleManualBillPayment;
-window.flowpayManualChanged=data=>{try{store.edit(data)}catch(err){status(err.message)}};
+window.flowpayManualChanged=data=>{try{store.edit(data);renderNextMonthEstimate(data)}catch(err){status(err.message)}};
 function lock(){
  mfaScreenOwner=null;
  if($('manual-passkey-notice'))$('manual-passkey-notice').textContent='';
  $('manual-security-status').textContent='';
- window.flowpayManualReady=false;bridge.lock();store.close();
+ window.flowpayManualReady=false;bridge.lock();store.close();$('manual-next-month-estimate')?.remove();
  $('manual-workspace').hidden=true;$('manual-workspace').inert=true;$('manual-auth').hidden=false;
 }
 function loginScreen(text='Sign in to your saved manual budget.'){
