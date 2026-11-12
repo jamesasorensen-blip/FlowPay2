@@ -1,0 +1,30 @@
+name: FlowPay redesign checks
+on:
+  push:
+    branches: [design/financial-clarity-navigation]
+  pull_request:
+    paths:
+      - 'financial-display.mjs'
+      - 'flowpay-navigation.mjs'
+      - 'tests/**'
+      - 'preview/**'
+      - 'design/**'
+      - '.github/workflows/redesign-checks.yml'
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run redesign tests
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs
+      - name: Validate preview structure
+        run: |
+          test -s preview/redesign.html
+          grep -q 'data-panel="home"' preview/redesign.html
+          grep -q 'data-panel="activity"' preview/redesign.html
+          grep -q 'data-panel="debt"' preview/redesign.html
