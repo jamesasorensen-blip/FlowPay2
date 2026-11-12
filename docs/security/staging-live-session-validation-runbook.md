@@ -38,6 +38,12 @@ The **review candidate is not deployed**. Do not interpret results from the curr
 5. From that same runtime, call using a valid dedicated test session. Expect `200 {"active":true}` with minimal metadata, then revoke **only that disposable test session** and verify `active:false`. Never log tokens, identifiers, or response metadata.
 6. If any step fails, stop. Do not deploy the candidate or enable either enforcement flag. Preserve sanitized status codes and request times for review.
 
+### Guarded unknown-session smoke probe
+
+The repository includes `scripts/staging-session-lookup-smoke.mjs`. It is **not** run automatically by CI. CI only syntax-checks the file; never add production or staging secrets to GitHub Actions for this test.
+
+Run it only from an approved staging server process that already has the three environment variables `SUPABASE_URL`, `SESSION_LOOKUP_URL`, and `SESSION_LOOKUP_SECRET` provisioned through its secret manager. Set `FLOWPAY_STAGING_SMOKE_TEST=I_CONFIRM_STAGING_ONLY` in that process's configuration and invoke `node scripts/staging-session-lookup-smoke.mjs`. Do not paste secret values into command arguments, shell history, or chat. The script emits a sanitized PASS/FAIL and uses a random UUID; it does not test a valid session or revocation. A PASS is **not** proof that the Cloudflare candidate is deployed or that MFA enforcement works.
+
 ## Verification matrix (run only after prerequisites)
 
 | Scenario | Expected result | Evidence to record |
