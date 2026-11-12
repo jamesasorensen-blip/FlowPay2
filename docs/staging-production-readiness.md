@@ -13,13 +13,13 @@ Updated November 12, 2026. This is a status record, not production-rollout appro
 ## Verified observations
 
 - Browser navigation to the staging API root reports online and Sandbox mode.
-- The staging frontend reports `Cloud unavailable: Failed to fetch`. A preflight using a browser-compatible User-Agent confirms the live Worker rejects `https://flowpay-staging.onrender.com` with HTTP 403 `Origin not allowed`, while the production frontend origin receives HTTP 204. The default command-line User-Agent also receives an unrelated Cloudflare error 1010. A targeted live-origin correction is required; preserve the newer active Worker and its authentication/Sandbox/test-user restrictions.
-- The live Worker advertises routes beyond the checked-in staging baseline. Compare the active Worker source/configuration before attempting a banking deployment; do not replace it with an older baseline.
+- Diagnosed the failed cloud connection: the live Worker rejected the staging website origin. Read the active source from Cloudflare and verified it exactly matches commit `92997b4e702244683ead9ea86dc70f58f51fa8be` after newline normalization. Applied only a three-line allowlist/reflection change, preserving OAuth defaults, Sandbox/test-user restrictions, and all newer bank/webhook/sync code. Cloudflare reports new active version `34de5b3d`. The exact patched source is retained in `cloudflare/candidates/staging-worker-origin-fix.mjs`. Eight isolated CORS/authentication/Sandbox regression tests pass. Live preflights now return 204 with the exact allowed origin for both FlowPay frontends; an untrusted origin receives 403 without an allow-origin header, and an anonymous financial read receives 401. Browser reload reports bank connections ready and no cloud financial data for the current staging test account; no data was imported, replaced, or deleted.
+- The live Worker has newer webhook/sync routes but does not yet contain the AAL2/session-enforcement implementation in the staging branch. Reconcile these versions before any further backend rollout; do not replace the newer live banking code with the older baseline.
 - The prior guest tutorial and widget-options work is separate from authenticated production-readiness acceptance.
 
 ## Remaining acceptance gates
 
-1. Diagnose the browser cloud-sync failure; demonstrate authenticated account-scoped save/load and refresh persistence without overwriting divergent local records.
+1. Complete verification after the origin fix; demonstrate authenticated account-scoped save/load and refresh persistence without overwriting divergent local records.
 2. Verify live AAL1 financial blocking, AAL2 access, enrollment, sign-out/revocation, account switching, and recovery. Do not change existing authentication or weaken controls merely to get a test passing.
 3. Reconcile the redesigned/authenticated app branch with the current staging frontend. Connect balances, bills, transactions, receipts, and next-month bill scheduling to the real account-scoped workflow; standalone examples are not acceptance evidence.
 4. Validate Sandbox consent, reconnect, repeated/interrupted sync, deletion/disconnection, deduplication, and ownership boundaries against the deployed Worker/D1 configuration.
