@@ -56,3 +56,18 @@ test('lookup rejects revoked, malformed, and failed authoritative responses', as
   await assert.rejects(response({ active: true, session: { id: session, user_id: 'bad' } })(session));
   await assert.rejects(createSupabaseSessionLookup(config, async () => new Response('unavailable', { status: 503 }))(session));
 });
+
+
+test('lookup does not accept an active response with missing or mismatched session identity', async () => {
+  const lookup = body => createSupabaseSessionLookup(config, async () => Response.json(body));
+  assert.equal(await lookup({ active: true })(session), null);
+  await assert.rejects(lookup({ active: true, session: { id: '1b2cf21b-5147-4337-b73d-fbba9f1a514d', user_id: user } })(session));
+  await assert.rejects(lookup({ active: true, session: { id: session, user_id: 'not-a-uuid' } })(session));
+});
+
+test('lookup fails closed on malformed JSON and network errors', async () => {
+  const malformed = createSupabaseSessionLookup(config, async () => new Response('not json', { status: 200 }));
+  await assert.rejects(malformed(session));
+  const unavailable = createSupabaseSessionLookup(config, async () => { throw Error('network unavailable'); });
+  await assert.rejects(unavailable(session));
+});
