@@ -1,6 +1,6 @@
 // Standalone MFA interface for integration into FlowPay's authenticated app.
 // Mount only after Supabase is initialized: mountFlowPayMfa({supabase, host, onReady}).
-import { createMfaController } from "./manual-mfa.mjs";
+import { createMfaController,chooseMfaFactor,mfaFactorLabel } from "./manual-mfa.mjs";
 function safeQrImageSource(value) {
   if (typeof value !== "string") throw new Error("Invalid authenticator QR response");
   const qr = value.trim();
@@ -24,6 +24,19 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   heading.textContent = "Secure your FlowPay account";
   const message = document.createElement("p");
   message.setAttribute("role", "status");
+  const choiceBox=document.createElement('div');choiceBox.hidden=true;
+  const choiceLabel=document.createElement('label');choiceLabel.textContent='Choose authenticator';
+  const selector=document.createElement('select');selector.setAttribute('aria-label','Choose authenticator');selector.style.cssText='display:block;width:100%;padding:10px;border:1px solid #94a3b8;border-radius:8px;background:white;color:#111827';
+  choiceLabel.append(selector);
+  const choiceHint=document.createElement('p');choiceHint.style.fontSize='13px';choiceHint.textContent='Each separately enrolled authenticator has its own codes. FlowPay cannot detect whether you saved it in Google or Microsoft Authenticator. Select the matching entry; it will not switch automatically.';
+  const aliasLabel=document.createElement('label');aliasLabel.textContent='Name this authenticator (optional)';
+  const aliasInput=document.createElement('input');aliasInput.type='text';aliasInput.maxLength=60;aliasInput.placeholder='Google Authenticator or Microsoft Authenticator';aliasInput.setAttribute('aria-label','Authenticator name');aliasInput.style.cssText=selector.style.cssText;aliasLabel.append(aliasInput);
+  const rememberLabel=document.createElement('label');const remember=document.createElement('input');remember.type='checkbox';remember.checked=true;rememberLabel.append(remember,document.createTextNode(' Use this authenticator by default on this browser'));
+  choiceBox.append(choiceLabel,choiceHint,aliasLabel,rememberLabel);
+  let verifiedFactors=[],preferences={aliases:{},preferredId:''},preferenceKey=null,challengeMode=false;
+  const readPreferences=userId=>{preferenceKey=userId?'flowpay_mfa_choice_v1:'+userId:null;try{const parsed=preferenceKey?JSON.parse(localStorage.getItem(preferenceKey)||'{}'):{};return {aliases:parsed.aliases&&typeof parsed.aliases==='object'?parsed.aliases:{},preferredId:typeof parsed.preferredId==='string'?parsed.preferredId:''}}catch{return {aliases:{},preferredId:''}}};
+  function choose(id){factorId=id||null;selector.value=id||'';const factor=verifiedFactors.find(f=>f.id===id);aliasInput.value=preferences.aliases[id]||'';button.disabled=!factor;message.textContent=factor?'Enter a fresh code for '+mfaFactorLabel(factor,preferences.aliases)+'.':'Choose which authenticator you want to use, then enter its code.';input.value='';}
+  selector.addEventListener('change',()=>choose(selector.value));
   const qr = document.createElement("img");
   qr.alt = "Scan this code with your authenticator app";
   qr.style.maxWidth = "220px";
@@ -64,7 +77,7 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   const signOut = document.createElement("button");
   signOut.type = "button";
   signOut.textContent = "Sign out";
-  panel.append(heading, message, enrollButton, backupButton, restartButton, qr, setupDetails, form, signOut);
+  panel.append(heading, message, choiceBox, enrollButton, backupButton, restartButton, qr, setupDetails, form, signOut);
   panel.style.cssText = "display:flex;flex-direction:column;align-items:stretch;gap:12px;max-width:100%;";
   for (const control of [enrollButton, backupButton, restartButton, signOut, button]) control.style.cssText = "padding:10px 14px;border-radius:8px;border:1px solid #a5b4fc;cursor:pointer;min-height:40px;";
   input.style.cssText = "min-width:0;max-width:100%;padding:10px;border-radius:6px;color:#111827;background:#fff;";
@@ -82,7 +95,8 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     enrollButton.hidden = true;
     backupButton.hidden = true;
     restartButton.hidden = true;
-    factorId = null;
+    const priorFactor=factorId;factorId = null;
+    challengeMode=false;choiceBox.hidden=true;
     if (result.state === "signed-out") {
       message.textContent = "Sign in before setting up multi-factor authentication.";
       form.hidden = true;
@@ -94,8 +108,12 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       backupButton.hidden = false;
       onReady();
     } else if (result.state === "challenge-required") {
-      factorId = result.factors[0].id;
-      message.textContent = "Enter the code from your authenticator app to continue.";
+      verifiedFactors=[...result.factors].sort((a,b)=>String(a.created_at||'').localeCompare(String(b.created_at||''))||String(a.id).localeCompare(String(b.id)));
+      preferences=readPreferences(result.userId);selector.replaceChildren();
+      const placeholder=document.createElement('option');placeholder.value='';placeholder.textContent='Choose an authenticator…';selector.append(placeholder);
+      for(const factor of verifiedFactors){const option=document.createElement('option');option.value=factor.id;option.textContent=mfaFactorLabel(factor,preferences.aliases);selector.append(option);}
+      challengeMode=true;choiceBox.hidden=false;
+      choose(chooseMfaFactor(verifiedFactors,priorFactor,preferences.preferredId));
     } else {
       message.textContent = "Set up an authenticator app to protect your account.";
       enrollButton.hidden = (result.pendingFactors || []).some(f => f.friendly_name === "FlowPay authenticator");
@@ -205,16 +223,22 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   });
   form.addEventListener("submit", async event => {
     event.preventDefault();
-    button.disabled = true;
+    if(!factorId){message.textContent='Choose an authenticator first.';return;}
+    const selectedFactor=factorId,wasChallenge=challengeMode;
+    const label=mfaFactorLabel(verifiedFactors.find(f=>f.id===selectedFactor)||{id:selectedFactor,friendly_name:'Authenticator'},preferences.aliases);
+    const pendingAlias=aliasInput.value.trim();
+    button.disabled = true;selector.disabled=true;aliasInput.disabled=true;remember.disabled=true;
     message.textContent = "Verifying…";
     try {
-      await controller.verify(factorId, input.value.trim());
+      await controller.verify(selectedFactor, input.value.trim());
+      if(wasChallenge&&preferenceKey){if(pendingAlias)preferences.aliases[selectedFactor]=pendingAlias;if(remember.checked)preferences.preferredId=selectedFactor;else if(preferences.preferredId===selectedFactor)preferences.preferredId='';try{localStorage.setItem(preferenceKey,JSON.stringify(preferences))}catch{}}
       input.value = "";
       await render();
     } catch (error) {
-      message.textContent = error?.message || "Unable to verify. Try again.";
+      message.textContent=error?.code==='mfa_verification_failed'?'Code not accepted for '+label+'. Keep this authenticator selected and enter its next fresh code. If both apps fail, check that your phone uses automatic date and time.':error?.message||'Unable to verify. Try again.';
+      input.value='';
     } finally {
-      button.disabled = false;
+      button.disabled = false;selector.disabled=false;aliasInput.disabled=false;remember.disabled=false;
     }
   });
   try { await render(); } catch (error) {

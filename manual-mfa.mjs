@@ -19,7 +19,7 @@ export function createMfaController(supabase) {
     const pending = (factors.all || factors.totp || []).filter(f => f.factor_type === "totp" || f.factorType === "totp" || (factors.totp || []).some(t => t.id === f.id)).filter(f => f.status === "unverified");
     const state = assurance.currentLevel === "aal2" && verified.length ? "ready" :
       verified.length ? "challenge-required" : "enrollment-required";
-    return { state, factors: verified, pendingFactors: pending, currentLevel: assurance.currentLevel,
+    return { state, userId: session.session.user?.id || null, factors: verified, pendingFactors: pending, currentLevel: assurance.currentLevel,
       nextLevel: assurance.nextLevel };
   }
   async function enroll(friendlyName = "FlowPay authenticator") {
@@ -80,4 +80,15 @@ export function createPasskeyController(auth) {
     return data;
   }
   return {list,enroll};
+}
+
+export function chooseMfaFactor(factors, currentId = '', preferredId = '') {
+  if(factors.some(f=>f.id===currentId))return currentId;
+  if(factors.some(f=>f.id===preferredId))return preferredId;
+  return factors.length===1?factors[0].id:'';
+}
+export function mfaFactorLabel(factor, aliases = {}) {
+  const alias=aliases[factor.id];
+  const name=typeof alias==='string'&&alias.trim()?alias.trim():factor.friendly_name||'Authenticator';
+  return name+' · '+String(factor.id).slice(0,8);
 }
