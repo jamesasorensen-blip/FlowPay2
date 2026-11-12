@@ -8,6 +8,7 @@ const URL_BASE='https://sdiovjwtphqvfjlyoxeq.supabase.co';
 const PUBLIC_KEY='sb_publishable_rt8itouJe2nsO1wofOqROQ_-6aJ4zlM';
 const client=window.supabase.createClient(URL_BASE,PUBLIC_KEY,{auth:{storageKey:'flowpay-manual-auth-v1',experimental:{passkey:true},persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const bridge=window.flowpayManualBridge,mfa=createMfaController(client),passkeys=createPasskeyController(client.auth);
+let mfaScreenOwner=null;
 let userId=null,authGeneration=0,authChecking=false,recheckPending=false,recovery=false,securityView=false;
 const message=text=>{$('manual-auth-status').textContent=text;};
 const status=text=>{$('guest-save-status').textContent=text;};
@@ -54,6 +55,7 @@ const store=createManualBudgetStore({
 window.flowpayManualPayBill=toggleManualBillPayment;
 window.flowpayManualChanged=data=>{try{store.edit(data)}catch(err){status(err.message)}};
 function lock(){
+ mfaScreenOwner=null;
  if($('manual-passkey-notice'))$('manual-passkey-notice').textContent='';
  $('manual-security-status').textContent='';
  window.flowpayManualReady=false;bridge.lock();store.close();
@@ -66,6 +68,8 @@ function loginScreen(text='Sign in to your saved manual budget.'){
  message(text);
 }
 async function securityScreen(){
+ if(mfaScreenOwner===userId&&!$('manual-auth').hidden&&!$('manual-mfa-host').hidden&&$('manual-mfa-host').childElementCount)return;
+ mfaScreenOwner=userId;
  $('manual-auth').hidden=false;$('manual-signin').hidden=true;$('manual-auth-options').hidden=true;
  $('manual-mfa-host').hidden=false;$('manual-auth-signout').hidden=false;
  message('Complete authenticator verification to access your financial records.');
@@ -81,7 +85,7 @@ async function authenticate(){
   const id=data.user.id;
   if(userId!==id){lock();userId=id;window.flowpayActiveUserId=id;}
   const security=await mfa.status();if(generation!==authGeneration||id!==userId)return;
-  if(security.state!=='ready'){lock();window.flowpayActiveUserId=id;await securityScreen();return;}
+  if(security.state!=='ready'){if(window.flowpayManualReady||store.getStatus().owner)lock();window.flowpayActiveUserId=id;await securityScreen();return;}
   if(recovery){$('manual-auth').hidden=false;$('manual-signin').hidden=true;$('manual-auth-options').hidden=true;$('manual-mfa-host').hidden=true;$('manual-reset-password').hidden=false;message('Enter a new password for your account.');return;}
   if(securityView)return;
   if(!store.getStatus().ready)await store.open(id);
