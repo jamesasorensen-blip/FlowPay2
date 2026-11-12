@@ -27,3 +27,8 @@ test('flags malformed paid occurrence records for review',()=>{
  const result=manualNextMonthReserve({balance:0,bills:[{id:'rent',amount:100,dueDate:'2026-12-01'}],paidOccurrences:[{bad:'record'}]},'2026-11-11');
  assert.equal(result.targetCents,10000);assert.equal(result.unknownPaidEntries,true);
 });
+
+test('rejects duplicate bill occurrences rather than double-counting',()=>{
+ const data={balance:100,bills:[{id:'rent',amount:950,dueDate:'2026-12-01'},{id:'rent',amount:950,dueDate:'2026-12-01'}]};
+ assert.throws(()=>manualNextMonthReserve(data,'2026-11-11'),/Duplicate bill occurrence/);
+});
