@@ -494,9 +494,12 @@
                             <button id="open-buffer-btn" class="flex-1 md:flex-none bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
                                 <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Buffer ($<span id="buffer-display-val">75</span>)
                             </button>
-                            <button id="open-safe-spend-modal-btn" class="flex-1 md:flex-none bg-emerald-600/60 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-2 shadow">
-                                <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Next Month Bills (<span id="included-next-bills-count">0</span>)
-                            </button>
+                            <div class="w-full md:w-64 min-w-0">
+                                <button id="open-safe-spend-modal-btn" aria-describedby="next-month-bills-help" class="w-full bg-emerald-600/60 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-2 shadow">
+                                    <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Next Month Bills (<span id="included-next-bills-count">0</span>)
+                                </button>
+                                <p id="next-month-bills-help" class="mt-2 text-xs leading-relaxed text-indigo-200/80">Planning for next month’s rent or another large bill? Select it here to see how this month’s bills and paychecks affect whether you’ll have enough left to cover it.</p>
+                            </div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mt-6 pt-6 border-t border-indigo-800/40 text-xs text-indigo-200">
