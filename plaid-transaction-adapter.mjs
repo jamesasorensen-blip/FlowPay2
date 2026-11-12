@@ -4,7 +4,7 @@ export function mapPlaidTransactions(records){
  if(!Array.isArray(records))throw new TypeError('Transaction records must be an array');
  const ids=new Set();
  // Posted transactions may explicitly link to the pending authorization they replaced.
- const replacedPendingIds=new Set(records.filter(r=>r&&r.pending!==true&&typeof r.pending_transaction_id==='string'&&r.pending_transaction_id.trim()).map(r=>r.pending_transaction_id));
+ const replacedPendingIds=new Set(records.filter(r=>r&&r.pending!==true&&typeof r.pending_transaction_id==='string'&&r.pending_transaction_id.trim()&&typeof r.transaction_id==='string'&&r.transaction_id.trim()&&validDate(r.date)&&typeof r.amount==='number'&&Number.isFinite(r.amount)&&r.amount>0&&Number.isSafeInteger(Math.round(r.amount*100))).map(r=>r.pending_transaction_id));
  return records.flatMap(record=>{
   if(!record||typeof record!=='object')return [];
   const id=record.transaction_id;
