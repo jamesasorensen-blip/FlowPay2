@@ -1,7 +1,7 @@
 // Receipt reconciliation: matching an uploaded receipt to a bank transaction
 // annotates that transaction; it must never create a second expense.
 const validDate=value=>{if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return false;const parsed=new Date(value+'T00:00:00Z');return !Number.isNaN(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;};
-const money=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&Number.isSafeInteger(Math.round(v*100));
+const money=v=>typeof v==='number'&&Number.isFinite(v)&&v>=0&&Number.isSafeInteger(Math.round(v*100))&&Math.abs(v*100-Math.round(v*100))<1e-7;
 export function reconcileReceipt(receipt,transactions,{dateToleranceDays=3}={}){
  if(!receipt||!money(receipt.totalDollars)||!validDate(receipt.date))throw new TypeError('Receipt requires valid date and nonnegative total');
  if(!Array.isArray(transactions)||!Number.isInteger(dateToleranceDays)||dateToleranceDays<0||dateToleranceDays>30)throw new TypeError('Invalid transactions or date tolerance');
