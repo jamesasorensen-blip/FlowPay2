@@ -17,7 +17,8 @@ function setup({ rows = [], env = {}, databaseError = false } = {}) {
   const executable = source
     .replace(/^import postgres from "npm:postgres@3\.4\.3";\s*/m, '')
     .replace('header: string | null', 'header')
-    .replace('): Promise<boolean> {', ') {');
+    .replace('): Promise<boolean> {', ') {')
+    .replace('value: string', 'value');
   const sandbox = {
     crypto: webcrypto, TextEncoder, Request, Response, Date, Uint8Array,
     postgres: () => (strings, ...values) => {
