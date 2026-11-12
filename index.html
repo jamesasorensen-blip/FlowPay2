@@ -1259,6 +1259,12 @@ window.addEventListener('DOMContentLoaded',init);
   exportButton.textContent = 'Export local financial backup';
   exportButton.style.cssText = 'display:none;margin-top:10px;background:#334155;color:white;border:1px solid #94a3b8;padding:9px;border-radius:7px;cursor:pointer';
   notice.appendChild(exportButton);
+  const accountImportButton = document.createElement('button');
+  accountImportButton.id = 'flowpay-import-account-cache';
+  accountImportButton.type = 'button';
+  accountImportButton.textContent = 'Back up and import this account’s browser budget';
+  accountImportButton.style.cssText = 'display:none;margin-top:10px;background:#4f46e5;color:white;padding:9px;border-radius:7px;cursor:pointer';
+  notice.appendChild(accountImportButton);
   const cloudClose = notice.querySelector('#flowpay-cloud-close');
   cloudClose.addEventListener('click', () => {
     sessionStorage.setItem('flowpay-cloud-notice-dismissed', '1');
@@ -1276,6 +1282,7 @@ window.addEventListener('DOMContentLoaded',init);
     status.textContent = msg;
     importButton.style.display = showImport ? 'block' : 'none';
     freshButton.style.display = showFresh ? 'block' : 'none';
+    accountImportButton.style.display = showImport ? 'block' : 'none';
     exportButton.style.display = activeId && (paused || changedDuringLoad || dirty) ? 'block' : 'none';
   };
   const isSample = data => !!(data && data.flowpay_test === true && data.message === 'Cloud storage is working');
@@ -1371,6 +1378,7 @@ window.addEventListener('DOMContentLoaded',init);
     generation++;
     const gen = generation;
     clearTimeout(timer);
+    accountImportButton.disabled=false;
     activeId = id;ready = false;paused = false;writing = false;dirty = false;changedDuringLoad = false;revision=0;remoteIsSample=false;
     state = normalized({});theme();render();
     notice.style.display = id ? 'block' : 'none';
@@ -1466,6 +1474,50 @@ window.addEventListener('DOMContentLoaded',init);
       freshButton.disabled = false;
       importButton.disabled = false;
     }
+  });
+  accountImportButton.addEventListener('click',async () => {
+    if (!activeId || !paused || accountImportButton.disabled || !(revision === 0 || remoteIsSample)) return;
+    const id=activeId,gen=generation,raw=localStorage.getItem(cacheKey(activeId));
+    let snapshot;
+    try {
+      const data=JSON.parse(raw || 'null');
+      if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Missing account budget');
+      snapshot=JSON.parse(JSON.stringify(normalized(data)));
+    } catch {
+      setStatus('No readable account-scoped browser budget found. Nothing was uploaded.',true,true);return;
+    }
+    if (!confirm('Back up this signed-in account’s browser budget and upload it to this account’s staging cloud storage? Existing financial cloud data will not be replaced. Continue?')) return;
+    if(id !== activeId || gen !== generation)return;
+    accountImportButton.disabled=true;
+    setStatus('Checking this account’s cloud record before import…');
+    try {
+      const current=await request('GET');
+      if(id !== activeId || gen !== generation)return;
+      if(!current.res.ok)throw new Error(current.body.error || 'Cloud check failed');
+      if(current.body.exists && !isSample(current.body.data)) {
+        setStatus('Cloud financial data already exists. Import stopped without changes. Reload to review it.',true);return;
+      }
+      if((current.body.revision || 0) !== revision) {
+        setStatus('Cloud revision changed. Import stopped without changes. Reload before continuing.',true);return;
+      }
+      if(localStorage.getItem(cacheKey(id)) !== raw) {
+        setStatus('Browser budget changed during the cloud check. Import stopped; review the latest data first.',true);return;
+      }
+      backup(snapshot,'flowpay-staging-account-backup-'+new Date().toISOString().slice(0,10)+'.json');
+      const {res,body}=await request('PUT',{revision,data:snapshot});
+      if(id !== activeId || gen !== generation)return;
+      if(!res.ok)throw new Error(body.error || 'Account import failed');
+      revision=body.revision;remoteIsSample=false;
+      if(localStorage.getItem(cacheKey(id)) !== raw) {
+        paused=true;ready=false;dirty=true;
+        setStatus('Cloud copy saved, but this browser budget changed during import. Newer browser records were preserved; export a backup before reconciling.');return;
+      }
+      useState(snapshot,id);
+      paused=false;ready=true;dirty=false;
+      setStatus('Account browser budget imported. Cloud synced.');
+    } catch(err) {
+      if(id === activeId && gen === generation)setStatus('Account import failed: '+err.message+'. Your browser budget is preserved.',true);
+    } finally {if(id === activeId && gen === generation)accountImportButton.disabled=false;}
   });
   importButton.addEventListener('click',async () => {
     if (!activeId || !paused || !(revision === 0 || remoteIsSample)) return;
