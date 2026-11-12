@@ -8,7 +8,7 @@ test('projects monthly template into next month',()=>{const result=manualNextMon
 test('rejects unsafe reserve amounts',()=>assert.throws(()=>manualNextMonthReserve({balance:0,bills:[]},'2026-11-11',{reservedCents:1.5})));
 
 test('clamps a monthly bill due on the 31st to February month end',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2027-01-31',frequency:'monthly'}]},'2027-01-10');assert.equal(result.items[0].dueDate,'2027-02-28');});
-test('does not project unsupported recurrence patterns',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2026-11-01',frequency:'yearly'}]},'2026-11-11');assert.equal(result.targetCents,0);});
+test('does not project unsupported recurrence patterns',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2026-11-01',frequency:'unknown'}]},'2026-11-11');assert.equal(result.targetCents,0);});
 
 test('excludes an explicitly paid occurrence for the next month',()=>{
  const data={balance:100,bills:[{id:'rent',name:'Rent',amount:950,dueDate:'2026-11-01',frequency:'monthly'}],paidOccurrences:[{key:'rent|2026-12-01',balanceEffect:950}]};
@@ -40,4 +40,14 @@ test('counts every weekly bill occurrence next month',()=>{
 test('counts biweekly occurrences and excludes only paid occurrence',()=>{
  const result=manualNextMonthReserve({balance:0,bills:[{id:'biweekly',amount:25,dueDate:'2026-11-30',frequency:'biweekly'}],paidOccurrences:['biweekly|2026-12-14']},'2026-11-11');
  assert.deepEqual(result.items.map(x=>x.dueDate),['2026-12-28']);assert.equal(result.targetCents,2500);
+});
+
+test('projects annual bill only in its anniversary month',()=>{
+ const data={balance:0,bills:[{id:'annual',amount:120,dueDate:'2024-12-10',frequency:'yearly'}]};
+ assert.equal(manualNextMonthReserve(data,'2026-11-11').targetCents,12000);
+ assert.equal(manualNextMonthReserve(data,'2026-10-11').targetCents,0);
+});
+test('annual leap-day bills clamp to February 28 in non-leap years',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'leap',amount:20,dueDate:'2024-02-29',frequency:'yearly'}]},'2027-01-10');
+ assert.equal(result.items[0].dueDate,'2027-02-28');
 });
