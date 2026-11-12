@@ -41,7 +41,7 @@ html=replaceOnce(html,"if(storageNotice)storageNotice.textContent='Data is accou
 html=html.replace(/\['↗ Bank transactions',\(\)=>view\('transactions'\)\]/g,"['↗ Manual activity',()=>view('transactions')]");
 html=replaceOnce(html,"if(btn)btn.click();else toast('Connect a Sandbox bank to view transactions.',true);","if(btn)btn.click();else {switchPage('guest-activity');renderGuestActivity();}");
 html=replaceOnce(html,"['Connect a bank (optional)',()=>{$id('app-sidebar')?.classList.remove('-translate-x-full');$id('sidebar-overlay')?.classList.remove('hidden')}]","['Enter your own starting balance',()=>$id('open-balance-btn')?.click()]");
-html=html.replaceAll("label.textContent='Cloud sync enabled'","label.textContent='Saved only in this browser'");
+html=html.replaceAll("label.textContent='Cloud sync enabled'","label.textContent='Local guest workspace'");
 html=html.replace('function load(){','function loadGuestBudget(){').replace('function init(){load();','function init(){');
 html=html.replace(/localStorage/g,'guestStorage');
 // The adapter is the sole direct browser-storage access; all app reads/writes are namespaced.
@@ -65,6 +65,18 @@ const banner=`<aside id="guest-banner" class="px-4 sm:px-8 py-3 bg-indigo-50 dar
 <div class="flex gap-2 flex-wrap"><button type="button" id="guest-empty" class="fp-ui-btn">Start with my own empty budget</button><button type="button" id="guest-sample" class="fp-ui-btn">Restore sample budget</button><button type="button" id="guest-clear" class="fp-ui-btn">Clear guest data</button></div>
 </aside>`;
 html=html.replace(/(<body[^>]*>)/,'$1'+banner);
+html=html.replace('</head>',`<style>
+header:has(#header-page-title){display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
+header:has(#header-page-title)>div:first-child{min-width:0}
+header:has(#header-page-title)>div:first-child>button,header:has(#header-page-title)>div:first-child>.w-10{flex-shrink:0}
+#header-page-title{overflow-wrap:break-word}
+#fp-toolbar{grid-column:1/-1;width:100%;justify-content:flex-start}
+#fp4-shortcuts{grid-column:1/-1}
+#fp-dock{display:flex}
+body{padding-bottom:80px}
+#modal-settings>div{max-height:85vh;overflow:auto}
+@media(max-width:640px){#fp4-shortcuts{display:none}#header-page-title{font-size:16px}header:has(#header-page-title){padding:12px}#fp-toolbar .fp-label{display:inline}#fp-toolbar{gap:7px}#fp2-save-status{white-space:normal}#guest-banner{font-size:12px}}
+</style></head>`);
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n</body>');
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
