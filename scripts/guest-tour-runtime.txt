@@ -266,7 +266,7 @@
     "body": "You have explored the dashboard, menu, calendar, projections, and calculator. Finish returns to the page where you started. Replay anytime with Take a guided tour. Guest entries stay in this browser; export a copy from Settings if you want to keep one."
   }
 ];
- let index=0,overlay=null,card=null,spot=null,previousFocus=null,viewState=[],sidebarClass=null,shadeClass=null,scrollStart=null,originalPage=null,previewedPage=null;
+ let index=0,overlay=null,card=null,spot=null,previousFocus=null,viewState=[],sidebarClass=null,shadeClass=null,scrollStart=null,originalPage=null,previewedPage=null,singleStep=false;
  const $=s=>document.querySelector(s);
  const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
  const modalOpen=()=>[...document.querySelectorAll('[id^="modal-"], [role="dialog"]')].some(el=>el.id!=='guest-tour-card'&&visible(el)&&getComputedStyle(el).position==='fixed');
@@ -288,6 +288,7 @@
   if(sidebarClass!==null)$('#app-sidebar').className=sidebarClass;
   if(shadeClass!==null)$('#sidebar-overlay').className=shadeClass;
   if(scrollStart)window.scrollTo(scrollStart.x,scrollStart.y);
+  window.dispatchEvent(new Event('flowpay-tour-stop'));
   if(completed){try{guestStorage.setItem(KEY,'yes')}catch{}}
   if(previousFocus?.isConnected)previousFocus.focus();
  }
@@ -327,14 +328,15 @@
   spot.scrollIntoView({block:'center',behavior:'instant'});
   $('#guest-tour-title').textContent=step.title;
   $('#guest-tour-description').textContent=step.body;
-  $('#guest-tour-count').textContent='Step '+(index+1)+' of '+steps.length;
-  $('#guest-tour-next').textContent=index===steps.length-1?'Finish':'Got it — Next';
-  $('#guest-tour-back').disabled=findNext(index-1,-1)<0;
+  $('#guest-tour-count').textContent=singleStep?'Widget explanation':'Step '+(index+1)+' of '+steps.length;
+  $('#guest-tour-next').textContent=singleStep?'Got it':index===steps.length-1?'Finish':'Got it — Next';
+  $('#guest-tour-back').disabled=singleStep||findNext(index-1,-1)<0;
   requestAnimationFrame(position);
  }
- function start(){
+ function start(selector){
   if(overlay||modalOpen())return;
-  previousFocus=document.activeElement;index=0;
+  previousFocus=document.activeElement;singleStep=typeof selector==='string';index=singleStep?Math.max(0,steps.findIndex(step=>step.selector===selector)):0;
+  window.dispatchEvent(new Event('flowpay-tour-start'));
   scrollStart={x:window.scrollX,y:window.scrollY};
   sidebarClass=$('#app-sidebar')?.className??null;shadeClass=$('#sidebar-overlay')?.className??null;
   viewState=[...document.querySelectorAll('.app-view')].map(el=>[el,el.classList.contains('hidden')]);
@@ -343,13 +345,14 @@
   overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><span id="guest-tour-arrow" aria-hidden="true">↑</span><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-back">Back</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
   document.body.append(overlay);card=$('#guest-tour-card');
   $('#guest-tour-skip').addEventListener('click',()=>stop(true));
-  $('#guest-tour-next').addEventListener('click',()=>{index++;show()});
+  $('#guest-tour-next').addEventListener('click',()=>{if(singleStep){stop(false);return}index++;show()});
   $('#guest-tour-back').addEventListener('click',()=>{const prior=findNext(index-1,-1);if(prior>=0){index=prior;show()}});
   window.addEventListener('resize',position);
   window.addEventListener('scroll',position,true);
   document.addEventListener('keydown',keyboard,true);
   show();$('#guest-tour-next').focus();
  }
+ window.flowpayExplainWidget=selector=>start(selector);
  document.addEventListener('DOMContentLoaded',()=>{
   const btn=document.createElement('button');btn.id='guest-tour-restart';btn.type='button';btn.className='fp-ui-btn';btn.textContent='Take a guided tour';$('#guest-banner')?.append(btn);
   btn.addEventListener('click',start);
