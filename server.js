@@ -28,6 +28,7 @@ if (process.env.FLOWPAY_ENABLE_REDESIGN_PREVIEW === '1') {
     ['/receipt-reconciliation.mjs', 'receipt-reconciliation.mjs'],
     ['/receipt-text-parser.mjs', 'receipt-text-parser.mjs'],
     ['/plaid-transaction-adapter.mjs', 'plaid-transaction-adapter.mjs'],
+    ['/receipt-plaid-bridge.mjs', 'receipt-plaid-bridge.mjs'],
     ['/cashflow-simulator.mjs', 'cashflow-simulator.mjs'],
     ['/flowpay-navigation.mjs', 'flowpay-navigation.mjs']
   ]);
