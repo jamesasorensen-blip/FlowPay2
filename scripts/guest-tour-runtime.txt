@@ -1,0 +1,81 @@
+// Guest-only, read-only guided tour. No app actions or financial writes.
+(function(){
+ const KEY='tour-complete-v1';
+ const steps=[
+  {selector:'#guest-banner',title:'Welcome to the guest workspace',body:'Try FlowPay with sample financial data. Your changes stay in this browser; no bank connection or login is needed.'},
+  {selector:'#guest-empty',title:'Start your own budget',body:'This replaces the sample budget with an empty one. The tutorial never presses this button for you.'},
+  {selector:'#header-page-title',title:'Find your way around',body:'This heading shows which area you are viewing. Use the navigation to switch between your budget tools.'},
+  {selector:'#view-dashboard',title:'Your financial overview',body:'See your balance, upcoming bills, and what may be available to spend. These figures depend on the information entered.'},
+  {selector:'#fp-dock',title:'Main navigation',body:'Use the navigation bar to explore Home, Bills, Calendar and Activity. You can revisit these sections whenever you like.'},
+  {selector:'#btn-settings',title:'Settings and export',body:'Adjust everyday spending and pending deductions, or export a copy of your guest budget.'},
+  {selector:'#guest-sample',title:'Restore sample data',body:'Restore the example budget if you want to explore again. This replaces your current entries, so export anything you want to keep first.'}
+ ];
+ let index=0,overlay=null,card=null,spot=null,previousFocus=null;
+ const $=s=>document.querySelector(s);
+ const visible=el=>!!(el&&el.getClientRects().length);
+ function stop(completed){
+  window.removeEventListener('resize',position);
+  window.removeEventListener('scroll',position,true);
+  document.removeEventListener('keydown',keyboard,true);
+  if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index');spot=null}
+  overlay?.remove();overlay=null;card=null;
+  if(completed){try{guestStorage.setItem(KEY,'yes')}catch{}}
+  if(previousFocus?.isConnected)previousFocus.focus();
+ }
+ function keyboard(e){
+  if(!overlay)return;
+  if(e.key==='Escape'){e.preventDefault();stop(true)}
+  if(e.key==='Tab'){
+   const controls=[...card.querySelectorAll('button')];
+   const at=controls.indexOf(document.activeElement);
+   if(e.shiftKey&&at<=0){e.preventDefault();controls[controls.length-1].focus()}
+   else if(!e.shiftKey&&at===controls.length-1){e.preventDefault();controls[0].focus()}
+  }
+ }
+ function position(){
+  if(!overlay||!spot)return;
+  const rect=spot.getBoundingClientRect(),pad=8;
+  const box=$('#guest-tour-highlight');
+  Object.assign(box.style,{top:Math.max(0,rect.top-pad)+'px',left:Math.max(0,rect.left-pad)+'px',width:Math.max(0,rect.width+2*pad)+'px',height:Math.max(0,rect.height+2*pad)+'px'});
+  const w=card.offsetWidth,h=card.offsetHeight;
+  const below=rect.bottom+20+h<window.innerHeight;
+  const top=below?rect.bottom+20:Math.max(12,rect.top-h-20);
+  card.style.top=Math.max(12,Math.min(top,window.innerHeight-h-12))+'px';
+  card.style.left=Math.max(12,Math.min(rect.left,window.innerWidth-w-12))+'px';
+  const arrow=$('#guest-tour-arrow');
+  arrow.textContent=below?'↑':'↓';
+  arrow.style.top=below?'-25px':'auto';arrow.style.bottom=below?'auto':'-25px';
+ }
+ function show(){
+  if(!overlay)return;
+  if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index')}
+  while(index<steps.length&&!visible($(steps[index].selector)))index++;
+  if(index>=steps.length){stop(true);return}
+  const step=steps[index];spot=$(step.selector);
+  spot.scrollIntoView({block:'nearest',behavior:'instant'});
+  $('#guest-tour-title').textContent=step.title;
+  $('#guest-tour-description').textContent=step.body;
+  $('#guest-tour-count').textContent='Step '+(index+1)+' of '+steps.length;
+  $('#guest-tour-next').textContent=index===steps.length-1?'Finish':'Got it — Next';
+  requestAnimationFrame(position);
+ }
+ function start(){
+  if(overlay)return;
+  previousFocus=document.activeElement;index=0;
+  overlay=document.createElement('div');overlay.id='guest-tour-overlay';
+  overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><span id="guest-tour-arrow" aria-hidden="true">↑</span><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
+  document.body.append(overlay);card=$('#guest-tour-card');
+  $('#guest-tour-skip').addEventListener('click',()=>stop(true));
+  $('#guest-tour-next').addEventListener('click',()=>{index++;show()});
+  window.addEventListener('resize',position);
+  window.addEventListener('scroll',position,true);
+  document.addEventListener('keydown',keyboard,true);
+  show();$('#guest-tour-next').focus();
+ }
+ document.addEventListener('DOMContentLoaded',()=>{
+  const btn=document.createElement('button');btn.id='guest-tour-restart';btn.type='button';btn.className='fp-ui-btn';btn.textContent='Take a guided tour';$('#guest-banner')?.append(btn);
+  btn.addEventListener('click',start);
+  let complete=false;try{complete=guestStorage.getItem(KEY)==='yes'}catch{}
+  if(!complete)requestAnimationFrame(()=>requestAnimationFrame(start));
+ });
+})();
