@@ -2,6 +2,7 @@ import {createMfaController} from './manual-mfa.mjs';
 import {mountFlowPayMfa} from './manual-mfa-ui.mjs';
 import {toggleManualBillPayment} from './manual-ledger.mjs';
 import {createManualBudgetStore} from './manual-budget-store.mjs';
+if(!window.flowpayManualBridge)await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
 const $=id=>document.getElementById(id);
 const URL_BASE='https://sdiovjwtphqvfjlyoxeq.supabase.co';
 const PUBLIC_KEY='sb_publishable_rt8itouJe2nsO1wofOqROQ_-6aJ4zlM';
