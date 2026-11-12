@@ -13,9 +13,11 @@
 
 ## Read-only database checkpoint (2026-11-12)
 
+- The deployed Edge Function is **ACTIVE version 3**, and its retrieved `index.ts` matches the repository snapshot **byte-for-byte** at this checkpoint. This confirms source parity, not runtime secret availability or live authentication.
 - The private lookup allowlist currently contains **one user**.
 - That allowlisted user currently has **two session rows** in `auth.sessions`.
 - These counts were obtained without retrieving account or session identifiers and without modifying records.
+- **Input-hardening follow-up:** the deployed handler parses JSON and destructures the result directly; a JSON `null` body currently reaches its catch-all 503 path rather than returning a client-input 400. This is a response-classification issue, not evidence of unauthorized access. Preserve the deployed-source snapshot and review any proposed fix separately before deployment.
 - **Not yet verified:** the allowlisted identity is exclusively a dedicated staging account; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
 - **Hold:** do not run a positive or revoked-session test or enable any enforcement flag until test-account ownership and isolation are confirmed.
 
