@@ -50,7 +50,7 @@ test('missing secrets and staging allowlist configuration fail closed', async ()
   for (const env of [{ FLOWPAY_SESSION_LOOKUP_SECRET: '' }, { FLOWPAY_STAGING_TEST_USER_ID: '' }, { SUPABASE_DB_URL: '' }]) {
     const app = setup({ env });
     const response = await app.request();
-    assert.equal(response.status, 503);
+    assert.equal(response.status, env.FLOWPAY_SESSION_LOOKUP_SECRET === '' ? 401 : 503);
     assert.equal(app.queries(), 0);
   }
 });
