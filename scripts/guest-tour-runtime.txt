@@ -1,6 +1,6 @@
 // Guest-only, read-only guided tour. No app actions or financial writes.
 (function(){
- const KEY='tour-complete-v2';
+ const KEY='tour-complete-v1';
  const steps=[
   {selector:'#guest-banner',title:'Welcome to the guest workspace',body:'Try FlowPay with sample financial data. Your changes stay in this browser; no bank connection or login is needed.'},
   {selector:'#guest-empty',title:'Start your own budget',body:'This replaces the sample budget with an empty one. The tutorial never presses this button for you.'},
