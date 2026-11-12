@@ -1,0 +1,73 @@
+<script>
+
+function guestSample(){
+ const today=day();
+ return {...structuredClone(defaults),balance:2840,emergencyBuffer:200,essentialSpending:150,savingsGoal:200,
+ bills:[{id:'guest-rent',name:'Sample rent',amount:950,category:'Housing',frequency:'monthly',dueDate:plusDays(today,3)},{id:'guest-electric',name:'Sample electricity',amount:145,category:'Utilities',frequency:'monthly',dueDate:plusDays(today,7)},{id:'guest-insurance',name:'Sample car insurance',amount:180,category:'Insurance',frequency:'monthly',dueDate:plusDays(today,12)}],
+ paychecks:[{id:'guest-paycheck',name:'Sample paycheck',date:plusDays(today,5),amount:1850,status:'actual'}],manualTransactions:[],activity:[]};
+}
+function guestEmpty(){return {...structuredClone(defaults),balance:0,emergencyBuffer:0,essentialSpending:0,pendingTransactions:0,savingsGoal:0,manualTransactions:[]};}
+function guestReset(sample){
+ try{guestStorage.setItem('previous-budget',JSON.stringify(state));}
+ catch{toast('Could not back up this budget. No changes made.',true);return;}
+ state=sample?guestSample():guestEmpty();save();reorder();render();renderGuestActivity();
+ $('guest-restore').hidden=false;
+ toast(sample?'Sample budget restored.':'Empty budget ready. Enter your own balance, bills, and income.');
+}
+function renderGuestActivity(){
+ const list=$('guest-manual-list');if(!list)return;list.replaceChildren();
+ for(const tx of [...(state.manualTransactions||[])].reverse()){
+  const row=document.createElement('div');row.className='flex justify-between gap-3 p-3 border-b border-slate-200 dark:border-slate-700';
+  const label=document.createElement('div');label.textContent=tx.name+' · '+tx.date;
+  const amount=document.createElement('strong');amount.textContent=(tx.type==='expense'?'-':'+')+money(tx.amount);row.append(label,amount);list.append(row);
+ }
+ if(!list.childElementCount)list.textContent='No manual transactions yet. Add an expense or deposit below.';
+ const recent=$('guest-recent-activity');recent.replaceChildren();
+ for(const entry of state.activity.slice(0,30)){const row=document.createElement('p');row.className='py-2 text-sm';row.textContent=entry.message+' · '+new Date(entry.time).toLocaleString();recent.append(row);}
+}
+document.addEventListener('DOMContentLoaded',()=>{
+ const restore=document.createElement('button');restore.id='guest-restore';restore.type='button';restore.className='fp-ui-btn';restore.textContent='Undo budget reset';restore.hidden=!guestStorage.getItem('previous-budget');$('guest-clear').after(restore);
+ $('guest-empty').addEventListener('click',()=>guestReset(false));
+ $('guest-sample').addEventListener('click',()=>guestReset(true));
+ $('guest-clear').textContent='Clear manual budget';
+ $('guest-clear').addEventListener('click',()=>guestReset(false));
+ restore.addEventListener('click',()=>{try{const prior=JSON.parse(guestStorage.getItem('previous-budget')||'null');if(!prior)return;state=prior;save();reorder();render();renderGuestActivity();toast('Previous budget restored.');}catch{toast('Could not restore the previous budget.',true)}});
+ $('guest-export').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='flowpay-manual-budget.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ });
+ const main=$('view-dashboard').parentElement;
+ const view=document.createElement('section');view.id='view-guest-activity';view.className='app-view hidden space-y-6';
+ view.innerHTML=`<article class="glass dark:bg-slate-800 rounded-2xl p-5 space-y-4"><h2 class="font-bold text-xl">Manual transactions & activity</h2><p class="text-sm text-slate-500 dark:text-slate-300">Expenses subtract from your current balance; deposits add to it. Use scheduled paychecks for future income. Enter transactions only once. Marking a bill paid also deducts it from your balance; do not record that same bill payment here.</p><form id="guest-transaction-form" class="grid sm:grid-cols-2 gap-3"><label class="text-sm">Description<input id="guest-tx-name" required maxlength="120" class="block w-full rounded-xl p-2 text-slate-900 bg-slate-100"></label><label class="text-sm">Amount<input id="guest-tx-amount" type="number" min="0.01" step="0.01" required class="block w-full rounded-xl p-2 text-slate-900 bg-slate-100"></label><label class="text-sm">Date<input id="guest-tx-date" type="date" required class="block w-full rounded-xl p-2 text-slate-900 bg-slate-100"></label><label class="text-sm">Type<select id="guest-tx-type" class="block w-full rounded-xl p-2 text-slate-900 bg-slate-100"><option value="expense">Expense</option><option value="income">Deposit received</option></select></label><button type="submit" class="fp-ui-btn fp-primary">Save manual transaction</button></form><div id="guest-manual-list"></div></article><article class="glass dark:bg-slate-800 rounded-2xl p-5"><h2 class="font-bold text-lg">Recent budget activity</h2><div id="guest-recent-activity"></div></article>`;
+ main.append(view);$('guest-tx-date').value=day();
+ $('guest-transaction-form').addEventListener('submit',e=>{
+  e.preventDefault();const amount=num($('guest-tx-amount').value),name=$('guest-tx-name').value.trim(),when=$('guest-tx-date').value,type=$('guest-tx-type').value;
+  if(!name||amount<=0||!when){toast('Enter a description, positive amount, and date.',true);return}
+  if(when>day()){toast('Use the calendar or paycheck tools for future income and bills.',true);return}
+  state.manualTransactions??=[];state.manualTransactions.push({id:uid(),name,amount,date:when,type});state.balance+=type==='expense'?-amount:amount;log('Manual '+(type==='expense'?'expense':'deposit')+': '+name+' '+money(amount));change();renderGuestActivity();e.target.reset();$('guest-tx-date').value=day();toast('Transaction recorded. Check the account save status.');
+ });
+ const originalSwitch=switchPage;switchPage=function(page){originalSwitch(page);if(page==='guest-activity'){$('header-page-title').textContent='Manual Transactions & Activity';renderGuestActivity()}};
+ // Optional costs and pending deductions can be edited in the guest's own settings.
+ const settings=$('guest-export').parentElement;
+ const form=document.createElement('form');form.className='space-y-3';form.innerHTML='<label class="block text-sm">Essential spending<input id="guest-essentials" type="number" min="0" step="0.01" class="block w-full p-2 rounded-xl bg-slate-100 text-slate-900"></label><label class="block text-sm">Pending deductions<input id="guest-pending" type="number" min="0" step="0.01" class="block w-full p-2 rounded-xl bg-slate-100 text-slate-900"></label><button type="submit" class="fp-ui-btn">Save budget settings</button>';
+ settings.insertBefore(form,$('guest-export'));form.addEventListener('submit',e=>{e.preventDefault();state.essentialSpending=Math.max(0,num($('guest-essentials').value));state.pendingTransactions=Math.max(0,num($('guest-pending').value));change();closeModal('modal-settings');toast('Budget settings saved.')});
+ $('btn-settings').addEventListener('click',()=>{$('guest-essentials').value=state.essentialSpending;$('guest-pending').value=state.pendingTransactions;});
+ $('fp-welcome').hidden=true;
+ const notice=document.createElement('p');notice.className='text-xs text-slate-500 dark:text-slate-300';notice.textContent='Manual entries are saved to your private account. Check the save status before closing. Bank linking is not enabled in this workspace.';settings.append(notice);
+ window.flowpayManualBridge={
+  empty:guestEmpty,
+  read:()=>structuredClone(state),
+  apply:data=>{state={...guestEmpty(),...data};for(const key of ['bills','paychecks','paidOccurrences','includedNextMonthBillIds','activity','bankMatchDecisions','incomePatternDecisions','manualTransactions'])if(!Array.isArray(state[key]))state[key]=[];if(!Array.isArray(state.widgetOrder))state.widgetOrder=[...defaults.widgetOrder];state.bankBalanceSettings={mode:'manual',accountId:'',balanceType:'available'};$('guest-restore').hidden=!guestStorage.getItem('previous-budget');reorder();render();renderGuestActivity();},
+  lock:()=>{window.flowpayManualReady=false;state=guestEmpty();render();renderGuestActivity();},
+ };
+ state=guestEmpty();reorder();render();renderGuestActivity();
+ const security=document.createElement('section');security.className='space-y-3 border-t pt-4';security.innerHTML='<h3 class="font-bold">Account security</h3><button id="manual-enroll-passkey" type="button" class="fp-ui-btn">Enable fingerprint / passkey</button><button id="manual-security-mfa" type="button" class="fp-ui-btn">Authenticator settings</button><button id="manual-signout" type="button" class="fp-ui-btn">Save and sign out</button><p id="manual-security-status" role="status" class="text-sm"></p>';settings.append(security);
+ const recovery=document.createElement('div');recovery.className='space-y-2';recovery.innerHTML='<label class="text-sm">Restore a budget backup<input id="manual-import" type="file" accept="application/json,.json" class="block w-full text-xs"></label><p class="text-xs">Restore replaces this account’s manual budget. The previous budget stays available through Undo budget reset.</p><button id="manual-retry-save" type="button" class="fp-ui-btn">Retry saving</button>';settings.append(recovery);
+ $('manual-import').addEventListener('change',async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>1000000)throw Error('Backup is too large.');const owner=window.flowpayActiveUserId;const text=await file.text();if(owner!==window.flowpayActiveUserId||!window.flowpayManualReady)throw Error('Account changed during import. Try again.');const data=JSON.parse(text);if(!data||typeof data!=='object'||Array.isArray(data)||!Array.isArray(data.bills)||!Array.isArray(data.paychecks)||!Number.isFinite(data.balance))throw Error('Choose a valid FlowPay budget backup.');for(const b of data.bills)if(!b.id||typeof b.name!=='string'||!Number.isFinite(b.amount)||b.amount<=0||!['weekly','monthly'].includes(b.frequency)||!/^\d{4}-\d{2}-\d{2}$/.test(b.dueDate))throw Error('Backup has an invalid bill.');guestStorage.setItem('previous-budget',JSON.stringify(state));window.flowpayManualBridge.apply(data);save();$('guest-restore').hidden=false;toast('Budget backup restored.');}catch(err){toast(err.message||'Could not restore backup.',true)}finally{e.target.value=''}});
+ toggleBill=function(key){if(!window.flowpayManualReady)return;try{log(window.flowpayManualPayBill(state,key));change()}catch(err){toast(err.message,true)}};
+
+
+});
+
+
+</script>

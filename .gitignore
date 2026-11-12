@@ -12,3 +12,5 @@ coverage/
 
 # Guest workspace is generated from the canonical app during build.
 guest-demo.html
+
+manual.html
