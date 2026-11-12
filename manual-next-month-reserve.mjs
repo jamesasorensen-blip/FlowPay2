@@ -15,6 +15,9 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
  const sourceBills=Array.isArray(data.bills)?data.bills:[];
  const skippedInvalidAmounts=sourceBills.length-snapshot.bills.length;
  const invalidDueDates=snapshot.bills.filter(b=>!validDate(b.dueDate)).map(b=>b.id);
+ const missingBillIds=snapshot.bills.filter(b=>!b.id.trim()).length;
+ const idCounts=new Map();for(const b of snapshot.bills)if(b.id.trim())idCounts.set(b.id,(idCounts.get(b.id)||0)+1);
+ const duplicateBillIds=[...idCounts].filter(([,count])=>count>1).map(([id])=>id);
  const unsupportedFrequencies=[...new Set(snapshot.bills.map(b=>b.frequency).filter(f=>f&&f!=='once'&&!supported.has(f)))];
  const items=snapshot.bills.flatMap(b=>{
   if(!validDate(b.dueDate))return [];
@@ -53,5 +56,5 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
  const unique=new Set();
  for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
- return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-supported-recurrence-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries,unsupportedFrequencies:Object.freeze(unsupportedFrequencies),requiresScheduleReview:unsupportedFrequencies.length>0||invalidDueDates.length>0||skippedInvalidAmounts>0||unknownPaidEntries,invalidDueDates:Object.freeze(invalidDueDates),skippedInvalidAmounts});
+ return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-supported-recurrence-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries,unsupportedFrequencies:Object.freeze(unsupportedFrequencies),requiresScheduleReview:unsupportedFrequencies.length>0||invalidDueDates.length>0||skippedInvalidAmounts>0||unknownPaidEntries||missingBillIds>0||duplicateBillIds.length>0,invalidDueDates:Object.freeze(invalidDueDates),skippedInvalidAmounts,missingBillIds,duplicateBillIds:Object.freeze(duplicateBillIds)});
 }
