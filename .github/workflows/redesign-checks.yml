@@ -23,8 +23,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Install server dependencies
+        run: npm ci --ignore-scripts
       - name: Run redesign tests
-        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
