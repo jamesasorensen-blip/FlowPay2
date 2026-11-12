@@ -13,6 +13,7 @@
  let index=0,overlay=null,card=null,spot=null,previousFocus=null;
  const $=s=>document.querySelector(s);
  const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
+ const modalOpen=()=>[...document.querySelectorAll('[id^="modal-"], [role="dialog"]')].some(el=>el.id!=='guest-tour-card'&&visible(el)&&getComputedStyle(el).position==='fixed');
  const findNext=(from,direction)=>{let i=from;while(i>=0&&i<steps.length&&!visible($(steps[i].selector)))i+=direction;return i};
  function stop(completed){
   window.removeEventListener('resize',position);
@@ -64,7 +65,7 @@
   requestAnimationFrame(position);
  }
  function start(){
-  if(overlay)return;
+  if(overlay||modalOpen())return;
   previousFocus=document.activeElement;index=0;
   overlay=document.createElement('div');overlay.id='guest-tour-overlay';
   overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><span id="guest-tour-arrow" aria-hidden="true">↑</span><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-back">Back</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
@@ -81,6 +82,6 @@
   const btn=document.createElement('button');btn.id='guest-tour-restart';btn.type='button';btn.className='fp-ui-btn';btn.textContent='Take a guided tour';$('#guest-banner')?.append(btn);
   btn.addEventListener('click',start);
   let complete=false;try{complete=guestStorage.getItem(KEY)==='yes'}catch{}
-  if(!complete)requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!document.querySelector('[role=dialog]:not(#guest-tour-card):not(.hidden)'))start()}));
+  if(!complete)requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!modalOpen())start()}));
  });
 })();
