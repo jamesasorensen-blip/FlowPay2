@@ -96,8 +96,9 @@ body{padding-bottom:80px}
 @media(max-width:640px){#fp4-shortcuts{display:none}#header-page-title{font-size:16px}header:has(#header-page-title){padding:12px}#fp-toolbar .fp-label{display:inline}#fp-toolbar{gap:7px}#fp2-save-status{white-space:normal}#guest-banner{font-size:12px}}
 </style></head>`);
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
+const widgetRuntime=readFileSync(new URL('./widget-options-runtime.txt',import.meta.url),'utf8');
 const tourRuntime=readFileSync(new URL('./guest-tour-runtime.txt',import.meta.url),'utf8');
-html=html.replace('</body>', '<script>\n'+runtime+'\n'+tourRuntime+'\n</script>\n</body>');
+html=html.replace('</body>', '<script>\n'+runtime+'\n'+widgetRuntime+'\n'+tourRuntime+'\n</script>\n</body>');
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
  if(html.includes(forbidden))throw new Error('Guest output contains forbidden integration: '+forbidden);
 }
