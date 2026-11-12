@@ -47,7 +47,8 @@ function renderNextMonthEstimate(data){
  const detail=document.createElement('p');detail.className='text-sm mt-2';
  try{
   const result=manualNextMonthReserve(data,localToday());
-  detail.textContent='Scheduled and projected bills: '+(result.targetCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})+'. Review payment status and recurring schedules before setting money aside.';
+  const currency=cents=>(cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
+  detail.textContent=result.items.length+' next-month bill occurrence'+(result.items.length===1?'':'s')+' estimated: '+currency(result.targetCents)+'. This is an estimate, not money already reserved. Review payment status and unsupported recurring schedules before setting money aside.';
  }catch{
   detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
  }
