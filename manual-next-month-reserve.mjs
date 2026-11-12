@@ -40,6 +40,7 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
   }else if(b.dueDate>=start&&b.dueDate<end)dates.push(b.dueDate);
   return dates.filter(dueDate=>!paid.has(b.id+'|'+dueDate)).map(dueDate=>Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected:dueDate!==b.dueDate}));
  });
+ items.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
  const unknownPaidEntries=Array.isArray(data.paidOccurrences)&&data.paidOccurrences.some(p=>!(typeof p==='string'||(p&&typeof p.key==='string')));
  const unique=new Set();
  for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
