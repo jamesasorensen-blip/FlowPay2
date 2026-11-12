@@ -1,6 +1,6 @@
 // Guest-only, read-only guided tour. No app actions or financial writes.
 (function(){
- const KEY='tour-complete-v2';
+ const KEY='tour-complete-v3';
  const steps=[
   {
     "selector": "#guest-banner",
@@ -135,17 +135,147 @@
     "menu": true
   },
   {
+    "page": "calendar",
+    "selector": "#view-calendar h2",
+    "title": "Inside the calendar page",
+    "body": "The tour has opened Wall Calendar & Dynamic Cash Flow. This page puts scheduled bills and income on dates so you can see when money is expected to arrive or be needed."
+  },
+  {
+    "page": "calendar",
+    "selector": "#calendar-month-select",
+    "title": "Choose a calendar month",
+    "body": "Use this selector to inspect another month. The calendar follows the due dates and repeating schedules you entered. Past dates are for reviewing your plan; they are not a historical bank statement."
+  },
+  {
+    "page": "calendar",
+    "selector": "#financial-calendar-grid",
+    "title": "Read the calendar and daily cash flow",
+    "body": "Each date can show scheduled bills, income, and a projected balance. Red labels mark bills, green labels mark income, and the balance shows the running forecast. Received paychecks should not be added again when already included in your starting balance."
+  },
+  {
+    "page": "calendar",
+    "selector": "#financial-calendar-grid [data-calendar-date]",
+    "title": "Open a date for details",
+    "body": "After the tour, select a day to open Date Details, inspect its projected balance and scheduled events, or plan a paycheck for that date. Saving a paycheck is a separate action; the tutorial does not add one."
+  },
+  {
+    "page": "calendar",
+    "selector": "#fp3-calendar-info",
+    "title": "Daily breakdown",
+    "body": "Selecting a date also updates this breakdown with expected income, unpaid bills, net change, and individual items. Use it to understand which entries are behind that day’s forecast."
+  },
+  {
+    "page": "calendar",
+    "selector": "#toggle-past-weeks-btn",
+    "title": "Show previous weeks",
+    "body": "Use this control to show or hide earlier weeks. Collapse can tuck away the calendar grid when you want a shorter page. These display controls do not delete scheduled entries."
+  },
+  {
+    "page": "projection",
+    "selector": "#view-projection h2",
+    "title": "Inside the projections page",
+    "body": "The tour has now opened Balance Projection vs. Bills. It starts with your current balance, adds scheduled income, and subtracts upcoming unpaid bills across the selected forecast period. It is a plan, not a live bank balance or spending guarantee."
+  },
+  {
+    "page": "projection",
+    "selector": "#fp-chart-controls",
+    "title": "Choose the forecast period",
+    "body": "Choose 7, 30, 60, or 90 days to change how far ahead the projection looks. A longer period can reveal bills that fall after your next paycheck. The tutorial keeps your selected range unchanged."
+  },
+  {
+    "page": "projection",
+    "selector": "#cashFlowChart",
+    "title": "Read the balance projection graph",
+    "body": "Follow the projected balance across the dates. Drops generally reflect bills; increases reflect scheduled income. Hover or tap a point after the tour to inspect its balance, income, and bills. Values below zero signal a possible shortfall if your entries happen as planned."
+  },
+  {
+    "page": "projection",
+    "selector": "#toggle-chart-type-btn",
+    "title": "Line or bar chart",
+    "body": "Switch between line and bar views to read the same forecast in the format you prefer. This changes the chart presentation, not your financial entries."
+  },
+  {
+    "page": "projection",
+    "selector": "#chart-start-bal",
+    "title": "Projection summary figures",
+    "body": "Starting Balance is the current starting point. Total Projected In is scheduled income included during this period. Projected Minimum Floor is the lowest projected balance, useful for spotting a tight day before spending.",
+    "closest": "div.grid"
+  },
+  {
+    "page": "projection",
+    "selector": "#fp3-forecast-info",
+    "title": "Forecast insights and daily details",
+    "body": "Review the lowest projected balance, its date, and the number of days below zero. Open View daily forecast details to compare each day’s income, bills, and balance. Correct missing bills or income before relying on the forecast."
+  },
+  {
+    "page": "calculator",
+    "selector": "#view-calculator h2",
+    "title": "Inside the paycheck calculator",
+    "body": "The tour has opened Future Paycheck & Tax Calculator. Use this page to estimate a paycheck, record an expected payment, and review your saved paycheck schedule. The tour will explain the fields without entering or saving income."
+  },
+  {
+    "page": "calculator",
+    "selector": "#calc-type-potential-btn",
+    "title": "Potential or actual paycheck",
+    "body": "Potential is for estimated or expected pay. Actual is for an amount you know. Review the saved status and use Receive when the deposit has arrived; a scheduled or unconfirmed entry is not proof that money reached your account.",
+    "closest": "div.flex"
+  },
+  {
+    "page": "calculator",
+    "selector": "#calc-source-name",
+    "title": "Name the paycheck and choose its date",
+    "body": "Enter a recognizable source, such as your employer or event job, and the expected pay date. The name identifies it in the log; the date determines when it appears in the calendar and forecast.",
+    "closest": "div.grid"
+  },
+  {
+    "page": "calculator",
+    "selector": "#calc-pay-mode",
+    "title": "Hourly, overtime, or flat amount",
+    "body": "For hourly estimates, enter the rate, standard hours, and overtime hours; the calculator uses time-and-a-half for overtime. Flat Rate Amount lets you estimate from one gross amount. Available fields depend on the paycheck type and calculation mode.",
+    "closest": "#calc-mode-section"
+  },
+  {
+    "page": "calculator",
+    "selector": "#calc-tax-mode",
+    "title": "Tax estimate settings",
+    "body": "For an estimated paycheck, review the tax option and state. These use simplified assumptions and may differ from your actual withholding, benefits, deductions, and pay stub. Choose exempt only if it reflects the scenario you intend to estimate.",
+    "closest": "div.grid"
+  },
+  {
+    "page": "calculator",
+    "selector": "#calc-preview-box",
+    "title": "Read estimated take-home pay",
+    "body": "Compare gross pay, estimated federal tax and FICA, state tax, and net take-home pay. Changing inputs updates the preview. An estimate does not create a paycheck until you save it."
+  },
+  {
+    "page": "calculator",
+    "selector": "#btn-submit-paycheck",
+    "title": "Save a paycheck deliberately",
+    "body": "Save Paycheck records the entered paycheck in your budget and schedule. Check its source, date, amount, and type first. Avoid entering income already recorded elsewhere. This tutorial never presses Save or Receive."
+  },
+  {
+    "page": "calculator",
+    "selector": "#paychecks-table-body",
+    "title": "Scheduled Paychecks Log",
+    "body": "Review each paycheck’s source, type, date, amount, and status. Receive opens a confirmation for the actual deposit amount and date; Edit corrects an entry, and Delete removes it from your plan. Avoid counting received income twice.",
+    "closest": "div.space-y-2"
+  },
+  {
     "selector": "#guest-tour-restart",
     "title": "You are ready to explore",
-    "body": "You can replay this walkthrough with Take a guided tour. Try the tools at your own pace. Guest entries stay in this browser, and you can export a copy from Settings."
+    "body": "You have explored the dashboard, menu, calendar, projections, and calculator. Finish returns to the page where you started. Replay anytime with Take a guided tour. Guest entries stay in this browser; export a copy from Settings if you want to keep one."
   }
 ];
- let index=0,overlay=null,card=null,spot=null,previousFocus=null,viewState=[],sidebarClass=null,shadeClass=null,scrollStart=null;
+ let index=0,overlay=null,card=null,spot=null,previousFocus=null,viewState=[],sidebarClass=null,shadeClass=null,scrollStart=null,originalPage=null,previewedPage=null;
  const $=s=>document.querySelector(s);
  const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
  const modalOpen=()=>[...document.querySelectorAll('[id^="modal-"], [role="dialog"]')].some(el=>el.id!=='guest-tour-card'&&visible(el)&&getComputedStyle(el).position==='fixed');
  const target=step=>{const el=$(step.selector);return step.closest?el?.closest(step.closest):el};
  function previewMenu(open){$('#app-sidebar')?.classList.add('guest-tour-menu-preview');$('#app-sidebar')?.classList.toggle('-translate-x-full',!open);$('#sidebar-overlay')?.classList.toggle('hidden',!open)}
+ function previewPage(page){
+  if(previewedPage===page)return;
+  switchPage(page);previewedPage=page;
+ }
  const findNext=(from,direction)=>{let i=from;while(i>=0&&i<steps.length&&!target(steps[i]))i+=direction;return i};
  function stop(completed){
   window.removeEventListener('resize',position);
@@ -153,6 +283,7 @@
   document.removeEventListener('keydown',keyboard,true);
   if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index');spot=null}
   overlay?.remove();overlay=null;card=null;
+  if(originalPage)switchPage(originalPage);previewedPage=null;
   for(const [el,hidden] of viewState)el.classList.toggle('hidden',hidden);viewState=[];
   if(sidebarClass!==null)$('#app-sidebar').className=sidebarClass;
   if(shadeClass!==null)$('#sidebar-overlay').className=shadeClass;
@@ -191,7 +322,7 @@
   if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index')}
   index=findNext(index,1);
   if(index>=steps.length){stop(true);return}
-  const step=steps[index];previewMenu(!!step.menu);spot=target(step);
+  const step=steps[index];previewPage(step.page||'dashboard');previewMenu(!!step.menu);spot=target(step);
   if(!visible(spot)){index++;show();return}
   spot.scrollIntoView({block:'center',behavior:'instant'});
   $('#guest-tour-title').textContent=step.title;
@@ -207,7 +338,7 @@
   scrollStart={x:window.scrollX,y:window.scrollY};
   sidebarClass=$('#app-sidebar')?.className??null;shadeClass=$('#sidebar-overlay')?.className??null;
   viewState=[...document.querySelectorAll('.app-view')].map(el=>[el,el.classList.contains('hidden')]);
-  for(const [el] of viewState)el.classList.toggle('hidden',el.id!=='view-dashboard');
+  originalPage=viewState.find(([,hidden])=>!hidden)?.[0].id.replace('view-','')||'dashboard';previewedPage=null;
   overlay=document.createElement('div');overlay.id='guest-tour-overlay';
   overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><span id="guest-tour-arrow" aria-hidden="true">↑</span><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-back">Back</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
   document.body.append(overlay);card=$('#guest-tour-card');
