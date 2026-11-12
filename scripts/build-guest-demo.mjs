@@ -66,6 +66,20 @@ const banner=`<aside id="guest-banner" class="px-4 sm:px-8 py-3 bg-indigo-50 dar
 </aside>`;
 html=html.replace(/(<body[^>]*>)/,'$1'+banner);
 html=html.replace('</head>',`<style>
+#guest-tour-overlay{position:fixed;inset:0;z-index:99999;pointer-events:auto}
+#guest-tour-highlight{position:fixed;z-index:1;border:3px solid #a5b4fc;border-radius:14px;box-shadow:0 0 0 9999px rgba(8,15,32,.78);pointer-events:none;transition:all .18s ease}
+#guest-tour-card{position:fixed;z-index:2;width:min(370px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;background:#fff;color:#172033;border-radius:16px;padding:20px;box-shadow:0 12px 50px #0006;font:inherit}
+#guest-tour-title{font-size:18px;font-weight:750;margin:8px 0}
+#guest-tour-description{font-size:14px;line-height:1.55}
+#guest-tour-count{font-size:12px;color:#475569}
+#guest-tour-arrow{position:absolute;color:#fff;font-size:28px;line-height:1}
+.guest-tour-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:18px}
+.guest-tour-actions button{border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer}
+#guest-tour-next{background:#4f46e5;color:#fff;font-weight:700}
+#guest-tour-skip{color:#334155;text-decoration:underline}
+#guest-tour-card button:focus-visible{outline:3px solid #818cf8;outline-offset:2px}
+@media(prefers-reduced-motion:reduce){#guest-tour-highlight{transition:none}}
+
 header:has(#header-page-title){display:grid!important;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}
 header:has(#header-page-title)>div:first-child{min-width:0}
 header:has(#header-page-title)>div:first-child>button,header:has(#header-page-title)>div:first-child>.w-10{flex-shrink:0}
@@ -78,7 +92,8 @@ body{padding-bottom:80px}
 @media(max-width:640px){#fp4-shortcuts{display:none}#header-page-title{font-size:16px}header:has(#header-page-title){padding:12px}#fp-toolbar .fp-label{display:inline}#fp-toolbar{gap:7px}#fp2-save-status{white-space:normal}#guest-banner{font-size:12px}}
 </style></head>`);
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
-html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n</body>');
+const tourRuntime=readFileSync(new URL('./guest-tour-runtime.txt',import.meta.url),'utf8');
+html=html.replace('</body>', '<script>\n'+runtime+'\n'+tourRuntime+'\n</script>\n</body>');
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
  if(html.includes(forbidden))throw new Error('Guest output contains forbidden integration: '+forbidden);
 }
