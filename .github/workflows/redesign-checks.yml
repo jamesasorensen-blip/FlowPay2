@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install server dependencies
-        run: npm ci --ignore-scripts
+        run: npm install --ignore-scripts --no-package-lock
       - name: Run redesign tests
         run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs
       - name: Validate preview structure
