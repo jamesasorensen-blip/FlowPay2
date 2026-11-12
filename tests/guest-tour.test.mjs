@@ -14,3 +14,5 @@ test('guided tour is dismissible, replayable, and locally remembered',()=>{
 test('guided tour never mutates budget or invokes financial actions',()=>{
  for(const forbidden of ['guestReset(','state.balance=','state.bills=','fetch(','XMLHttpRequest','form.submit(','\.click('])assert.equal(tour.includes(forbidden),false,forbidden);
 });
+
+test('guest tour checks for visible fixed modals before opening',()=>{assert.match(tour,/const modalOpen=/);assert.match(tour,/if\(overlay\|\|modalOpen\(\)\)return/);assert.match(tour,/getComputedStyle\(el\)\.position==='fixed'/);});
