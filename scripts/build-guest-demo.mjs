@@ -77,6 +77,9 @@ html=html.replace('</head>',`<style>
 .guest-tour-actions button{border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer}
 #guest-tour-next{background:#4f46e5;color:#fff;font-weight:700}
 #guest-tour-skip{color:#334155;text-decoration:underline}
+#guest-tour-back{color:#334155;border:1px solid #cbd5e1}
+#guest-tour-back:disabled{opacity:.4;cursor:not-allowed}
+@media(max-width:380px){.guest-tour-actions{gap:5px}.guest-tour-actions button{padding:9px 7px;font-size:12px}}
 #guest-tour-card button:focus-visible{outline:3px solid #818cf8;outline-offset:2px}
 @media(prefers-reduced-motion:reduce){#guest-tour-highlight{transition:none}}
 
