@@ -46,7 +46,7 @@ ocrButton.addEventListener('click',async()=>{
  try{
   bitmap=await createImageBitmap(file);
   const blocks=await new window.TextDetector().detect(bitmap);
-  const text=blocks.map(block=>block.rawValue||'').filter(Boolean).join('\\n');
+  const text=blocks.map(block=>block.rawValue||'').filter(Boolean).join('\n');
   if(!text){receiptStatus.textContent='No readable text found. Paste or type the receipt details.';return;}
   document.getElementById('receipt-text').value=text.slice(0,20000);
   receiptStatus.textContent='Text extracted on this device. Review it, then select Suggest total and date.';
