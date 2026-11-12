@@ -72,7 +72,7 @@ header:has(#header-page-title)>div:first-child>button,header:has(#header-page-ti
 #header-page-title{overflow-wrap:break-word}
 #fp-toolbar{grid-column:1/-1;width:100%;justify-content:flex-start}
 #fp4-shortcuts{grid-column:1/-1}
-#fp-dock{display:flex}
+#fp-dock{display:flex!important}
 body{padding-bottom:80px}
 #modal-settings>div{max-height:85vh;overflow:auto}
 @media(max-width:640px){#fp4-shortcuts{display:none}#header-page-title{font-size:16px}header:has(#header-page-title){padding:12px}#fp-toolbar .fp-label{display:inline}#fp-toolbar{gap:7px}#fp2-save-status{white-space:normal}#guest-banner{font-size:12px}}
