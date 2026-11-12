@@ -21,6 +21,11 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
    const maxDay=new Date(Date.UTC(year,month+1,0)).getUTCDate();
    const dueDate=new Date(Date.UTC(year,month,Math.min(anchor.getUTCDate(),maxDay))).toISOString().slice(0,10);
    if(dueDate>=b.dueDate)dates.push(dueDate);
+  }else if(b.frequency==='yearly'){
+   const year=startDate.getUTCFullYear(),month=anchor.getUTCMonth();
+   const maxDay=new Date(Date.UTC(year,month+1,0)).getUTCDate();
+   const dueDate=new Date(Date.UTC(year,month,Math.min(anchor.getUTCDate(),maxDay))).toISOString().slice(0,10);
+   if(dueDate>=b.dueDate&&dueDate>=start&&dueDate<end)dates.push(dueDate);
   }else if(b.frequency==='weekly'||b.frequency==='biweekly'){
    const step=b.frequency==='weekly'?7:14;
    const days=Math.floor((startDate-anchor)/86400000);
@@ -37,5 +42,5 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
  const unique=new Set();
  for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
- return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-weekly-biweekly-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries});
+ return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-supported-recurrence-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries});
 }
