@@ -14,6 +14,7 @@ on:
       - 'plaid-transaction-adapter.mjs'
       - 'receipt-plaid-bridge.mjs'
       - 'manual-financial-snapshot.mjs'
+      - 'manual-next-month-reserve.mjs'
       - 'flowpay-navigation.mjs'
       - 'tests/**'
       - 'preview/**'
@@ -32,7 +33,7 @@ jobs:
       - name: Install server dependencies
         run: npm install --ignore-scripts --no-package-lock
       - name: Run redesign tests
-        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs tests/bill-record-adapter.test.mjs tests/receipt-reconciliation.test.mjs tests/receipt-text-parser.test.mjs tests/plaid-transaction-adapter.test.mjs tests/receipt-plaid-bridge.test.mjs tests/manual-financial-snapshot.test.mjs
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs tests/bill-record-adapter.test.mjs tests/receipt-reconciliation.test.mjs tests/receipt-text-parser.test.mjs tests/plaid-transaction-adapter.test.mjs tests/receipt-plaid-bridge.test.mjs tests/manual-financial-snapshot.test.mjs tests/manual-next-month-reserve.test.mjs
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
