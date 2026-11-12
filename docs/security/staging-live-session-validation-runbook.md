@@ -18,7 +18,9 @@
 - That allowlisted user currently has **two session rows** in `auth.sessions`.
 - These counts were obtained without retrieving account or session identifiers and without modifying records.
 - **Input-hardening follow-up:** the deployed handler parses JSON and destructures the result directly; a JSON `null` body currently reaches its catch-all 503 path rather than returning a client-input 400. This is a response-classification issue, not evidence of unauthorized access. Preserve the deployed-source snapshot and review any proposed fix separately before deployment.
-- **Not yet verified:** the allowlisted identity is exclusively a dedicated staging account; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
+- **User confirmation (2026-11-12):** the Supabase account used for FlowPay testing is a dedicated test account with no real financial data. Independent mapping between that account and the allowlisted UUID is still pending.
+- **Additional read-only permission check:** `anon` and `authenticated` cannot execute `flowpay_session_private.lookup_active_session(uuid)`; restricted role `flowpay_session_lookup` can execute it. The allowlist still contains one user and two session rows, both without a passed `not_after` cutoff (this alone does not prove an active authenticated session).
+- **Not yet verified:** allowlist-to-test-account UUID mapping; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
 - **Hold:** do not run a positive or revoked-session test or enable any enforcement flag until test-account ownership and isolation are confirmed.
 
 ## Verification matrix (run only after prerequisites)
