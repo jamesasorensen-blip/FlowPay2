@@ -13,22 +13,29 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
  }));
  const items=snapshot.bills.flatMap(b=>{
   if(!validDate(b.dueDate))return [];
-  let dueDate=b.dueDate,projected=false;
-  if(b.frequency==='monthly'&&dueDate<start){
-   // Calendar-month recurrence; clamp dates such as the 31st to month end.
-   const anchor=new Date(b.dueDate+'T00:00:00Z');
-   const target=new Date(start+'T00:00:00Z');
-   const year=target.getUTCFullYear(),month=target.getUTCMonth(),day=anchor.getUTCDate();
+  const dates=[];
+  const anchor=new Date(b.dueDate+'T00:00:00Z');
+  const startDate=new Date(start+'T00:00:00Z');
+  if(b.frequency==='monthly'){
+   const year=startDate.getUTCFullYear(),month=startDate.getUTCMonth();
    const maxDay=new Date(Date.UTC(year,month+1,0)).getUTCDate();
-   dueDate=new Date(Date.UTC(year,month,Math.min(day,maxDay))).toISOString().slice(0,10);
-   projected=true;
-  }
-  if(dueDate<start||dueDate>=end||paid.has(b.id+'|'+dueDate))return [];
-  return [Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected})];
+   const dueDate=new Date(Date.UTC(year,month,Math.min(anchor.getUTCDate(),maxDay))).toISOString().slice(0,10);
+   if(dueDate>=b.dueDate)dates.push(dueDate);
+  }else if(b.frequency==='weekly'||b.frequency==='biweekly'){
+   const step=b.frequency==='weekly'?7:14;
+   const days=Math.floor((startDate-anchor)/86400000);
+   const first=Math.max(0,Math.ceil(days/step));
+   for(let n=first;n<first+6;n++){
+    const dueDate=new Date(anchor.getTime()+n*step*86400000).toISOString().slice(0,10);
+    if(dueDate>=end)break;
+    if(dueDate>=start)dates.push(dueDate);
+   }
+  }else if(b.dueDate>=start&&b.dueDate<end)dates.push(b.dueDate);
+  return dates.filter(dueDate=>!paid.has(b.id+'|'+dueDate)).map(dueDate=>Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected:dueDate!==b.dueDate}));
  });
  const unknownPaidEntries=Array.isArray(data.paidOccurrences)&&data.paidOccurrences.some(p=>!(typeof p==='string'||(p&&typeof p.key==='string')));
  const unique=new Set();
  for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
- return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries});
+ return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-weekly-biweekly-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries});
 }
