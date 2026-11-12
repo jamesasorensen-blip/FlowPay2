@@ -76,3 +76,16 @@ test('flags missing and duplicate bill identifiers',()=>{
  const result=manualNextMonthReserve({balance:0,bills:[{name:'No ID',amount:5,dueDate:'2026-12-01'},{id:'same',amount:10,dueDate:'2026-12-02'},{id:'same',amount:20,dueDate:'2026-12-03'}]},'2026-11-11');
  assert.equal(result.missingBillIds,1);assert.deepEqual(result.duplicateBillIds,['same']);assert.equal(result.requiresScheduleReview,true);
 });
+
+test('does not project recurring bills before their first due date',()=>{
+ const data={balance:0,bills:[{id:'future',amount:80,dueDate:'2027-03-15',frequency:'monthly'}]};
+ assert.equal(manualNextMonthReserve(data,'2026-11-11').targetCents,0);
+});
+test('weekly recurrence crosses year boundary without changing weekday',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'weekly',amount:5,dueDate:'2026-12-28',frequency:'weekly'}]},'2026-12-10');
+ assert.deepEqual(result.items.map(x=>x.dueDate),['2027-01-04','2027-01-11','2027-01-18','2027-01-25']);
+});
+test('paid occurrence excludes exactly one weekly payment, not the whole series',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'w',amount:10,dueDate:'2026-11-30',frequency:'weekly'}],paidOccurrences:[{key:'w|2026-12-14',balanceEffect:10}]},'2026-11-11');
+ assert.deepEqual(result.items.map(x=>x.dueDate),['2026-12-07','2026-12-21','2026-12-28']);
+});
