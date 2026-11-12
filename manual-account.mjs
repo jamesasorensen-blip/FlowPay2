@@ -70,12 +70,13 @@ const store=createManualBudgetStore({
  onData:data=>{bridge.apply(data);renderNextMonthEstimate(data);},
  onStatus:result=>{
   status(result.text);window.flowpayManualReady=result.ready;$('manual-workspace').inert=!result.ready;
+  if(!result.ready)$('manual-next-month-estimate')?.remove();
   if(result.ready&&!securityView&&!recovery){$('manual-workspace').hidden=false;$('manual-workspace').inert=false;$('manual-auth').hidden=true;}
   const button=$('manual-use-cloud');if(button)button.hidden=!result.conflict;
  }
 });
 window.flowpayManualPayBill=toggleManualBillPayment;
-window.flowpayManualChanged=data=>{try{store.edit(data);renderNextMonthEstimate(data)}catch(err){status(err.message)}};
+window.flowpayManualChanged=data=>{try{store.edit(data);if(store.getStatus().ready)renderNextMonthEstimate(data)}catch(err){status(err.message)}};
 function lock(){
  mfaScreenOwner=null;
  if($('manual-passkey-notice'))$('manual-passkey-notice').textContent='';
