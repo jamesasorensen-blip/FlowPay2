@@ -56,9 +56,14 @@ import fs from 'node:fs';
 test('newer webhook, banking and scheduled implementations are retained verbatim',()=>{
  const live=fs.readFileSync(new URL('../cloudflare/staging-worker.mjs',import.meta.url),'utf8');
  const candidate=fs.readFileSync(new URL('../cloudflare/candidates/main-worker-mfa-integration.mjs',import.meta.url),'utf8');
+ // Compare the unchanged helper and banking implementation before the intentionally
+ // modified CORS allowlist and security gate. Comparing through 'let user'
+ // incorrectly includes those deliberately changed sections.
  const middle='function getKeyBytes';
- const gate='    let user;';
- assert.equal(candidate.slice(candidate.indexOf(middle),candidate.indexOf(gate)),live.slice(live.indexOf(middle),live.indexOf(gate)));
+ const cors='    const allowed =';
+ assert.ok(live.includes(middle) && candidate.includes(middle));
+ assert.ok(live.includes(cors) && candidate.includes(cors));
+ assert.equal(candidate.slice(candidate.indexOf(middle),candidate.indexOf(cors)),live.slice(live.indexOf(middle),live.indexOf(cors)));
  const routes='      // CONSENT: READ';
  assert.equal(candidate.slice(candidate.indexOf(routes)),live.slice(live.indexOf(routes)));
 });
