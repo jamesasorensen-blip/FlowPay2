@@ -25,9 +25,9 @@ test('guest persistence ignores production records and never writes production k
  vm.runInContext(core,context);
  const runtime=scripts.at(-1).split("document.addEventListener('DOMContentLoaded'")[0];
  vm.runInContext(runtime,context);
- vm.runInContext('load(); save();',context);
+ vm.runInContext('loadGuestBudget(); save();',context);
  assert.equal(vm.runInContext('state.balance',context),2840);
- vm.runInContext('state.balance=1234; save(); state={}; load();',context);
+ vm.runInContext('state.balance=1234; save(); state={}; loadGuestBudget();',context);
  assert.equal(vm.runInContext('state.balance',context),1234);
  assert.ok(reads.every(k=>k.startsWith('flowpay_guest_v2:')));
  assert.ok(writes.every(k=>k.startsWith('flowpay_guest_v2:')));

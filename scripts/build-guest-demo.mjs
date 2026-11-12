@@ -41,6 +41,8 @@ html=replaceOnce(html,"if(storageNotice)storageNotice.textContent='Data is accou
 html=html.replace(/\['↗ Bank transactions',\(\)=>view\('transactions'\)\]/g,"['↗ Manual activity',()=>view('transactions')]");
 html=replaceOnce(html,"if(btn)btn.click();else toast('Connect a Sandbox bank to view transactions.',true);","if(btn)btn.click();else {switchPage('guest-activity');renderGuestActivity();}");
 html=replaceOnce(html,"['Connect a bank (optional)',()=>{$id('app-sidebar')?.classList.remove('-translate-x-full');$id('sidebar-overlay')?.classList.remove('hidden')}]","['Enter your own starting balance',()=>$id('open-balance-btn')?.click()]");
+html=html.replaceAll("label.textContent='Cloud sync enabled'","label.textContent='Saved only in this browser'");
+html=html.replace('function load(){','function loadGuestBudget(){').replace('function init(){load();','function init(){');
 html=html.replace(/localStorage/g,'guestStorage');
 // The adapter is the sole direct browser-storage access; all app reads/writes are namespaced.
 html=html.replaceAll("return guestStorage.getItem('flowpay_guest_v2:'+key)","return localStorage.getItem('flowpay_guest_v2:'+key)").replaceAll("guestStorage.setItem('flowpay_guest_v2:'+key,value)","localStorage.setItem('flowpay_guest_v2:'+key,value)").replaceAll("guestStorage.removeItem('flowpay_guest_v2:'+key)","localStorage.removeItem('flowpay_guest_v2:'+key)");
