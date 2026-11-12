@@ -44,7 +44,7 @@ jobs:
           grep -q 'guest-tour-next' guest-demo.html
           grep -q 'guest-tour-back' guest-demo.html
           grep -q 'guest-tour-skip' guest-demo.html
-          grep -q 'tour-complete-v1' guest-demo.html
+          grep -q 'tour-complete-v2' guest-demo.html
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
