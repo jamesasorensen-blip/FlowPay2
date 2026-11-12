@@ -8,6 +8,8 @@ on:
       - 'cloudflare/supabase-session-lookup.mjs'
       - 'tests/main-worker-mfa-integration.test.mjs'
       - 'tests/supabase-session-lookup.test.mjs'
+      - 'tests/deployed-session-edge-function.test.mjs'
+      - 'supabase/functions/flowpay-session-lookup/index.ts'
       - '.github/workflows/review-staging-mfa-candidate.yml'
   workflow_dispatch:
 
@@ -31,4 +33,4 @@ jobs:
           node --check cloudflare/mfa-session-check.mjs
           node --check cloudflare/supabase-session-lookup.mjs
       - name: Signed JWT, session, MFA and banking preservation regression tests
-        run: node --test tests/main-worker-mfa-integration.test.mjs tests/supabase-session-lookup.test.mjs
+        run: node --test tests/main-worker-mfa-integration.test.mjs tests/supabase-session-lookup.test.mjs tests/deployed-session-edge-function.test.mjs
