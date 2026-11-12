@@ -9,3 +9,16 @@ test('rejects unsafe reserve amounts',()=>assert.throws(()=>manualNextMonthReser
 
 test('clamps a monthly bill due on the 31st to February month end',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2027-01-31',frequency:'monthly'}]},'2027-01-10');assert.equal(result.items[0].dueDate,'2027-02-28');});
 test('does not project unsupported recurrence patterns',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2026-11-01',frequency:'weekly'}]},'2026-11-11');assert.equal(result.targetCents,0);});
+
+test('excludes an explicitly paid occurrence for the next month',()=>{
+ const data={balance:100,bills:[{id:'rent',name:'Rent',amount:950,dueDate:'2026-11-01',frequency:'monthly'}],paidOccurrences:[{key:'rent|2026-12-01',balanceEffect:950}]};
+ const result=manualNextMonthReserve(data,'2026-11-11');assert.equal(result.targetCents,0);assert.equal(result.paidOccurrenceKeysApplied,true);
+});
+test('paid occurrence in current month does not hide next month bill',()=>{
+ const data={balance:100,bills:[{id:'rent',amount:950,dueDate:'2026-11-01',frequency:'monthly'}],paidOccurrences:['rent|2026-11-01']};
+ assert.equal(manualNextMonthReserve(data,'2026-11-11').targetCents,95000);
+});
+test('does not treat unrelated paid keys as matching',()=>{
+ const data={balance:100,bills:[{id:'rent',amount:950,dueDate:'2026-12-01'}],paidOccurrences:['other|2026-12-01']};
+ assert.equal(manualNextMonthReserve(data,'2026-11-11').targetCents,95000);
+});
