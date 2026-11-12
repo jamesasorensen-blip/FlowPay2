@@ -71,3 +71,22 @@ test('lookup fails closed on malformed JSON and network errors', async () => {
   const unavailable = createSupabaseSessionLookup(config, async () => { throw Error('network unavailable'); });
   await assert.rejects(unavailable(session));
 });
+
+
+test('lookup refuses redirects and authorization failures without trusting response bodies', async () => {
+  for (const status of [301, 302, 307, 308, 401, 403, 429, 500, 503]) {
+    const lookup = createSupabaseSessionLookup(config, async (_url, init) => {
+      assert.equal(init.redirect, 'manual');
+      return new Response(null, { status, headers: { Location: 'https://attacker.invalid/collect' } });
+    });
+    await assert.rejects(lookup(session));
+  }
+});
+
+test('lookup rejects a response with no usable session object', async () => {
+  for (const payload of [null, [], {}, { active: true, session: null }, { active: true, session: [] }, { active: true, session: 'invalid' }]) {
+    const lookup = createSupabaseSessionLookup(config, async () => Response.json(payload));
+    const result = await lookup(session).catch(() => null);
+    assert.equal(result, null);
+  }
+});
