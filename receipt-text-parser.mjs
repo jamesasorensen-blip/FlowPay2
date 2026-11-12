@@ -16,9 +16,9 @@ export function parseReceiptText(text){
  };
  for(const line of lines){
   // Four-digit years only: two-digit years are ambiguous and require manual review.
-  const iso=line.match(/\\b(20\\d{2})[-/](\\d{1,2})[-/](\\d{1,2})\\b/);
+  const iso=line.match(/\b(20\d{2})[-/](\d{1,2})[-/](\d{1,2})\b/);
   if(iso){addDate(iso[1],iso[2],iso[3]);continue;}
-  const us=line.match(/\\b(\\d{1,2})[/-](\\d{1,2})[/-](20\\d{2})\\b/);
+  const us=line.match(/\b(\d{1,2})[/-](\d{1,2})[/-](20\d{2})\b/);
   if(us)addDate(us[3],us[1],us[2]);
  }
  const dates=[...new Set(dateCandidates)];
