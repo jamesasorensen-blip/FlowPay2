@@ -26,6 +26,7 @@ if (process.env.FLOWPAY_ENABLE_REDESIGN_PREVIEW === '1') {
     ['/financial-view-adapter.mjs', 'financial-view-adapter.mjs'],
     ['/bill-record-adapter.mjs', 'bill-record-adapter.mjs'],
     ['/receipt-reconciliation.mjs', 'receipt-reconciliation.mjs'],
+    ['/receipt-text-parser.mjs', 'receipt-text-parser.mjs'],
     ['/cashflow-simulator.mjs', 'cashflow-simulator.mjs'],
     ['/flowpay-navigation.mjs', 'flowpay-navigation.mjs']
   ]);
