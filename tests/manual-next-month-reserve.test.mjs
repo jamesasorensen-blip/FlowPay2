@@ -56,3 +56,8 @@ test('reports unsupported recurrence labels instead of silently claiming complet
  const result=manualNextMonthReserve({balance:0,bills:[{id:'x',amount:10,dueDate:'2026-11-01',frequency:'every-two-months'}]},'2026-11-11');
  assert.equal(result.targetCents,0);assert.deepEqual(result.unsupportedFrequencies,['every-two-months']);assert.equal(result.requiresScheduleReview,true);
 });
+
+test('orders projected and scheduled bill occurrences chronologically',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'late',name:'Late',amount:20,dueDate:'2026-12-20'},{id:'early',name:'Early',amount:10,dueDate:'2026-12-02'}]},'2026-11-11');
+ assert.deepEqual(result.items.map(x=>x.id),['early','late']);
+});
