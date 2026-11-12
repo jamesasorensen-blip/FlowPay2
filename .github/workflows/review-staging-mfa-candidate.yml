@@ -1,0 +1,33 @@
+name: Review staging MFA integration candidate
+
+on:
+  pull_request:
+    paths:
+      - 'cloudflare/candidates/main-worker-mfa-integration.mjs'
+      - 'cloudflare/mfa-session-check.mjs'
+      - 'cloudflare/supabase-session-lookup.mjs'
+      - 'tests/main-worker-mfa-integration.test.mjs'
+      - '.github/workflows/review-staging-mfa-candidate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-security:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+      - name: Check candidate and helper syntax
+        run: |
+          node --check cloudflare/candidates/main-worker-mfa-integration.mjs
+          node --check cloudflare/mfa-session-check.mjs
+          node --check cloudflare/supabase-session-lookup.mjs
+      - name: Signed JWT, session, MFA and banking preservation regression tests
+        run: node --test tests/main-worker-mfa-integration.test.mjs
