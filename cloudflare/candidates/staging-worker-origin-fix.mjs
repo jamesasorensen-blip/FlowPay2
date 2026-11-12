@@ -103,7 +103,8 @@ async function authenticate(request, env) {
   }
   return {
     id: claims.sub,
-    email: claims.email || null
+    email: claims.email || null,
+    aal: claims.aal === "aal2" ? "aal2" : "aal1"
   };
 }
 function getKeyBytes(value) {

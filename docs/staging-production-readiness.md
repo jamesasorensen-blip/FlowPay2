@@ -29,3 +29,14 @@ Updated November 12, 2026. This is a status record, not production-rollout appro
 8. Obtain explicit rollout approval after acceptance evidence is complete. Keep the authenticated production rollout separate from staging preparation.
 
 No production Worker, production database, Supabase configuration, or real bank connection is changed by this checkpoint.
+
+
+## Authenticator reporting follow-up
+
+The user completed authenticator verification in the staging UI. The active API's
+`/me` response omitted `user.aal`, which the frontend requires before retrying its
+cloud read. The candidate now returns only the assurance level from the already
+signature-verified JWT, normalizing missing/unknown values to `aal1`. Five signed-
+JWT regressions cover AAL1, AAL2, missing/unknown claims, and a tampered elevation.
+This is metadata reporting, not a change to MFA enforcement, credentials, bindings,
+or data. Live verification and cloud persistence testing follow deployment.
