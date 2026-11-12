@@ -11,6 +11,14 @@
 - Have an authorized operator check **presence and correct target** of `SUPABASE_DB_URL`, `FLOWPAY_SESSION_LOOKUP_SECRET`, and `FLOWPAY_STAGING_TEST_USER_ID` in Supabase; and `SUPABASE_URL`, `SESSION_LOOKUP_URL`, and `SESSION_LOOKUP_SECRET` in the staging Worker. Never paste values into GitHub, logs, screenshots, chat, or a browser console. The two secret variables must have the same value, but must be checked without disclosing that value.
 - Confirm the staging Worker hostname and route, test-user ownership, and that the Worker actually runs the candidate integration **before** treating any endpoint response as an integration result.
 
+## Read-only database checkpoint (2026-11-12)
+
+- The private lookup allowlist currently contains **one user**.
+- That allowlisted user currently has **two session rows** in `auth.sessions`.
+- These counts were obtained without retrieving account or session identifiers and without modifying records.
+- **Not yet verified:** the allowlisted identity is exclusively a dedicated staging account; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
+- **Hold:** do not run a positive or revoked-session test or enable any enforcement flag until test-account ownership and isolation are confirmed.
+
 ## Verification matrix (run only after prerequisites)
 
 | Scenario | Expected result | Evidence to record |
