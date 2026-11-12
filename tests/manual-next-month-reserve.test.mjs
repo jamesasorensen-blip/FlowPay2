@@ -22,3 +22,8 @@ test('does not treat unrelated paid keys as matching',()=>{
  const data={balance:100,bills:[{id:'rent',amount:950,dueDate:'2026-12-01'}],paidOccurrences:['other|2026-12-01']};
  assert.equal(manualNextMonthReserve(data,'2026-11-11').targetCents,95000);
 });
+
+test('flags malformed paid occurrence records for review',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'rent',amount:100,dueDate:'2026-12-01'}],paidOccurrences:[{bad:'record'}]},'2026-11-11');
+ assert.equal(result.targetCents,10000);assert.equal(result.unknownPaidEntries,true);
+});
