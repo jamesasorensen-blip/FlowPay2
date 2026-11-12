@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {mapPlaidTransactions} from '../plaid-transaction-adapter.mjs';
+test('maps spending with stable identifiers',()=>assert.deepEqual(mapPlaidTransactions([{transaction_id:'tx1',date:'2026-11-11',amount:13.97,pending:false,merchant_name:'Market'}]),[{id:'tx1',date:'2026-11-11',amountDollars:13.97,pending:false,merchant:'Market'}]));
+test('excludes refunds and invalid dates',()=>assert.equal(mapPlaidTransactions([{transaction_id:'refund',date:'2026-11-11',amount:-13.97},{transaction_id:'invalid',date:'2026-02-30',amount:13.97}]).length,0));
+test('deduplicates transaction IDs',()=>assert.equal(mapPlaidTransactions([{transaction_id:'tx',date:'2026-11-11',amount:13.97},{transaction_id:'tx',date:'2026-11-11',amount:13.97}]).length,1));
+test('retains pending marker for review',()=>assert.equal(mapPlaidTransactions([{transaction_id:'tx',date:'2026-11-11',amount:13.97,pending:true}])[0].pending,true));
+
+test('posted transaction replaces explicitly linked pending authorization',()=>{const records=[{transaction_id:'pending1',date:'2026-11-10',amount:13.97,pending:true},{transaction_id:'posted1',pending_transaction_id:'pending1',date:'2026-11-11',amount:14.12,pending:false}];assert.deepEqual(mapPlaidTransactions(records).map(x=>x.id),['posted1']);});
+test('pending transaction remains when linked posted record is invalid',()=>{const records=[{transaction_id:'pending1',date:'2026-11-10',amount:13.97,pending:true},{transaction_id:'posted1',pending_transaction_id:'pending1',date:'2026-02-30',amount:14.12,pending:false}];assert.deepEqual(mapPlaidTransactions(records).map(x=>x.id),['pending1']);});
+test('unlinked pending and posted transactions remain distinct for review',()=>{const records=[{transaction_id:'pending1',date:'2026-11-10',amount:13.97,pending:true},{transaction_id:'posted1',date:'2026-11-11',amount:13.97,pending:false}];assert.equal(mapPlaidTransactions(records).length,2);});
+
+test('ignores fractional-cent bank amounts rather than rounding into a match',()=>assert.equal(mapPlaidTransactions([{transaction_id:'fractional',date:'2026-11-11',amount:13.975}]).length,0));

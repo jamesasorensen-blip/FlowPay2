@@ -2,6 +2,7 @@ import {createMfaController,createPasskeyController} from './manual-mfa.mjs';
 import {mountFlowPayMfa} from './manual-mfa-ui.mjs';
 import {toggleManualBillPayment} from './manual-ledger.mjs';
 import {createManualBudgetStore} from './manual-budget-store.mjs';
+import {manualNextMonthReserve} from './manual-next-month-reserve.mjs';
 if(!window.flowpayManualBridge)await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
 const $=id=>document.getElementById(id);
 const URL_BASE='https://sdiovjwtphqvfjlyoxeq.supabase.co';
@@ -32,6 +33,36 @@ async function request(owner,path,options={}){
  if(!response.ok){const error=Error(body?.message||'Account request failed ('+response.status+')');error.code=body?.code;throw error;}
  return body;
 }
+function localToday(){const now=new Date();return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');}
+function renderNextMonthEstimate(data){
+ let panel=$('manual-next-month-estimate');
+ if(!panel){
+  panel=document.createElement('section');panel.id='manual-next-month-estimate';
+  panel.className='rounded-2xl border border-slate-300 dark:border-slate-700 p-4 my-4';
+  panel.setAttribute('aria-live','polite');
+  $('manual-workspace').prepend(panel);
+ }
+ panel.replaceChildren();
+ let resultItems=[];
+ const heading=document.createElement('h2');heading.className='font-bold';heading.textContent='Next Month Bills — estimate';
+ const detail=document.createElement('p');detail.className='text-sm mt-2';
+ try{
+  const result=manualNextMonthReserve(data,localToday());
+  resultItems=result.items;
+  const currency=cents=>(cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
+  detail.textContent=result.items.length+' next-month bill occurrence'+(result.items.length===1?'':'s')+' estimated: '+currency(result.targetCents)+'. This is an estimate, not money already reserved. Review payment status before setting money aside.'+(result.unsupportedFrequencies.length?' Unsupported recurring schedules: '+result.unsupportedFrequencies.join(', ')+'.':'')+(result.invalidDueDates.length?' '+result.invalidDueDates.length+' bill(s) have missing or invalid due dates.':'')+(result.skippedInvalidAmounts?' '+result.skippedInvalidAmounts+' bill(s) have invalid amounts and were excluded.':'')+(result.unknownPaidEntries?' Some payment records could not be verified; review paid bills.':'')+(result.missingBillIds?' '+result.missingBillIds+' bill(s) have no identifier.':'')+(result.duplicateBillIds.length?' Duplicate bill identifiers need review: '+result.duplicateBillIds.join(', ')+'.':'');
+ }catch{
+  detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
+ }
+ panel.append(heading,detail);
+ const list=document.createElement('ul');list.className='mt-3 text-sm space-y-1';
+ for(const item of resultItems){
+  const li=document.createElement('li');
+  li.textContent=item.dueDate+' · '+(item.name||'Unnamed bill')+' · '+(item.amountCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})+(item.projected?' (projected)':' (scheduled)');
+  list.append(li);
+ }
+ if(resultItems.length)panel.append(list);
+}
 const store=createManualBudgetStore({
  empty:bridge.empty,cache,
  loadRemote:async owner=>{
@@ -45,20 +76,21 @@ const store=createManualBudgetStore({
   if(!Number.isSafeInteger(next)||next<=revision)throw Error('The account save was not confirmed.');
   return next;
  },
- onData:data=>bridge.apply(data),
+ onData:data=>{bridge.apply(data);renderNextMonthEstimate(data);},
  onStatus:result=>{
   status(result.text);window.flowpayManualReady=result.ready;$('manual-workspace').inert=!result.ready;
+  if(!result.ready)$('manual-next-month-estimate')?.remove();
   if(result.ready&&!securityView&&!recovery){$('manual-workspace').hidden=false;$('manual-workspace').inert=false;$('manual-auth').hidden=true;}
   const button=$('manual-use-cloud');if(button)button.hidden=!result.conflict;
  }
 });
 window.flowpayManualPayBill=toggleManualBillPayment;
-window.flowpayManualChanged=data=>{try{store.edit(data)}catch(err){status(err.message)}};
+window.flowpayManualChanged=data=>{try{store.edit(data);if(store.getStatus().ready)renderNextMonthEstimate(data)}catch(err){status(err.message)}};
 function lock(){
  mfaScreenOwner=null;
  if($('manual-passkey-notice'))$('manual-passkey-notice').textContent='';
  $('manual-security-status').textContent='';
- window.flowpayManualReady=false;bridge.lock();store.close();
+ window.flowpayManualReady=false;bridge.lock();store.close();$('manual-next-month-estimate')?.remove();
  $('manual-workspace').hidden=true;$('manual-workspace').inert=true;$('manual-auth').hidden=false;
 }
 function loginScreen(text='Sign in to your saved manual budget.'){

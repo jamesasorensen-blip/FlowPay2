@@ -1,0 +1,25 @@
+/* FlowPay financial clarity foundation — opt-in styles for staged redesign. */
+:root {
+  --fp-positive: #047857;
+  --fp-negative: #b91c1c;
+  --fp-warning: #a16207;
+  --fp-muted: #64748b;
+  --fp-border: #cbd5e1;
+  --fp-radius: 14px;
+}
+.fp-financial-value { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.fp-financial-value[data-kind="income"], .fp-financial-value[data-kind="available"] { color: var(--fp-positive); }
+.fp-financial-value[data-kind="expense"] { color: var(--fp-negative); }
+.fp-financial-value[data-kind="forecast"] { color: inherit; }
+.fp-financial-value[data-kind="debt"] { color: inherit; }
+.fp-financial-label { font-size: .875rem; line-height: 1.4; font-weight: 600; }
+.fp-financial-caption { font-size: .75rem; line-height: 1.45; color: var(--fp-muted); }
+.fp-financial-card { min-width: 0; padding: 1rem; border: 1px solid var(--fp-border); border-radius: var(--fp-radius); }
+.fp-financial-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: .75rem; }
+.fp-section { min-width: 0; max-width: 100%; }
+.fp-section-heading { font-weight: 700; line-height: 1.3; }
+.fp-status-tag { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; font-weight: 600; }
+.fp-value-row { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.fp-value-row > :last-child { text-align: right; flex-shrink: 0; }
+@media (max-width: 480px) { .fp-financial-card { padding: .875rem; } .fp-value-row { flex-wrap: wrap; } }
+@media (prefers-reduced-motion: reduce) { .fp-section *, .fp-financial-card * { scroll-behavior: auto !important; } }

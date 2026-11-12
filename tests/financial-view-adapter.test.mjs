@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {makeNextMonthView,makeScenarioView} from '../financial-view-adapter.mjs';
+test('next month view separates target from reserve',()=>{const r=makeNextMonthView({today:'2026-11-11',bills:[{dueDate:'2026-12-01',amountDollars:950,status:'unpaid'}],reservedDollars:200});assert.equal(r.target.text,'$950.00');assert.equal(r.remaining.text,'$750.00');assert.equal(r.reserved.text,'$200.00');});
+test('scenario returns labeled simulation without mutating input',()=>{const events=[{date:'2026-11-13',amountDollars:-100}];const r=makeScenarioView({startingBalanceDollars:500,events,hypotheticalEvents:[{date:'2026-11-12',amountDollars:-30}]});assert.equal(r.ending.text,'$370.00');assert.equal(r.ending.status,'simulated');assert.equal(events.length,1);});
+test('invalid amounts rejected',()=>assert.throws(()=>makeNextMonthView({today:'2026-11-11',bills:[{dueDate:'2026-12-01',amountDollars:NaN}]})));

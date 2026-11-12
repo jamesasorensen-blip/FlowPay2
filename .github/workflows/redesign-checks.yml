@@ -1,0 +1,53 @@
+name: FlowPay redesign checks
+on:
+  push:
+    branches: [design/financial-clarity-navigation]
+  pull_request:
+    paths:
+      - 'server.js'
+      - 'financial-display.mjs'
+      - 'cashflow-simulator.mjs'
+      - 'financial-view-adapter.mjs'
+      - 'bill-record-adapter.mjs'
+      - 'receipt-reconciliation.mjs'
+      - 'receipt-text-parser.mjs'
+      - 'plaid-transaction-adapter.mjs'
+      - 'receipt-plaid-bridge.mjs'
+      - 'manual-financial-snapshot.mjs'
+      - 'manual-next-month-reserve.mjs'
+      - 'flowpay-navigation.mjs'
+      - 'tests/**'
+      - 'scripts/guest-tour-runtime.txt'
+      - 'scripts/build-guest-demo.mjs'
+      - 'preview/**'
+      - 'design/**'
+      - '.github/workflows/redesign-checks.yml'
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install server dependencies
+        run: npm install --ignore-scripts --no-package-lock
+      - name: Run redesign tests
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs tests/bill-record-adapter.test.mjs tests/receipt-reconciliation.test.mjs tests/receipt-text-parser.test.mjs tests/plaid-transaction-adapter.test.mjs tests/receipt-plaid-bridge.test.mjs tests/manual-financial-snapshot.test.mjs tests/manual-next-month-reserve.test.mjs tests/guest-tour.test.mjs
+      - name: Build and validate generated guest tutorial
+        run: |
+          npm run build:guest
+          test -s guest-demo.html
+          grep -q 'guest-tour-overlay' guest-demo.html
+          grep -q 'guest-tour-next' guest-demo.html
+          grep -q 'guest-tour-back' guest-demo.html
+          grep -q 'guest-tour-skip' guest-demo.html
+          grep -q 'tour-complete-v2' guest-demo.html
+      - name: Validate preview structure
+        run: |
+          test -s preview/redesign.html
+          grep -q 'data-panel="home"' preview/redesign.html
+          grep -q 'data-panel="activity"' preview/redesign.html
+          grep -q 'data-panel="debt"' preview/redesign.html
