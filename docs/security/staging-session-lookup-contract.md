@@ -6,6 +6,23 @@ Status: **design only; not deployed or approved for production**.
 
 The Worker adapter in `cloudflare/supabase-session-lookup.mjs` expects a server-side POST endpoint at `/functions/v1/flowpay-session-lookup`. The current repository does **not** contain that Edge Function. The adapter and mock tests do not establish that a real Supabase session was verified.
 
+## Observed Supabase state (read-only inspection, 2026-11-12)
+
+The connected FlowPay Supabase project already has an **ACTIVE** `flowpay-session-lookup` Edge Function (version 3, `verify_jwt=false`). Its handler uses a dedicated bearer secret, an allowlisted staging user ID, and a private Postgres function. Therefore the earlier statement that no Edge Function exists applies only to this repository's source tree, **not** to the deployed project. The deployed handler must be reconciled into reviewed source control before further changes.
+
+Read-only database inspection confirmed that `flowpay_session_private.lookup_active_session(uuid)` is `SECURITY DEFINER` with an empty search path and a session-ID-bound lookup. It checks `flowpay_session_private.allowed_user`. The `flowpay_session_lookup` role is not superuser, cannot bypass RLS, and has no direct `auth.sessions` SELECT or `auth` schema USAGE, but can execute the private lookup. The allowlist table has RLS enabled and no policies; only `postgres` appears in its table ACL. These observations do not establish that runtime secrets, connectivity, or revocation tests pass.
+
+Supabase security advisors also reported leaked-password protection disabled; review enabling it separately. Do not include credentials, actual session IDs, or user data in GitHub.
+
+## Outstanding verification
+
+- Confirm deployed Edge Function source matches reviewed repository source and identify deployment ownership.
+- Check required environment variable **presence only**, never disclose values.
+- Confirm the allowlisted staging test account is distinct from production users.
+- Exercise authenticated success, revoked session, invalid credential, and outage cases using test accounts.
+- Confirm `not_after` semantics and whether session revocation immediately removes rows.
+- Keep both enforcement flags disabled until end-to-end tests and recovery work.
+
 ## Proposed request/response contract
 
 - Request: `POST`, JSON `{"session_id":"<UUID>"}`, server-to-server only.
