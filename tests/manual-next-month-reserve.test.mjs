@@ -66,3 +66,8 @@ test('reports omitted invalid amounts and missing due dates',()=>{
  const result=manualNextMonthReserve({balance:0,bills:[{id:'bad-amount',amount:'abc',dueDate:'2026-12-01'},{id:'bad-date',amount:20,dueDate:'2026-02-30'},{id:'good',amount:15,dueDate:'2026-12-02'}]},'2026-11-11');
  assert.equal(result.targetCents,1500);assert.equal(result.skippedInvalidAmounts,1);assert.deepEqual(result.invalidDueDates,['bad-date']);assert.equal(result.requiresScheduleReview,true);
 });
+
+test('flags malformed paid occurrence keys even when represented as strings',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'rent',amount:100,dueDate:'2026-12-01'}],paidOccurrences:['rent|2026-02-30']},'2026-11-11');
+ assert.equal(result.targetCents,10000);assert.equal(result.unknownPaidEntries,true);assert.equal(result.requiresScheduleReview,true);
+});
