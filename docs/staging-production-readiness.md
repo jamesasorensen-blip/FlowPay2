@@ -77,3 +77,19 @@ staging account; it does not establish multi-account isolation or live AAL1 bloc
 The dashboard also still displays an obsolete local-only financial-data notice;
 its wording must be reconciled with the account-scoped cloud implementation.
 Production remained unchanged.
+
+## Reconciled Worker security candidate
+
+`cloudflare/candidates/staging-worker-security-reconciled.mjs` preserves the live
+banking/webhook/job/scheduled implementation and adds the existing authoritative
+session-check helpers. Either REQUIRE_MFA_AAL2=true or legacy REQUIRE_AAL2=true
+blocks AAL1 financial routes while GET /me remains available for enrollment.
+Active-session checking is separately enabled with REQUIRE_ACTIVE_SESSION=true;
+missing configuration, revoked/mismatched/expired sessions and lookup outages fail
+closed. Session identifiers remain server-only and are omitted from /me.
+
+83 targeted offline tests pass, including signed-JWT candidate tests and verbatim
+banking-code preservation checks. No enforcement flag or deployed Worker has been
+changed. Before deployment, verify the current live source/version and deployment
+bindings; the authoritative session service must be healthy before enabling its
+gate. Live recovery and account isolation acceptance are still outstanding.

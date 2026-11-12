@@ -23,6 +23,7 @@ jobs:
       - name: Check Worker and MFA module syntax
         run: |
           node --check cloudflare/staging-worker.mjs
+          node --check cloudflare/candidates/staging-worker-security-reconciled.mjs
           node --check cloudflare/flowpay-mfa.mjs
           node --check cloudflare/flowpay-mfa-ui.mjs
       - name: Run offline MFA and session regression tests
@@ -30,6 +31,7 @@ jobs:
           node --test \
             tests/account-switch.test.mjs \
             tests/staging-active-worker-cors.test.mjs \
+            tests/staging-reconciled-worker-security.test.mjs \
             tests/staging-active-worker-aal.test.mjs \
             tests/staging-empty-account.test.mjs \
             tests/staging-account-cache-import.test.mjs \
