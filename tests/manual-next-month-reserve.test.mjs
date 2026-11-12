@@ -8,7 +8,7 @@ test('projects monthly template into next month',()=>{const result=manualNextMon
 test('rejects unsafe reserve amounts',()=>assert.throws(()=>manualNextMonthReserve({balance:0,bills:[]},'2026-11-11',{reservedCents:1.5})));
 
 test('clamps a monthly bill due on the 31st to February month end',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2027-01-31',frequency:'monthly'}]},'2027-01-10');assert.equal(result.items[0].dueDate,'2027-02-28');});
-test('does not project unsupported recurrence patterns',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2026-11-01',frequency:'weekly'}]},'2026-11-11');assert.equal(result.targetCents,0);});
+test('does not project unsupported recurrence patterns',()=>{const result=manualNextMonthReserve({balance:0,bills:[{amount:40,dueDate:'2026-11-01',frequency:'yearly'}]},'2026-11-11');assert.equal(result.targetCents,0);});
 
 test('excludes an explicitly paid occurrence for the next month',()=>{
  const data={balance:100,bills:[{id:'rent',name:'Rent',amount:950,dueDate:'2026-11-01',frequency:'monthly'}],paidOccurrences:[{key:'rent|2026-12-01',balanceEffect:950}]};
@@ -31,4 +31,13 @@ test('flags malformed paid occurrence records for review',()=>{
 test('rejects duplicate bill occurrences rather than double-counting',()=>{
  const data={balance:100,bills:[{id:'rent',amount:950,dueDate:'2026-12-01'},{id:'rent',amount:950,dueDate:'2026-12-01'}]};
  assert.throws(()=>manualNextMonthReserve(data,'2026-11-11'),/Duplicate bill occurrence/);
+});
+
+test('counts every weekly bill occurrence next month',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'weekly',amount:10,dueDate:'2026-11-30',frequency:'weekly'}]},'2026-11-11');
+ assert.deepEqual(result.items.map(x=>x.dueDate),['2026-12-07','2026-12-14','2026-12-21','2026-12-28']);assert.equal(result.targetCents,4000);
+});
+test('counts biweekly occurrences and excludes only paid occurrence',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'biweekly',amount:25,dueDate:'2026-11-30',frequency:'biweekly'}],paidOccurrences:['biweekly|2026-12-14']},'2026-11-11');
+ assert.deepEqual(result.items.map(x=>x.dueDate),['2026-12-28']);assert.equal(result.targetCents,2500);
 });
