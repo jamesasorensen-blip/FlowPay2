@@ -18,6 +18,7 @@ import {makeNextMonthView,makeScenarioView} from '../financial-view-adapter.mjs'
 import {mapBillRecords} from '../bill-record-adapter.mjs';
 import {reconcileReceipt} from '../receipt-reconciliation.mjs';
 import {parseReceiptText} from '../receipt-text-parser.mjs';
+import {mapPlaidTransactions} from '../plaid-transaction-adapter.mjs';
 import {nextMonthRange} from '../cashflow-simulator.mjs';
 const now=new Date();
 const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
@@ -76,8 +77,10 @@ document.getElementById('receipt-match-form').addEventListener('submit',event=>{
  const total=raw===''?NaN:Number(raw);
  const output=document.getElementById('receipt-match-result');
  try {
-  const result=reconcileReceipt({date,totalDollars:total},[{id:'example-grocery-1',date:today,amountDollars:13.97},{id:'example-gas-2',date:today,amountDollars:35.00}]);
-  output.textContent=result.status==='possible-match'?'Possible match found: '+result.matchingTransactionIds.join(', ')+'. Review before attaching. No new expense created.':result.status==='ambiguous'?'Several possible matches. Choose the correct transaction before attaching. No new expense created.':'No matching transaction found. Review the receipt before recording any expense.';
+  const samplePlaidRecords=[{transaction_id:'example-grocery-1',date:today,amount:13.97,pending:false,merchant_name:'Example Grocery'},{transaction_id:'example-gas-2',date:today,amount:35.00,pending:true,merchant_name:'Example Fuel'}];
+  const transactions=mapPlaidTransactions(samplePlaidRecords);
+  const result=reconcileReceipt({date,totalDollars:total},transactions);
+  output.textContent=result.status==='possible-match'?'Possible match found: '+result.matchingTransactionIds.map(id=>{const tx=transactions.find(t=>t.id===id);return (tx?.merchant||id)+(tx?.pending?' (pending)':' (posted)');}).join(', ')+'. Review before attaching. No new expense created.':result.status==='ambiguous'?'Several possible matches. Choose the correct transaction before attaching. No new expense created.':'No matching transaction found. Review the receipt before recording any expense.';
  }catch{output.textContent='Enter a valid receipt date and nonnegative total.';}
 });
 const sampleBills=mapBillRecords([{dueDate:billDate(1),amount:950,status:'unpaid'},{dueDate:billDate(12),amount:150,status:'unpaid'}]);
