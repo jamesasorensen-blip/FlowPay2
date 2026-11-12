@@ -6,7 +6,10 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "test": "node --test"
+    "test": "node --test",
+    "build:guest": "node scripts/build-guest-demo.mjs",
+    "prestart": "npm run build:guest",
+    "pretest": "npm run build:guest"
   },
   "dependencies": {
     "express": "^4.21.2"

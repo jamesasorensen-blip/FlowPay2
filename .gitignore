@@ -9,3 +9,6 @@ node_modules/
 *.log
 coverage/
 .DS_Store
+
+# Guest workspace is generated from the canonical app during build.
+guest-demo.html
