@@ -82,7 +82,7 @@ function setup(){if(!$('#view-dashboard')||$('#wo-manage'))return;
  const oldBills=renderBills;renderBills=function(...args){const result=oldBills(...args);readPrefs();filterBills();return result;};
  const oldActivity=renderActivity;renderActivity=function(...args){const result=oldActivity(...args);readPrefs();filterActivity();return result;};
  const oldReorder=reorder;reorder=function(...args){const result=oldReorder(...args);apply();return result;};
- window.addEventListener('flowpay-auth-user-changed',()=>{closeDialog();scopeKey=null;apply();});
+ window.addEventListener('flowpay-auth-user-changed',()=>{closeDialog();noticeUndo=null;if($('#wo-notice'))$('#wo-notice').hidden=true;scopeKey=null;apply();});
  window.addEventListener('flowpay-tour-start',()=>$('#view-dashboard').classList.add('wo-tour'));
  window.addEventListener('flowpay-tour-stop',()=>{$('#view-dashboard').classList.remove('wo-tour');apply();});
  apply();
