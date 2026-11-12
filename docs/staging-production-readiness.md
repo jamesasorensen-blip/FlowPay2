@@ -40,3 +40,13 @@ signature-verified JWT, normalizing missing/unknown values to `aal1`. Five signe
 JWT regressions cover AAL1, AAL2, missing/unknown claims, and a tampered elevation.
 This is metadata reporting, not a change to MFA enforcement, credentials, bindings,
 or data. Live verification and cloud persistence testing follow deployment.
+
+
+## Safe empty-account initialization
+
+Clone nested default settings/arrays before normalizing account data. Start Fresh
+now constructs zero monetary balances/allowances/goals and empty financial lists;
+it no longer treats a cached nonzero starting balance as disposable demo data.
+Three regressions verify zero initialization, nested default isolation, and the
+nonzero-balance preservation guard. The staging session metadata fix is live as
+Worker version `4b8ce03b`; the verified session reaches the no-cloud-data state.

@@ -31,6 +31,7 @@ jobs:
             tests/account-switch.test.mjs \
             tests/staging-active-worker-cors.test.mjs \
             tests/staging-active-worker-aal.test.mjs \
+            tests/staging-empty-account.test.mjs \
             tests/mfa-enforcement.test.mjs \
             tests/mfa-recovery-guards.test.mjs \
             tests/mfa-recovery-policy.test.mjs \
