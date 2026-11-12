@@ -82,3 +82,12 @@ test('GET /me remains accessible to an active AAL1 session for MFA enrollment',a
  assert.equal(r.body.user.aal,'aal1');
  assert.equal('session_id' in r.body.user,false);
 });
+
+
+for (const [path,method] of [['/user-data','GET'],['/user-data','PUT'],['/consent','GET'],['/bank-accounts','GET'],['/bank-transactions','GET'],['/sync-transactions','POST'],['/link-token','POST'],['/exchange-token','POST'],['/my-data','GET']]) {
+ test('revoked session cannot access '+method+' '+path+' even with signed AAL2',async()=>{
+  const r=await probe('aal2',{path,method,session:'revoked',flags:{REQUIRE_ACTIVE_SESSION:'true'}});
+  assert.equal(r.status,401);
+  assert.equal(r.body.error,'SESSION_INVALID');
+ });
+}
