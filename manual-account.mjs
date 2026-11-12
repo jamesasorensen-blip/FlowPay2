@@ -2,6 +2,7 @@ import {createMfaController,createPasskeyController} from './manual-mfa.mjs';
 import {mountFlowPayMfa} from './manual-mfa-ui.mjs';
 import {toggleManualBillPayment} from './manual-ledger.mjs';
 import {createManualBudgetStore} from './manual-budget-store.mjs';
+import {manualNextMonthReserve} from './manual-next-month-reserve.mjs';
 if(!window.flowpayManualBridge)await new Promise(resolve=>document.addEventListener('DOMContentLoaded',resolve,{once:true}));
 const $=id=>document.getElementById(id);
 const URL_BASE='https://sdiovjwtphqvfjlyoxeq.supabase.co';
@@ -32,6 +33,25 @@ async function request(owner,path,options={}){
  if(!response.ok){const error=Error(body?.message||'Account request failed ('+response.status+')');error.code=body?.code;throw error;}
  return body;
 }
+function renderNextMonthEstimate(data){
+ let panel=$('manual-next-month-estimate');
+ if(!panel){
+  panel=document.createElement('section');panel.id='manual-next-month-estimate';
+  panel.className='rounded-2xl border border-slate-300 dark:border-slate-700 p-4 my-4';
+  panel.setAttribute('aria-live','polite');
+  $('manual-workspace').prepend(panel);
+ }
+ panel.replaceChildren();
+ const heading=document.createElement('h2');heading.className='font-bold';heading.textContent='Next Month Bills — estimate';
+ const detail=document.createElement('p');detail.className='text-sm mt-2';
+ try{
+  const result=manualNextMonthReserve(data,new Date().toISOString().slice(0,10));
+  detail.textContent='Scheduled and projected bills: '+(result.targetCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})+'. Review payment status and recurring schedules before setting money aside.';
+ }catch{
+  detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
+ }
+ panel.append(heading,detail);
+}
 const store=createManualBudgetStore({
  empty:bridge.empty,cache,
  loadRemote:async owner=>{
@@ -45,7 +65,7 @@ const store=createManualBudgetStore({
   if(!Number.isSafeInteger(next)||next<=revision)throw Error('The account save was not confirmed.');
   return next;
  },
- onData:data=>bridge.apply(data),
+ onData:data=>{bridge.apply(data);renderNextMonthEstimate(data);},
  onStatus:result=>{
   status(result.text);window.flowpayManualReady=result.ready;$('manual-workspace').inert=!result.ready;
   if(result.ready&&!securityView&&!recovery){$('manual-workspace').hidden=false;$('manual-workspace').inert=false;$('manual-auth').hidden=true;}
