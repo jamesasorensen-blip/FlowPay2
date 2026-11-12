@@ -6,6 +6,7 @@ on:
     paths:
       - 'financial-display.mjs'
       - 'cashflow-simulator.mjs'
+      - 'financial-view-adapter.mjs'
       - 'flowpay-navigation.mjs'
       - 'tests/**'
       - 'preview/**'
@@ -22,7 +23,7 @@ jobs:
         with:
           node-version: '22'
       - name: Run redesign tests
-        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
