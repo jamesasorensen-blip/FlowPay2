@@ -7,7 +7,7 @@ export function manualBudgetSnapshot(data){
  const bills=Array.isArray(data.bills)?data.bills:[];
  const normalized=bills.flatMap(b=>{
   if(!b||typeof b!=='object'||(typeof b.amount!=='number'&&!(typeof b.amount==='string'&&b.amount.trim()!==''))||!money(Number(b.amount))||Number(b.amount)<0)return [];
-  return [{id:String(b.id??''),name:String(b.name??''),amountDollars:Number(b.amount),dueDay:b.dueDay??b.day??null}];
+  return [{id:String(b.id??''),name:String(b.name??''),amountDollars:Number(b.amount),dueDate:typeof b.dueDate==='string'?b.dueDate:null,frequency:typeof b.frequency==='string'?b.frequency:null}];
  });
- return Object.freeze({balanceDollars:balance,bills:Object.freeze(normalized.map(b=>Object.freeze(b))),source:'authenticated-manual-budget',readOnly:true});
+ return Object.freeze({balanceDollars:balance,bills:Object.freeze(normalized.map(b=>Object.freeze(b))),source:'provided-manual-budget',readOnly:true});
 }
