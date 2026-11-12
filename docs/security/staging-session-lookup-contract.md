@@ -16,6 +16,14 @@ The Worker adapter in `cloudflare/supabase-session-lookup.mjs` expects a server-
 - Responses: `Cache-Control: no-store`; strict POST-only behavior, JSON size limit, no redirects, no public CORS.
 - Rate-limit and audit failed authentication attempts without logging session IDs or secrets.
 
+## Supabase Edge Function authentication compatibility
+
+Supabase's Edge Functions platform checks `Authorization: Bearer <user JWT>` by default when `verify_jwt=true`. The existing Worker adapter instead sends `Authorization: Bearer <dedicated shared secret>`, which is **not a user JWT** and would be rejected before the function handler runs.
+
+For this proposed dedicated-secret contract, set `[functions.flowpay-session-lookup] verify_jwt = false` in a reviewed per-function configuration **only when implementing the service**, then authenticate every request inside the function using the dedicated secret. Disabling the platform JWT check without implementing strong handler authentication is unsafe. Do not substitute the Supabase service-role key as a bearer JWT. An alternative design using the documented service-to-service `apikey` scheme requires a corresponding Worker adapter change and a separate review.
+
+Source: https://supabase.com/docs/guides/functions/auth-headers
+
 ## Database least privilege: prerequisite, not a migration to run blindly
 
 The lookup must query the authoritative `auth.sessions` data for **only** `id`, `user_id`, and `not_after`, restricted by a bound session ID. Verify the actual Supabase schema and revocation semantics first. Do not grant broad access to `auth`, use the `service_role` key in the browser, or expose `auth.sessions` through a public API.
