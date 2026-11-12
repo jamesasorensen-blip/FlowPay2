@@ -491,9 +491,12 @@
                             <p class="text-xs text-indigo-200/80 mt-2 max-w-xl">Your balance after allowing for upcoming bills, everyday spending, pending payments, and money kept in reserve.</p>
                         </div>
                         <div class="flex flex-wrap gap-2 md:flex-col md:items-end w-full md:w-auto">
-                            <button id="open-buffer-btn" class="flex-1 md:flex-none bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
-                                <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Keep in reserve ($<span id="buffer-display-val">75</span>)
-                            </button>
+                            <div class="w-full md:w-64 min-w-0">
+                                <button id="open-buffer-btn" aria-describedby="reserve-button-help" class="w-full bg-indigo-600/60 hover:bg-indigo-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-indigo-400/30 transition flex items-center gap-2 shadow">
+                                    <i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Keep in reserve ($<span id="buffer-display-val">75</span>)
+                                </button>
+                                <p id="reserve-button-help" class="mt-2 text-xs leading-relaxed text-indigo-200/80">Money you want to leave untouched. It reduces Safe to Spend without moving money or changing your balance.</p>
+                            </div>
                             <button id="open-safe-spend-modal-btn" class="flex-1 md:flex-none bg-emerald-600/60 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl border border-emerald-400/30 transition flex items-center gap-2 shadow">
                                 <i class="fa-solid fa-calendar-plus" aria-hidden="true"></i> Next Month Bills (<span id="included-next-bills-count">0</span>)
                             </button>
