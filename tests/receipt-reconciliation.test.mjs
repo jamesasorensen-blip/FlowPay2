@@ -5,3 +5,6 @@ test('unmatched receipt not automatically booked',()=>assert.equal(reconcileRece
 
 test('rejects impossible receipt calendar dates',()=>assert.throws(()=>reconcileReceipt({date:'2026-02-30',totalDollars:13.97},[])));
 test('ignores invalid transaction dates and missing identifiers',()=>assert.equal(reconcileReceipt({date:'2026-11-11',totalDollars:13.97},[{id:'invalid',date:'2026-02-30',amountDollars:13.97},{date:'2026-11-11',amountDollars:13.97}]).status,'unmatched'));
+
+test('rejects fractional-cent receipt amounts',()=>assert.throws(()=>reconcileReceipt({date:'2026-11-11',totalDollars:13.975},[])));
+test('ignores fractional-cent bank amounts',()=>assert.equal(reconcileReceipt({date:'2026-11-11',totalDollars:13.97},[{id:'fractional',date:'2026-11-11',amountDollars:13.975}]).status,'unmatched'));
