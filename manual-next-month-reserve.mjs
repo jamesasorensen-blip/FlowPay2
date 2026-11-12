@@ -44,9 +44,14 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
   return dates.filter(dueDate=>!paid.has(b.id+'|'+dueDate)).map(dueDate=>Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected:dueDate!==b.dueDate}));
  });
  items.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||a.name.localeCompare(b.name)||a.id.localeCompare(b.id));
- const unknownPaidEntries=Array.isArray(data.paidOccurrences)&&data.paidOccurrences.some(p=>!(typeof p==='string'||(p&&typeof p.key==='string')));
+ const unknownPaidEntries=Array.isArray(data.paidOccurrences)&&data.paidOccurrences.some(p=>{
+  const key=typeof p==='string'?p:p&&typeof p.key==='string'?p.key:null;
+  if(!key)return true;
+  const separator=key.lastIndexOf('|');
+  return separator<=0||!validDate(key.slice(separator+1));
+ });
  const unique=new Set();
  for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
- return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-supported-recurrence-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries,unsupportedFrequencies:Object.freeze(unsupportedFrequencies),requiresScheduleReview:unsupportedFrequencies.length>0||invalidDueDates.length>0||skippedInvalidAmounts>0,invalidDueDates:Object.freeze(invalidDueDates),skippedInvalidAmounts});
+ return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-supported-recurrence-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries,unsupportedFrequencies:Object.freeze(unsupportedFrequencies),requiresScheduleReview:unsupportedFrequencies.length>0||invalidDueDates.length>0||skippedInvalidAmounts>0||unknownPaidEntries,invalidDueDates:Object.freeze(invalidDueDates),skippedInvalidAmounts});
 }
