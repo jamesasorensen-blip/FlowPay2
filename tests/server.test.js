@@ -34,6 +34,12 @@ test('frontend server smoke and security checks', async (t) => {
   assert.match(guestHtml, /connect-src 'none'/);
   assert.ok(!guestHtml.includes('supabase.co'));
   assert.ok(!guestHtml.includes('workers.dev'));
+  const manual = await get('/manual.html');
+  assert.equal(manual.status,200);
+  const manualHtml=await manual.text();
+  assert.match(manualHtml,/FlowPay manual account/);
+  assert.ok(!manualHtml.includes('workers.dev'));
+  for(const asset of ['manual-account.mjs','manual-budget-store.mjs','manual-ledger.mjs','manual-mfa.mjs','manual-mfa-ui.mjs']) assert.equal((await get('/'+asset)).status,200);
   const manifest = await get('/manifest.json');
   assert.equal(manifest.status, 200);
   const appManifest = await manifest.json();

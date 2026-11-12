@@ -60,7 +60,7 @@ html=html.replace(/<button id="btn-logout"[\s\S]*?<\/button>/,'');
 html=html.replace('aria-label="Account Settings"','aria-label="Guest workspace settings"');
 html=replaceOnce(html,'<body', '<body'); // Explicit fail-fast check above remains effective.
 const banner=`<aside id="guest-banner" class="px-4 sm:px-8 py-3 bg-indigo-50 dark:bg-slate-800 border-b border-indigo-200 dark:border-slate-700 text-slate-900 dark:text-white">
-<div class="flex flex-wrap items-center gap-2"><strong>Guest workspace</strong><span class="text-xs">Try the full manual budgeting tools. No login or bank connection.</span></div>
+<div class="flex flex-wrap items-center gap-2"><strong>Guest workspace</strong><a href="/manual.html" class="fp-ui-btn">Sign in to save my budget across devices</a><span class="text-xs">Try the full manual budgeting tools. No login or bank connection.</span></div>
 <p class="text-xs my-2">Sample data on first visit. Enter your own bills, income, balances, and expenses. Stored only in this browser; clearing browser data removes it. <span id="guest-save-status" role="status">No online sync</span></p>
 <div class="flex gap-2 flex-wrap"><button type="button" id="guest-empty" class="fp-ui-btn">Start with my own empty budget</button><button type="button" id="guest-sample" class="fp-ui-btn">Restore sample budget</button><button type="button" id="guest-clear" class="fp-ui-btn">Clear guest data</button></div>
 </aside>`;
