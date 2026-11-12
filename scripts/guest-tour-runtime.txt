@@ -13,6 +13,7 @@
  let index=0,overlay=null,card=null,spot=null,previousFocus=null;
  const $=s=>document.querySelector(s);
  const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
+ const findNext=(from,direction)=>{let i=from;while(i>=0&&i<steps.length&&!visible($(steps[i].selector)))i+=direction;return i};
  function stop(completed){
   window.removeEventListener('resize',position);
   window.removeEventListener('scroll',position,true);
@@ -49,7 +50,7 @@
  function show(){
   if(!overlay)return;
   if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index')}
-  while(index<steps.length&&!visible($(steps[index].selector)))index++;
+  index=findNext(index,1);
   if(index>=steps.length){stop(true);return}
   const step=steps[index];spot=$(step.selector);
   spot.scrollIntoView({block:'center',behavior:'instant'});
@@ -57,7 +58,7 @@
   $('#guest-tour-description').textContent=step.body;
   $('#guest-tour-count').textContent='Step '+(index+1)+' of '+steps.length;
   $('#guest-tour-next').textContent=index===steps.length-1?'Finish':'Got it — Next';
-  $('#guest-tour-back').disabled=index===0;
+  $('#guest-tour-back').disabled=findNext(index-1,-1)<0;
   requestAnimationFrame(position);
  }
  function start(){
@@ -68,7 +69,7 @@
   document.body.append(overlay);card=$('#guest-tour-card');
   $('#guest-tour-skip').addEventListener('click',()=>stop(true));
   $('#guest-tour-next').addEventListener('click',()=>{index++;show()});
-  $('#guest-tour-back').addEventListener('click',()=>{if(index>0){index--;show()}});
+  $('#guest-tour-back').addEventListener('click',()=>{const prior=findNext(index-1,-1);if(prior>=0){index=prior;show()}});
   window.addEventListener('resize',position);
   window.addEventListener('scroll',position,true);
   document.addEventListener('keydown',keyboard,true);
