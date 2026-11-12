@@ -50,7 +50,7 @@ function renderNextMonthEstimate(data){
   const result=manualNextMonthReserve(data,localToday());
   resultItems=result.items;
   const currency=cents=>(cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
-  detail.textContent=result.items.length+' next-month bill occurrence'+(result.items.length===1?'':'s')+' estimated: '+currency(result.targetCents)+'. This is an estimate, not money already reserved. Review payment status before setting money aside.'+(result.unsupportedFrequencies.length?' Unsupported recurring schedules: '+result.unsupportedFrequencies.join(', ')+'.':'')+(result.invalidDueDates.length?' '+result.invalidDueDates.length+' bill(s) have missing or invalid due dates.':'')+(result.skippedInvalidAmounts?' '+result.skippedInvalidAmounts+' bill(s) have invalid amounts and were excluded.':'');
+  detail.textContent=result.items.length+' next-month bill occurrence'+(result.items.length===1?'':'s')+' estimated: '+currency(result.targetCents)+'. This is an estimate, not money already reserved. Review payment status before setting money aside.'+(result.unsupportedFrequencies.length?' Unsupported recurring schedules: '+result.unsupportedFrequencies.join(', ')+'.':'')+(result.invalidDueDates.length?' '+result.invalidDueDates.length+' bill(s) have missing or invalid due dates.':'')+(result.skippedInvalidAmounts?' '+result.skippedInvalidAmounts+' bill(s) have invalid amounts and were excluded.':'')+(result.unknownPaidEntries?' Some payment records could not be verified; review paid bills.':'');
  }catch{
   detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
  }
