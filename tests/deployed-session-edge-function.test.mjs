@@ -16,7 +16,8 @@ function setup({ rows = [], env = {}, databaseError = false } = {}) {
   // and TypeScript parameter annotation adapted for Node's isolated VM.
   const executable = source
     .replace(/^import postgres from "npm:postgres@3\.4\.3";\s*/m, '')
-    .replace('header: string | null', 'header');
+    .replace('header: string | null', 'header')
+    .replace('): Promise<boolean> {', ') {');
   const sandbox = {
     crypto: webcrypto, TextEncoder, Request, Response, Date, Uint8Array,
     postgres: () => (strings, ...values) => {
