@@ -24,6 +24,7 @@ if (process.env.FLOWPAY_ENABLE_REDESIGN_PREVIEW === '1') {
     ['/design/financial-clarity.css', 'design/financial-clarity.css'],
     ['/financial-display.mjs', 'financial-display.mjs'],
     ['/financial-view-adapter.mjs', 'financial-view-adapter.mjs'],
+    ['/bill-record-adapter.mjs', 'bill-record-adapter.mjs'],
     ['/cashflow-simulator.mjs', 'cashflow-simulator.mjs'],
     ['/flowpay-navigation.mjs', 'flowpay-navigation.mjs']
   ]);
