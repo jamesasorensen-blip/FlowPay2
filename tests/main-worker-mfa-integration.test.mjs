@@ -67,3 +67,18 @@ test('newer webhook, banking and scheduled implementations are retained verbatim
  const routes='      // CONSENT: READ';
  assert.equal(candidate.slice(candidate.indexOf(routes)),live.slice(live.indexOf(routes)));
 });
+
+
+for (const session of ['revoked', 'foreign', 'expired', 'outage']) {
+ test('GET /me fails closed for '+session+' session when active-session gate enabled',async()=>{
+  const r=await probe('aal2',{path:'/me',session,flags:{REQUIRE_ACTIVE_SESSION:'true'}});
+  assert.equal(r.status,401);
+  assert.equal(r.body.error,'SESSION_INVALID');
+ });
+}
+test('GET /me remains accessible to an active AAL1 session for MFA enrollment',async()=>{
+ const r=await probe('aal1',{path:'/me',flags:{REQUIRE_ACTIVE_SESSION:'true',REQUIRE_MFA_AAL2:'true'}});
+ assert.equal(r.status,200);
+ assert.equal(r.body.user.aal,'aal1');
+ assert.equal('session_id' in r.body.user,false);
+});
