@@ -15,13 +15,21 @@
 const buttons=[...document.querySelectorAll('[data-tab]')],panels=[...document.querySelectorAll('[data-panel]')];buttons.forEach(button=>button.addEventListener('click',()=>{const tab=button.dataset.tab;buttons.forEach(b=>{if(b===button)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current')});panels.forEach(p=>p.hidden=p.dataset.panel!==tab);document.querySelector('main').scrollIntoView({block:'start',behavior:'instant'});}));
 </script><script type="module">
 import {makeNextMonthView,makeScenarioView} from '../financial-view-adapter.mjs';
-const reserve=makeNextMonthView({today:'2026-11-11',bills:[{dueDate:'2026-12-01',amountDollars:950,status:'unpaid'},{dueDate:'2026-12-12',amountDollars:150,status:'unpaid'}],reservedDollars:300});
+import {mapBillRecords} from '../bill-record-adapter.mjs';
+import {nextMonthRange} from '../cashflow-simulator.mjs';
+const today=new Date().toISOString().slice(0,10);
+const nextMonth=nextMonthRange(today).start;
+const billDate=(day)=>nextMonth.slice(0,8)+String(day).padStart(2,'0');
+const scenarioDate=today;
+const sampleBills=mapBillRecords([{dueDate:billDate(1),amount:950,status:'unpaid'},{dueDate:billDate(12),amount:150,status:'unpaid'}]);
+const reserve=makeNextMonthView({today,bills:sampleBills,reservedDollars:300});
 document.getElementById('next-month-reserve').textContent='Next month: '+reserve.target.text+' in bills · '+reserve.reserved.text+' reserved · '+reserve.remaining.text+' still needed (example)';
 document.getElementById('what-if-run').addEventListener('click',()=>{
- const amount=Number(document.getElementById('what-if-amount').value);
+ const rawAmount=document.getElementById('what-if-amount').value.trim();
+ const amount=rawAmount===''?NaN:Number(rawAmount);
  const result=document.getElementById('what-if-result');
  if(!Number.isFinite(amount)||amount<0||amount>1000000){result.textContent='Enter a valid purchase amount between $0 and $1,000,000.';return;}
- const projection=makeScenarioView({startingBalanceDollars:1825.60,events:[{date:'2026-11-20',amountDollars:-1100}],hypotheticalEvents:[{date:'2026-11-12',amountDollars:-amount}]});
+ const projection=makeScenarioView({startingBalanceDollars:1825.60,events:[{date:scenarioDate,amountDollars:-1100}],hypotheticalEvents:[{date:scenarioDate,amountDollars:-amount}]});
  result.textContent='Projected balance: '+projection.ending.text+' · Lowest balance: '+projection.lowest.text+' (simulated, example data)';
 });
 </script></body></html>
