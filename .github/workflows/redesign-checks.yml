@@ -4,6 +4,7 @@ on:
     branches: [design/financial-clarity-navigation]
   pull_request:
     paths:
+      - 'server.js'
       - 'financial-display.mjs'
       - 'cashflow-simulator.mjs'
       - 'financial-view-adapter.mjs'
@@ -23,7 +24,7 @@ jobs:
         with:
           node-version: '22'
       - name: Run redesign tests
-        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
