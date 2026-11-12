@@ -28,6 +28,8 @@ jobs:
       - name: Run offline MFA and session regression tests
         run: |
           node --test \
+            tests/account-switch.test.mjs \
+            tests/staging-active-worker-cors.test.mjs \
             tests/mfa-enforcement.test.mjs \
             tests/mfa-recovery-guards.test.mjs \
             tests/mfa-recovery-policy.test.mjs \
