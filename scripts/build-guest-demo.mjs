@@ -66,6 +66,7 @@ const banner=`<aside id="guest-banner" class="px-4 sm:px-8 py-3 bg-indigo-50 dar
 </aside>`;
 html=html.replace(/(<body[^>]*>)/,'$1'+banner);
 html=html.replace('</head>',`<style>
+#app-sidebar.guest-tour-menu-preview{transition:none!important}
 #guest-tour-overlay{position:fixed;inset:0;z-index:99999;pointer-events:auto}
 #guest-tour-highlight{position:fixed;z-index:1;border:3px solid #a5b4fc;border-radius:14px;box-shadow:0 0 0 9999px rgba(8,15,32,.78);pointer-events:none;transition:all .18s ease}
 #guest-tour-card{position:fixed;z-index:2;width:min(370px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:auto;background:#fff;color:#172033;border-radius:16px;padding:20px;box-shadow:0 12px 50px #0006;font:inherit}

@@ -1,26 +1,162 @@
 // Guest-only, read-only guided tour. No app actions or financial writes.
 (function(){
- const KEY='tour-complete-v1';
+ const KEY='tour-complete-v2';
  const steps=[
-  {selector:'#guest-banner',title:'Welcome to the guest workspace',body:'Try FlowPay with sample financial data. Your changes stay in this browser; no bank connection or login is needed.'},
-  {selector:'#guest-empty',title:'Start your own budget',body:'This replaces the sample budget with an empty one. The tutorial never presses this button for you.'},
-  {selector:'#header-page-title',title:'Find your way around',body:'This heading shows which area you are viewing. Use the navigation to switch between your budget tools.'},
-  {selector:'#view-dashboard h2, #view-dashboard',title:'Your financial overview',body:'See your balance, upcoming bills, and what may be available to spend. These figures depend on the information entered.'},
-  {selector:'#fp-dock',title:'Main navigation',body:'Use the navigation bar to explore Home, Bills, Calendar and Activity. You can revisit these sections whenever you like.'},
-  {selector:'#btn-settings',title:'Settings and export',body:'Adjust everyday spending and pending deductions, or export a copy of your guest budget.'},
-  {selector:'#guest-sample',title:'Restore sample data',body:'Restore the example budget if you want to explore again. This replaces your current entries, so export anything you want to keep first.'}
- ];
- let index=0,overlay=null,card=null,spot=null,previousFocus=null;
+  {
+    "selector": "#guest-banner",
+    "title": "Welcome to FlowPay",
+    "body": "This guest workspace lets you explore budgeting without signing in or connecting a bank. Entries stay in this browser. This tour only explains controls; it never changes your money or submits forms."
+  },
+  {
+    "selector": "#fp-toolbar [aria-label=\"Quick Add\"]",
+    "title": "Quick Add",
+    "body": "Open this menu to add a recurring bill, enter income or a paycheck, update your manual balance, or open manual activity. Choose the type of entry you need, then complete its form."
+  },
+  {
+    "selector": "#btn-settings",
+    "title": "Settings",
+    "body": "Open guest settings to edit the everyday spending allowance and pending deductions used by Safe to Spend. Save budget settings applies your changes. You can also export a copy of your guest budget here."
+  },
+  {
+    "selector": "#theme-toggle-btn",
+    "title": "Light and dark mode",
+    "body": "Use this button to switch between light and dark appearance. It changes how FlowPay looks, without changing your budget or balances."
+  },
+  {
+    "selector": "#fp2-balance",
+    "title": "Bank / manual balance",
+    "body": "Your starting balance for the cash-flow calculations. In this guest workspace it is entered manually, not read from a bank. Keep it up to date and avoid entering transactions that are already included in it.",
+    "closest": "article"
+  },
+  {
+    "selector": "#fp2-safe",
+    "title": "Safe to spend",
+    "body": "An estimate of what remains after the planned obligations and allowances used by FlowPay. It can be lower than your balance. Review the detailed breakdown below before deciding what you can spend.",
+    "closest": "article"
+  },
+  {
+    "selector": "#fp2-next",
+    "title": "Next bill",
+    "body": "A quick summary of the next upcoming unpaid bill. Add or edit bills in the recurring schedule; the detailed Next Upcoming Bill card shows its name and due date.",
+    "closest": "article"
+  },
+  {
+    "selector": "#fp2-pay",
+    "title": "Next paycheck",
+    "body": "Shows the next scheduled income entry when one is available. Add or edit future income in the paycheck calculator. A planned paycheck is not the same as money already received.",
+    "closest": "article"
+  },
+  {
+    "selector": "#safe-to-spend-amount",
+    "title": "Available to Spend Safely",
+    "body": "This larger display repeats Safe to Spend. The breakdown shows upcoming bills, included next-month bills, everyday spending, pending deductions, and the money you keep in reserve. These are planning estimates based on your entries.",
+    "closest": "#widget-safespend"
+  },
+  {
+    "selector": "#open-buffer-btn",
+    "title": "Keep in reserve",
+    "body": "Money you want to leave untouched. It reduces Safe to Spend without moving money or changing your balance. Open this control to change the amount you want to protect."
+  },
+  {
+    "selector": "#open-safe-spend-modal-btn",
+    "title": "Next month bills",
+    "body": "Open the selection window to choose upcoming unpaid bills from next month that you want to cover with current money. Their included amount reduces Safe to Spend without moving money. Review the checklist whenever your plans change."
+  },
+  {
+    "selector": "#metric-card-balance",
+    "title": "Current Balance",
+    "body": "Use Edit to enter or correct your current manual balance. This is the starting point for the forecast. Updating it is a budgeting record, not a bank transfer."
+  },
+  {
+    "selector": "#metric-card-nextbill",
+    "title": "Next Upcoming Bill",
+    "body": "See the next unpaid bill, its amount, due date, and coverage information. Keep its amount and schedule accurate in Recurring Bills Schedule so the reminder and forecast reflect your plan."
+  },
+  {
+    "selector": "#metric-card-activebills",
+    "title": "Active Month Bills",
+    "body": "Shows the bills for the active month and whether the current balance covers them. Select this card to open the coverage list and review the included unpaid bills and any surplus."
+  },
+  {
+    "selector": "#metric-card-savings",
+    "title": "Target Savings Goal",
+    "body": "Use Edit to set your monthly savings target. This is a planning goal for the displayed savings and income calculations; setting it does not move money into savings."
+  },
+  {
+    "selector": "#bills-table-body",
+    "title": "Recurring Bills Schedule",
+    "body": "Add Bill opens a form for the name, amount, category, frequency, and due date. Use the month selector to inspect another month and Hide Paid Bills to simplify the list. Each row has Pay, Edit, and Delete actions. In this guest workspace, marking a bill paid updates its schedule but does not deduct it from your manual balance.",
+    "closest": "#widget-bills > div.glass"
+  },
+  {
+    "selector": "#activity-log",
+    "title": "Recent Activity",
+    "body": "Review a history of budget changes, such as added bills, payment status updates, and manual balance edits. This is an activity log, not a live bank statement. Clear removes the displayed activity history; the tutorial never presses it.",
+    "closest": "#widget-bills > div.glass"
+  },
+  {
+    "selector": "#fp-dock",
+    "title": "Bottom navigation",
+    "body": "Home returns to the dashboard, Bills focuses the recurring schedule, Calendar opens your dated plan, and Activity opens manual transactions and budget history. The plus button opens Quick Add."
+  },
+  {
+    "selector": "#hamburger-menu-btn",
+    "title": "Hamburger menu",
+    "body": "Open this menu to move between the dashboard, calendar, projections, and paycheck calculator. The next steps highlight each menu option."
+  },
+  {
+    "selector": "#app-sidebar [data-page=\"dashboard\"]",
+    "title": "Main Dashboard",
+    "body": "Return to the overview of your balance, Safe to Spend, next bill, savings goal, recurring bill schedule, and recent activity.",
+    "menu": true
+  },
+  {
+    "selector": "#app-sidebar [data-page=\"calendar\"]",
+    "title": "Wall Calendar & Cash Flow",
+    "body": "View bills and scheduled income by date, with projected daily balances. Select a date to inspect its details and plan a paycheck. Change the month or show previous weeks to review another period. Projections depend on your entered amounts and dates.",
+    "menu": true
+  },
+  {
+    "selector": "#app-sidebar [data-page=\"projection\"]",
+    "title": "Projection vs. Bills",
+    "body": "Compare the projected balance with upcoming bills over time. Use the graph and its date range to look for low balances before bills are due. This is a forecast based on recorded plans, not a guaranteed future balance.",
+    "menu": true
+  },
+  {
+    "selector": "#app-sidebar [data-page=\"calculator\"]",
+    "title": "Paycheck & Tax Calculator",
+    "body": "Estimate take-home pay using the calculator inputs, then record potential or actual paycheck amounts and dates. Review saved paychecks and confirm received income when appropriate. Tax estimates can differ from your real pay stub.",
+    "menu": true
+  },
+  {
+    "selector": "#close-sidebar-btn",
+    "title": "Close the menu",
+    "body": "Use the close button or the shaded area outside the menu to return to your current page. The tutorial closes its menu preview automatically when you finish.",
+    "menu": true
+  },
+  {
+    "selector": "#guest-tour-restart",
+    "title": "You are ready to explore",
+    "body": "You can replay this walkthrough with Take a guided tour. Try the tools at your own pace. Guest entries stay in this browser, and you can export a copy from Settings."
+  }
+];
+ let index=0,overlay=null,card=null,spot=null,previousFocus=null,viewState=[],sidebarClass=null,shadeClass=null,scrollStart=null;
  const $=s=>document.querySelector(s);
  const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
  const modalOpen=()=>[...document.querySelectorAll('[id^="modal-"], [role="dialog"]')].some(el=>el.id!=='guest-tour-card'&&visible(el)&&getComputedStyle(el).position==='fixed');
- const findNext=(from,direction)=>{let i=from;while(i>=0&&i<steps.length&&!visible($(steps[i].selector)))i+=direction;return i};
+ const target=step=>{const el=$(step.selector);return step.closest?el?.closest(step.closest):el};
+ function previewMenu(open){$('#app-sidebar')?.classList.add('guest-tour-menu-preview');$('#app-sidebar')?.classList.toggle('-translate-x-full',!open);$('#sidebar-overlay')?.classList.toggle('hidden',!open)}
+ const findNext=(from,direction)=>{let i=from;while(i>=0&&i<steps.length&&!target(steps[i]))i+=direction;return i};
  function stop(completed){
   window.removeEventListener('resize',position);
   window.removeEventListener('scroll',position,true);
   document.removeEventListener('keydown',keyboard,true);
   if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index');spot=null}
   overlay?.remove();overlay=null;card=null;
+  for(const [el,hidden] of viewState)el.classList.toggle('hidden',hidden);viewState=[];
+  if(sidebarClass!==null)$('#app-sidebar').className=sidebarClass;
+  if(shadeClass!==null)$('#sidebar-overlay').className=shadeClass;
+  if(scrollStart)window.scrollTo(scrollStart.x,scrollStart.y);
   if(completed){try{guestStorage.setItem(KEY,'yes')}catch{}}
   if(previousFocus?.isConnected)previousFocus.focus();
  }
@@ -55,7 +191,8 @@
   if(spot){spot.style.removeProperty('outline');spot.style.removeProperty('outline-offset');spot.style.removeProperty('position');spot.style.removeProperty('z-index')}
   index=findNext(index,1);
   if(index>=steps.length){stop(true);return}
-  const step=steps[index];spot=$(step.selector);
+  const step=steps[index];previewMenu(!!step.menu);spot=target(step);
+  if(!visible(spot)){index++;show();return}
   spot.scrollIntoView({block:'center',behavior:'instant'});
   $('#guest-tour-title').textContent=step.title;
   $('#guest-tour-description').textContent=step.body;
@@ -67,6 +204,10 @@
  function start(){
   if(overlay||modalOpen())return;
   previousFocus=document.activeElement;index=0;
+  scrollStart={x:window.scrollX,y:window.scrollY};
+  sidebarClass=$('#app-sidebar')?.className??null;shadeClass=$('#sidebar-overlay')?.className??null;
+  viewState=[...document.querySelectorAll('.app-view')].map(el=>[el,el.classList.contains('hidden')]);
+  for(const [el] of viewState)el.classList.toggle('hidden',el.id!=='view-dashboard');
   overlay=document.createElement('div');overlay.id='guest-tour-overlay';
   overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><span id="guest-tour-arrow" aria-hidden="true">↑</span><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-back">Back</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
   document.body.append(overlay);card=$('#guest-tour-card');
