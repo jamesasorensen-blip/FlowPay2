@@ -71,3 +71,8 @@ test('flags malformed paid occurrence keys even when represented as strings',()=
  const result=manualNextMonthReserve({balance:0,bills:[{id:'rent',amount:100,dueDate:'2026-12-01'}],paidOccurrences:['rent|2026-02-30']},'2026-11-11');
  assert.equal(result.targetCents,10000);assert.equal(result.unknownPaidEntries,true);assert.equal(result.requiresScheduleReview,true);
 });
+
+test('flags missing and duplicate bill identifiers',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{name:'No ID',amount:5,dueDate:'2026-12-01'},{id:'same',amount:10,dueDate:'2026-12-02'},{id:'same',amount:20,dueDate:'2026-12-03'}]},'2026-11-11');
+ assert.equal(result.missingBillIds,1);assert.deepEqual(result.duplicateBillIds,['same']);assert.equal(result.requiresScheduleReview,true);
+});
