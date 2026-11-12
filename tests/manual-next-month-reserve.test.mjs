@@ -51,3 +51,8 @@ test('annual leap-day bills clamp to February 28 in non-leap years',()=>{
  const result=manualNextMonthReserve({balance:0,bills:[{id:'leap',amount:20,dueDate:'2024-02-29',frequency:'yearly'}]},'2027-01-10');
  assert.equal(result.items[0].dueDate,'2027-02-28');
 });
+
+test('reports unsupported recurrence labels instead of silently claiming complete coverage',()=>{
+ const result=manualNextMonthReserve({balance:0,bills:[{id:'x',amount:10,dueDate:'2026-11-01',frequency:'every-two-months'}]},'2026-11-11');
+ assert.equal(result.targetCents,0);assert.deepEqual(result.unsupportedFrequencies,['every-two-months']);assert.equal(result.requiresScheduleReview,true);
+});
