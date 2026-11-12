@@ -18,7 +18,7 @@ function setup({ rows = [], env = {}, databaseError = false } = {}) {
     .replace(/^import postgres from "npm:postgres@3\.4\.3";\s*/m, '')
     .replace('header: string | null', 'header');
   const sandbox = {
-    crypto: webcrypto, TextEncoder, Response, Date, Uint8Array,
+    crypto: webcrypto, TextEncoder, Request, Response, Date, Uint8Array,
     postgres: () => (strings, ...values) => {
       queries++;
       assert.match(strings.join('?'), /flowpay_session_private\.lookup_active_session/);
