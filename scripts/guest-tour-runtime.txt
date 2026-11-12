@@ -57,16 +57,18 @@
   $('#guest-tour-description').textContent=step.body;
   $('#guest-tour-count').textContent='Step '+(index+1)+' of '+steps.length;
   $('#guest-tour-next').textContent=index===steps.length-1?'Finish':'Got it — Next';
+  $('#guest-tour-back').disabled=index===0;
   requestAnimationFrame(position);
  }
  function start(){
   if(overlay)return;
   previousFocus=document.activeElement;index=0;
   overlay=document.createElement('div');overlay.id='guest-tour-overlay';
-  overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><span id="guest-tour-arrow" aria-hidden="true">↑</span><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
+  overlay.innerHTML='<div id="guest-tour-highlight" aria-hidden="true"></div><div id="guest-tour-card" role="dialog" aria-modal="true" aria-labelledby="guest-tour-title" aria-describedby="guest-tour-description"><span id="guest-tour-arrow" aria-hidden="true">↑</span><p id="guest-tour-count"></p><h2 id="guest-tour-title"></h2><p id="guest-tour-description"></p><div class="guest-tour-actions"><button type="button" id="guest-tour-skip">Skip tutorial</button><button type="button" id="guest-tour-back">Back</button><button type="button" id="guest-tour-next">Got it — Next</button></div></div>';
   document.body.append(overlay);card=$('#guest-tour-card');
   $('#guest-tour-skip').addEventListener('click',()=>stop(true));
   $('#guest-tour-next').addEventListener('click',()=>{index++;show()});
+  $('#guest-tour-back').addEventListener('click',()=>{if(index>0){index--;show()}});
   window.addEventListener('resize',position);
   window.addEventListener('scroll',position,true);
   document.addEventListener('keydown',keyboard,true);
