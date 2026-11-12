@@ -43,16 +43,25 @@ function renderNextMonthEstimate(data){
   $('manual-workspace').prepend(panel);
  }
  panel.replaceChildren();
+ let resultItems=[];
  const heading=document.createElement('h2');heading.className='font-bold';heading.textContent='Next Month Bills — estimate';
  const detail=document.createElement('p');detail.className='text-sm mt-2';
  try{
   const result=manualNextMonthReserve(data,localToday());
+  resultItems=result.items;
   const currency=cents=>(cents/100).toLocaleString(undefined,{style:'currency',currency:'USD'});
   detail.textContent=result.items.length+' next-month bill occurrence'+(result.items.length===1?'':'s')+' estimated: '+currency(result.targetCents)+'. This is an estimate, not money already reserved. Review payment status and unsupported recurring schedules before setting money aside.';
  }catch{
   detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
  }
  panel.append(heading,detail);
+ const list=document.createElement('ul');list.className='mt-3 text-sm space-y-1';
+ for(const item of resultItems){
+  const li=document.createElement('li');
+  li.textContent=item.dueDate+' · '+(item.name||'Unnamed bill')+' · '+(item.amountCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})+(item.projected?' (projected)':' (scheduled)');
+  list.append(li);
+ }
+ if(resultItems.length)panel.append(list);
 }
 const store=createManualBudgetStore({
  empty:bridge.empty,cache,
