@@ -27,6 +27,8 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
   return [Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected})];
  });
  const unknownPaidEntries=Array.isArray(data.paidOccurrences)&&data.paidOccurrences.some(p=>!(typeof p==='string'||(p&&typeof p.key==='string')));
+ const unique=new Set();
+ for(const item of items){const key=item.id+'|'+item.dueDate;if(unique.has(key))throw new Error('Duplicate bill occurrence: '+key);unique.add(key);}
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
  return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true,unknownPaidEntries});
 }
