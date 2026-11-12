@@ -27,6 +27,17 @@
 - **Not yet verified:** allowlist-to-test-account UUID mapping; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
 - **Hold:** do not run a positive or revoked-session test or enable any enforcement flag until test-account ownership and isolation are confirmed.
 
+## Safe server-to-server smoke-test gate (no credentials in chat or GitHub)
+
+The **review candidate is not deployed**. Do not interpret results from the current staging Worker as evidence that its candidate integration is active.
+
+1. Confirm the staging Worker code version and that its `SESSION_LOOKUP_URL` targets exactly `https://<project-ref>.supabase.co/functions/v1/flowpay-session-lookup` for the same project as `SUPABASE_URL`; check values only inside authorized secret managers.
+2. Confirm the Supabase `FLOWPAY_SESSION_LOOKUP_SECRET` and staging Worker `SESSION_LOOKUP_SECRET` match using an authorized server-side operator process; never print, paste, hash into logs, or commit either value.
+3. Confirm the single `flowpay_session_private.allowed_user` entry is the intended staging test identity and `FLOWPAY_STAGING_TEST_USER_ID` matches it, without exposing the UUID.
+4. Only from an approved staging-only server runtime, call the Supabase function with an **invalid random UUID** and the server credential. Expect `200 {"active":false}`. This validates the authenticated transport and fail-closed unknown-session behavior without touching any real session. Record only status and boolean outcome.
+5. From that same runtime, call using a valid dedicated test session. Expect `200 {"active":true}` with minimal metadata, then revoke **only that disposable test session** and verify `active:false`. Never log tokens, identifiers, or response metadata.
+6. If any step fails, stop. Do not deploy the candidate or enable either enforcement flag. Preserve sanitized status codes and request times for review.
+
 ## Verification matrix (run only after prerequisites)
 
 | Scenario | Expected result | Evidence to record |
