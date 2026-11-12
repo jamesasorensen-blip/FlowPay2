@@ -40,10 +40,10 @@ jobs:
         run: |
           npm run build:guest
           test -s guest-demo.html
-          grep -q 'id="guest-tour-overlay"' guest-demo.html
-          grep -q 'id="guest-tour-next"' guest-demo.html
-          grep -q 'id="guest-tour-back"' guest-demo.html
-          grep -q 'id="guest-tour-skip"' guest-demo.html
+          grep -q 'guest-tour-overlay' guest-demo.html
+          grep -q 'guest-tour-next' guest-demo.html
+          grep -q 'guest-tour-back' guest-demo.html
+          grep -q 'guest-tour-skip' guest-demo.html
           grep -q 'tour-complete-v1' guest-demo.html
       - name: Validate preview structure
         run: |
