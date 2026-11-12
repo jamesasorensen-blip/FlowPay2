@@ -19,7 +19,8 @@ import {mapBillRecords} from '../bill-record-adapter.mjs';
 import {reconcileReceipt} from '../receipt-reconciliation.mjs';
 import {parseReceiptText} from '../receipt-text-parser.mjs';
 import {nextMonthRange} from '../cashflow-simulator.mjs';
-const today=new Date().toISOString().slice(0,10);
+const now=new Date();
+const today=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
 const nextMonth=nextMonthRange(today).start;
 const billDate=(day)=>nextMonth.slice(0,8)+String(day).padStart(2,'0');
 const scenarioDate=today;
@@ -38,22 +39,27 @@ const receiptInput=document.getElementById('receipt-image');
 const receiptPreview=document.getElementById('receipt-image-preview');
 const receiptStatus=document.getElementById('receipt-image-status');
 const ocrButton=document.getElementById('receipt-ocr');
+let receiptSelectionVersion=0;
+let ocrRunning=false;
 ocrButton.addEventListener('click',async()=>{
- const file=receiptInput.files?.[0];if(!file)return;
+ const file=receiptInput.files?.[0];if(!file||ocrRunning)return;
+ const version=receiptSelectionVersion;
  if(typeof window.TextDetector!=='function'){receiptStatus.textContent='On-device text recognition is unavailable in this browser. Paste or type the receipt text instead.';return;}
- ocrButton.disabled=true;receiptStatus.textContent='Reading receipt on this device…';
+ ocrRunning=true;ocrButton.disabled=true;receiptStatus.textContent='Reading receipt on this device…';
  let bitmap;
  try{
   bitmap=await createImageBitmap(file);
   const blocks=await new window.TextDetector().detect(bitmap);
+  if(version!==receiptSelectionVersion)return;
   const text=blocks.map(block=>block.rawValue||'').filter(Boolean).join('\n');
   if(!text){receiptStatus.textContent='No readable text found. Paste or type the receipt details.';return;}
   document.getElementById('receipt-text').value=text.slice(0,20000);
   receiptStatus.textContent='Text extracted on this device. Review it, then select Suggest total and date.';
- }catch{receiptStatus.textContent='Text recognition could not read this image. Paste or type the receipt text instead.';}
- finally{bitmap?.close?.();ocrButton.disabled=false;}
+ }catch{if(version===receiptSelectionVersion)receiptStatus.textContent='Text recognition could not read this image. Paste or type the receipt text instead.';}
+ finally{bitmap?.close?.();ocrRunning=false;ocrButton.disabled=!receiptInput.files?.length||typeof window.TextDetector!=='function';}
 });
 receiptInput.addEventListener('change',()=>{
+ receiptSelectionVersion++;
  if(receiptImageUrl){URL.revokeObjectURL(receiptImageUrl);receiptImageUrl=null;}
  receiptPreview.hidden=true;receiptPreview.removeAttribute('src');ocrButton.disabled=true;
  const file=receiptInput.files?.[0];
