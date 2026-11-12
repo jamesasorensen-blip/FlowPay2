@@ -6,7 +6,7 @@ export function manualBudgetSnapshot(data){
  if(!money(balance))throw new TypeError('Budget balance must be a valid monetary amount');
  const bills=Array.isArray(data.bills)?data.bills:[];
  const normalized=bills.flatMap(b=>{
-  if(!b||typeof b!=='object'||!money(Number(b.amount))||Number(b.amount)<0)return [];
+  if(!b||typeof b!=='object'||(typeof b.amount!=='number'&&!(typeof b.amount==='string'&&b.amount.trim()!==''))||!money(Number(b.amount))||Number(b.amount)<0)return [];
   return [{id:String(b.id??''),name:String(b.name??''),amountDollars:Number(b.amount),dueDay:b.dueDay??b.day??null}];
  });
  return Object.freeze({balanceDollars:balance,bills:Object.freeze(normalized.map(b=>Object.freeze(b))),source:'authenticated-manual-budget',readOnly:true});
