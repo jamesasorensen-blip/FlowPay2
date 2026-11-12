@@ -50,3 +50,15 @@ it no longer treats a cached nonzero starting balance as disposable demo data.
 Three regressions verify zero initialization, nested default isolation, and the
 nonzero-balance preservation guard. The staging session metadata fix is live as
 Worker version `4b8ce03b`; the verified session reaches the no-cloud-data state.
+
+
+## Account-scoped import path
+
+The existing import button reads the legacy global budget key. The user chose to
+back up and import the existing account-scoped browser budget into staging.
+A separate button now reads only the active account cache, confirms the action,
+rechecks cloud absence/test-record status and revision, checks for concurrent
+browser changes, downloads a backup, and performs a revision-protected write.
+Account changes and new cloud records abort the import. Newer browser edits made
+while a write is pending are preserved and synchronization remains paused for
+reconciliation. Production data and the unrelated legacy budget are untouched.
