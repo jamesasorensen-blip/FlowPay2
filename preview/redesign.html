@@ -8,7 +8,7 @@
 <article class="fp-financial-card"><div class="fp-financial-label">Upcoming bills</div><div class="fp-financial-value value">$1,100.00</div><div class="fp-financial-caption">Scheduled, not yet paid</div></article>
 <article class="fp-financial-card"><div class="fp-financial-label">Money reserved</div><div class="fp-financial-value value">$300.00</div><div class="fp-financial-caption">Still in your account; set aside</div></article></div><div class="notice"><strong>What if I spend money?</strong><p class="muted">Try a hypothetical purchase. This never changes account data.</p><label for="what-if-amount">Purchase amount ($)</label> <input id="what-if-amount" type="number" min="0" step="0.01" value="50" inputmode="decimal" style="max-width:130px;padding:.5rem;border:1px solid #94a3b8;border-radius:8px"> <button id="what-if-run" type="button" style="padding:.5rem .75rem;border-radius:8px;border:1px solid #6366f1;background:#eef2ff">Calculate</button><p id="what-if-result" role="status" aria-live="polite">Example only — select Calculate.</p></div></section>
 <section class="panel" data-panel="bills" hidden><h1>Bills & Calendar</h1><p class="muted">Due dates, next-month bills, payment status, and reserves will be organized here.</p><div class="notice"><span class="tag">UPCOMING · EXAMPLE</span><p id="next-month-reserve" class="fp-financial-caption">Next-month reserve estimate loads here.</p><div class="fp-value-row"><span>Rent · Dec 1</span><strong>$950.00</strong></div></div></section>
-<section class="panel" data-panel="activity" hidden><h1>Activity</h1><p class="muted">Transactions and matched receipts, with completed spending distinguished from future bills.</p><div class="notice"><div class="fp-value-row"><span>Groceries · Paid</span><strong class="fp-financial-value" data-kind="expense">−$13.97</strong></div></div></section>
+<section class="panel" data-panel="activity" hidden><h1>Activity</h1><p class="muted">Transactions and matched receipts, with completed spending distinguished from future bills.</p><div class="notice"><div class="fp-value-row"><span>Groceries · Paid</span><strong class="fp-financial-value" data-kind="expense">−$13.97</strong></div></div><div class="notice"><h2>Match a receipt</h2><p class="muted">Try matching a receipt against example transactions. This preview does not read images, upload files, or save expenses.</p><form id="receipt-match-form"><label for="receipt-date">Receipt date</label> <input id="receipt-date" type="date" required style="padding:.5rem;border:1px solid #94a3b8;border-radius:8px"> <label for="receipt-total">Total ($)</label> <input id="receipt-total" type="number" min="0" step=".01" required value="13.97" style="max-width:120px;padding:.5rem;border:1px solid #94a3b8;border-radius:8px"> <button type="submit" style="padding:.5rem .75rem;border-radius:8px;border:1px solid #6366f1;background:#eef2ff">Find possible matches</button></form><p id="receipt-match-result" role="status" aria-live="polite">No receipt matched yet.</p></div></section>
 <section class="panel" data-panel="debt" hidden><h1>Credit & Debt</h1><p class="muted">Track amounts owed, APR, minimum payments, and simulated borrowing separately.</p><div class="notice"><div class="fp-value-row"><span>Credit card · Amount owed</span><strong>$1,850.00</strong></div><p class="fp-financial-caption">APR: 24.99% · Illustrative only</p></div></section>
 <section class="panel" data-panel="more" hidden><h1>More</h1><p class="muted">Additional tools without crowding your main navigation.</p><div class="fp-financial-grid"><div class="fp-financial-card"><strong>Shopping & Receipts</strong><p class="muted">Plan purchases and review receipt details.</p></div><div class="fp-financial-card"><strong>Calendar</strong><p class="muted">See upcoming income and bills.</p></div><div class="fp-financial-card"><strong>Settings</strong><p class="muted">Accounts, privacy, and preferences.</p></div></div></section>
 <footer>Static layout preview. No real account data, calculations, or transactions are accessed or changed.</footer></main></div><script>
@@ -16,11 +16,24 @@ const buttons=[...document.querySelectorAll('[data-tab]')],panels=[...document.q
 </script><script type="module">
 import {makeNextMonthView,makeScenarioView} from '../financial-view-adapter.mjs';
 import {mapBillRecords} from '../bill-record-adapter.mjs';
+import {reconcileReceipt} from '../receipt-reconciliation.mjs';
 import {nextMonthRange} from '../cashflow-simulator.mjs';
 const today=new Date().toISOString().slice(0,10);
 const nextMonth=nextMonthRange(today).start;
 const billDate=(day)=>nextMonth.slice(0,8)+String(day).padStart(2,'0');
 const scenarioDate=today;
+document.getElementById('receipt-date').value=today;
+document.getElementById('receipt-match-form').addEventListener('submit',event=>{
+ event.preventDefault();
+ const date=document.getElementById('receipt-date').value;
+ const raw=document.getElementById('receipt-total').value.trim();
+ const total=raw===''?NaN:Number(raw);
+ const output=document.getElementById('receipt-match-result');
+ try {
+  const result=reconcileReceipt({date,totalDollars:total},[{id:'example-grocery-1',date:today,amountDollars:13.97},{id:'example-gas-2',date:today,amountDollars:35.00}]);
+  output.textContent=result.status==='possible-match'?'Possible match found: '+result.matchingTransactionIds.join(', ')+'. Review before attaching. No new expense created.':result.status==='ambiguous'?'Several possible matches. Choose the correct transaction before attaching. No new expense created.':'No matching transaction found. Review the receipt before recording any expense.';
+ }catch{output.textContent='Enter a valid receipt date and nonnegative total.';}
+});
 const sampleBills=mapBillRecords([{dueDate:billDate(1),amount:950,status:'unpaid'},{dueDate:billDate(12),amount:150,status:'unpaid'}]);
 const reserve=makeNextMonthView({today,bills:sampleBills,reservedDollars:300});
 document.getElementById('next-month-reserve').textContent='Next month: '+reserve.target.text+' in bills · '+reserve.reserved.text+' reserved · '+reserve.remaining.text+' still needed (example)';
