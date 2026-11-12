@@ -1,0 +1,11 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {formatMoney,formatAPR,formatMoneyHTML} from '../financial-display.mjs';
+test('expense is clearly signed',()=>assert.equal(formatMoney(13.97,{kind:'expense'}).text,'−$13.97'));
+test('income is clearly signed',()=>assert.equal(formatMoney(900,{kind:'income'}).text,'+$900.00'));
+test('debt is an amount owed, not a negative expense',()=>assert.equal(formatMoney(1850,{kind:'debt'}).text,'$1,850.00'));
+test('forecast explicitly labels estimate',()=>assert.match(formatMoney(200,{kind:'forecast',status:'estimated'}).accessibleLabel,/estimated/));
+test('zero expense is still an expense',()=>assert.equal(formatMoney(0,{kind:'expense'}).text,'−$0.00'));
+test('invalid inputs are rejected',()=>{assert.throws(()=>formatMoney(NaN));assert.throws(()=>formatMoney('3'));assert.throws(()=>formatMoney(3,{kind:'fake'}));});
+test('APR formatting',()=>assert.equal(formatAPR(24.99),'24.99% APR'));
+test('safe HTML contains accessibility label',()=>assert.match(formatMoneyHTML(13.97,{kind:'expense'}),/aria-label="Money spent/));
