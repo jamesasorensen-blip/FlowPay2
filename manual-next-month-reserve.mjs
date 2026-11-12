@@ -1,12 +1,16 @@
 import {manualBudgetSnapshot} from './manual-financial-snapshot.mjs';
 import {nextMonthRange,reserveProgress} from './cashflow-simulator.mjs';
 
-// Projects only known monthly recurrence. Paid occurrence state is not yet integrated;
-// totals remain estimates requiring payment-status review.
+// Projects known monthly recurrence; excludes only exact, explicitly paid occurrence keys.
+// Unknown payment state remains a review requirement.
 export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
  const snapshot=manualBudgetSnapshot(data);
  const {start,end}=nextMonthRange(today);
  const validDate=d=>typeof d==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&!Number.isNaN(Date.parse(d+'T00:00:00Z'))&&new Date(d+'T00:00:00Z').toISOString().slice(0,10)===d;
+ const paid=new Set((Array.isArray(data.paidOccurrences)?data.paidOccurrences:[]).flatMap(p=>{
+  const key=typeof p==='string'?p:p&&typeof p.key==='string'?p.key:null;
+  return key?[key]:[];
+ }));
  const items=snapshot.bills.flatMap(b=>{
   if(!validDate(b.dueDate))return [];
   let dueDate=b.dueDate,projected=false;
@@ -19,9 +23,9 @@ export function manualNextMonthReserve(data,today,{reservedCents=0}={}){
    dueDate=new Date(Date.UTC(year,month,Math.min(day,maxDay))).toISOString().slice(0,10);
    projected=true;
   }
-  if(dueDate<start||dueDate>=end)return [];
+  if(dueDate<start||dueDate>=end||paid.has(b.id+'|'+dueDate))return [];
   return [Object.freeze({id:b.id,name:b.name,dueDate,amountCents:Math.round(b.amountDollars*100),projected})];
  });
  const targetCents=items.reduce((sum,b)=>{const next=sum+b.amountCents;if(!Number.isSafeInteger(next))throw new RangeError('Bill total exceeds safe limit');return next;},0);
- return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-projections',requiresPaidStatusReview:true});
+ return Object.freeze({start,end,items:Object.freeze(items),...reserveProgress({targetCents,reservedCents}),scope:'explicit-due-dates-and-monthly-projections',requiresPaidStatusReview:true,paidOccurrenceKeysApplied:true});
 }
