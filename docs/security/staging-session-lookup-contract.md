@@ -1,14 +1,14 @@
 # Staging authoritative session lookup: implementation contract
 
-Status: **design only; not deployed or approved for production**.
+Status: **review-only integration; the Supabase Edge Function is already active in the shared project, but the Cloudflare candidate is not approved or deployed for production**.
 
 ## Why this is required
 
-The Worker adapter in `cloudflare/supabase-session-lookup.mjs` expects a server-side POST endpoint at `/functions/v1/flowpay-session-lookup`. The current repository does **not** contain that Edge Function. The adapter and mock tests do not establish that a real Supabase session was verified.
+The Worker adapter in `cloudflare/supabase-session-lookup.mjs` expects a server-side POST endpoint at `/functions/v1/flowpay-session-lookup`. The repository now contains a source snapshot of the active Edge Function at `supabase/functions/flowpay-session-lookup/index.ts`. The adapter and mocked tests do not establish that a real Supabase session was verified.
 
 ## Observed Supabase state (read-only inspection, 2026-11-12)
 
-The connected FlowPay Supabase project already has an **ACTIVE** `flowpay-session-lookup` Edge Function (version 3, `verify_jwt=false`). Its handler uses a dedicated bearer secret, an allowlisted staging user ID, and a private Postgres function. Therefore the earlier statement that no Edge Function exists applies only to this repository's source tree, **not** to the deployed project. The deployed handler must be reconciled into reviewed source control before further changes.
+The connected FlowPay Supabase project already has an **ACTIVE** `flowpay-session-lookup` Edge Function (version 3, `verify_jwt=false`). Its handler uses a dedicated bearer secret, an allowlisted staging user ID, and a private Postgres function. Therefore the earlier statement that no Edge Function exists applies only to this repository's source tree, **not** to the deployed project. The deployed handler was copied into reviewed source control as a snapshot, without deploying changes.
 
 Read-only database inspection confirmed that `flowpay_session_private.lookup_active_session(uuid)` is `SECURITY DEFINER` with an empty search path and a session-ID-bound lookup. It checks `flowpay_session_private.allowed_user`. The `flowpay_session_lookup` role is not superuser, cannot bypass RLS, and has no direct `auth.sessions` SELECT or `auth` schema USAGE, but can execute the private lookup. The allowlist table has RLS enabled and no policies; only `postgres` appears in its table ACL. These observations do not establish that runtime secrets, connectivity, or revocation tests pass.
 
@@ -62,7 +62,7 @@ A dedicated restricted database role or tightly scoped security-definer function
 
 - Confirm actual Supabase project and schema; do not assume staging has a separate auth database.
 - Review database privileges and secret provisioning without printing secrets.
-- Deploy the endpoint only to a confirmed nonproduction environment.
+- Do not redeploy the already-active Edge Function in the shared Supabase project without explicit approval; require a confirmed nonproduction target for any future deployment.
 - Test from the staging Worker with `REQUIRE_ACTIVE_SESSION=false` and `REQUIRE_MFA_AAL2=false` until readiness checks pass.
 - Enable gates in staging one at a time after recovery and rollback are proven.
 - Do not merge PR #57 as a production MFA implementation; it is a review checkpoint.
