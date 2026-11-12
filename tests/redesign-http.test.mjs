@@ -38,7 +38,7 @@ test('preview is not exposed without explicit opt-in',async()=>{
 });
 test('opted-in preview and dependencies load, private files remain blocked',async()=>{
  await withServer(true,async base=>{
-  for(const route of ['/redesign-preview','/design/financial-clarity.css','/financial-view-adapter.mjs','/cashflow-simulator.mjs','/financial-display.mjs']){
+  for(const route of ['/redesign-preview','/design/financial-clarity.css','/financial-view-adapter.mjs','/bill-record-adapter.mjs','/cashflow-simulator.mjs','/financial-display.mjs']){
    const response=await fetch(base+route);assert.equal(response.status,200,route);
   }
   assert.equal((await fetch(base+'/server.js')).status,404);
