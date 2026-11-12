@@ -45,3 +45,15 @@ test('opted-in preview and dependencies load, private files remain blocked',asyn
   assert.equal((await fetch(base+'/package.json')).status,404);
  });
 });
+
+test('manual reserve modules are public but account data and server internals are not',async()=>{
+ await withServer(false,async base=>{
+  for(const route of ['/manual-financial-snapshot.mjs','/manual-next-month-reserve.mjs','/cashflow-simulator.mjs']){
+   const response=await fetch(base+route);assert.equal(response.status,200,route);
+   assert.match(response.headers.get('content-type')||'',/javascript|octet-stream/);
+  }
+  for(const route of ['/manual-budgets','/manual-budget.json','/scripts/build-manual-account.mjs']){
+   assert.equal((await fetch(base+route)).status,404,route);
+  }
+ });
+});
