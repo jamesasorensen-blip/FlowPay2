@@ -27,6 +27,13 @@ test('frontend server smoke and security checks', async (t) => {
   assert.equal(home.headers.get('x-frame-options'), 'DENY');
   assert.equal(home.headers.get('referrer-policy'), 'strict-origin-when-cross-origin');
   assert.match(home.headers.get('strict-transport-security') || '', /max-age=/);
+  const guest = await get('/guest-demo.html');
+  assert.equal(guest.status, 200);
+  const guestHtml = await guest.text();
+  assert.match(guestHtml, /Guest workspace/);
+  assert.match(guestHtml, /connect-src 'none'/);
+  assert.ok(!guestHtml.includes('supabase.co'));
+  assert.ok(!guestHtml.includes('workers.dev'));
   const manifest = await get('/manifest.json');
   assert.equal(manifest.status, 200);
   const appManifest = await manifest.json();
