@@ -72,7 +72,7 @@ html=html.replace('</head>',`<style>
 #guest-tour-title{font-size:18px;font-weight:750;margin:8px 0}
 #guest-tour-description{font-size:14px;line-height:1.55}
 #guest-tour-count{font-size:12px;color:#475569}
-#guest-tour-arrow{position:absolute;color:#fff;font-size:28px;line-height:1}
+#guest-tour-arrow{position:fixed;z-index:3;pointer-events:none;color:#fff;font-size:28px;line-height:1}
 .guest-tour-actions{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:18px}
 .guest-tour-actions button{border-radius:9px;padding:10px 12px;font-size:13px;cursor:pointer}
 #guest-tour-next{background:#4f46e5;color:#fff;font-weight:700}
