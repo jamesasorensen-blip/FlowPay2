@@ -19,7 +19,7 @@ Updated November 12, 2026. This is a status record, not production-rollout appro
 
 ## Remaining acceptance gates
 
-1. Complete verification after the origin fix; demonstrate authenticated account-scoped save/load and refresh persistence without overwriting divergent local records.
+1. Authenticated account-scoped import/save/load and refresh persistence passed for the current staging account (see live evidence below). Multi-account and divergent-record acceptance remains required.
 2. Verify live AAL1 financial blocking, AAL2 access, enrollment, sign-out/revocation, account switching, and recovery. Do not change existing authentication or weaken controls merely to get a test passing.
 3. Reconcile the redesigned/authenticated app branch with the current staging frontend. Connect balances, bills, transactions, receipts, and next-month bill scheduling to the real account-scoped workflow; standalone examples are not acceptance evidence.
 4. Validate Sandbox consent, reconnect, repeated/interrupted sync, deletion/disconnection, deduplication, and ownership boundaries against the deployed Worker/D1 configuration.
@@ -62,3 +62,18 @@ browser changes, downloads a backup, and performs a revision-protected write.
 Account changes and new cloud records abort the import. Newer browser edits made
 while a write is pending are preserved and synchronization remains paused for
 reconciliation. Production data and the unrelated legacy budget are untouched.
+
+## Live cloud persistence evidence — November 12, 2026
+
+Staging frontend merge `d69e6e6bb5de98433cbbd4ccc2edb813710e0e7b` is deployed.
+After the user accepted the backup/import confirmation, the UI reported
+“Account browser budget imported. Cloud synced.” The backup download itself was
+not independently inspected. Changed the savings goal from $200 to $12.34,
+observed “Cloud synced”, reloaded, and verified $12.34/mo with a $500 balance.
+Restored $200, observed synchronization, reloaded again, and verified $200/mo,
+$500 balance, and “Cloud synced”. No bill or paycheck was added or deleted.
+The 117 targeted regressions passed before deployment. This verifies one signed-in
+staging account; it does not establish multi-account isolation or live AAL1 blocking.
+The dashboard also still displays an obsolete local-only financial-data notice;
+its wording must be reconciled with the account-scoped cloud implementation.
+Production remained unchanged.
