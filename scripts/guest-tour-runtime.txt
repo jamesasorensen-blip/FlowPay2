@@ -5,14 +5,14 @@
   {selector:'#guest-banner',title:'Welcome to the guest workspace',body:'Try FlowPay with sample financial data. Your changes stay in this browser; no bank connection or login is needed.'},
   {selector:'#guest-empty',title:'Start your own budget',body:'This replaces the sample budget with an empty one. The tutorial never presses this button for you.'},
   {selector:'#header-page-title',title:'Find your way around',body:'This heading shows which area you are viewing. Use the navigation to switch between your budget tools.'},
-  {selector:'#view-dashboard',title:'Your financial overview',body:'See your balance, upcoming bills, and what may be available to spend. These figures depend on the information entered.'},
+  {selector:'#view-dashboard h2, #view-dashboard',title:'Your financial overview',body:'See your balance, upcoming bills, and what may be available to spend. These figures depend on the information entered.'},
   {selector:'#fp-dock',title:'Main navigation',body:'Use the navigation bar to explore Home, Bills, Calendar and Activity. You can revisit these sections whenever you like.'},
   {selector:'#btn-settings',title:'Settings and export',body:'Adjust everyday spending and pending deductions, or export a copy of your guest budget.'},
   {selector:'#guest-sample',title:'Restore sample data',body:'Restore the example budget if you want to explore again. This replaces your current entries, so export anything you want to keep first.'}
  ];
  let index=0,overlay=null,card=null,spot=null,previousFocus=null;
  const $=s=>document.querySelector(s);
- const visible=el=>!!(el&&el.getClientRects().length);
+ const visible=el=>!!(el&&el.getClientRects().length&&!el.closest('[hidden],.hidden,[inert]'));
  function stop(completed){
   window.removeEventListener('resize',position);
   window.removeEventListener('scroll',position,true);
@@ -38,7 +38,7 @@
   const box=$('#guest-tour-highlight');
   Object.assign(box.style,{top:Math.max(0,rect.top-pad)+'px',left:Math.max(0,rect.left-pad)+'px',width:Math.max(0,rect.width+2*pad)+'px',height:Math.max(0,rect.height+2*pad)+'px'});
   const w=card.offsetWidth,h=card.offsetHeight;
-  const below=rect.bottom+20+h<window.innerHeight;
+  const below=rect.bottom+20+h<window.innerHeight || rect.top<h+40;
   const top=below?rect.bottom+20:Math.max(12,rect.top-h-20);
   card.style.top=Math.max(12,Math.min(top,window.innerHeight-h-12))+'px';
   card.style.left=Math.max(12,Math.min(rect.left,window.innerWidth-w-12))+'px';
@@ -52,7 +52,7 @@
   while(index<steps.length&&!visible($(steps[index].selector)))index++;
   if(index>=steps.length){stop(true);return}
   const step=steps[index];spot=$(step.selector);
-  spot.scrollIntoView({block:'nearest',behavior:'instant'});
+  spot.scrollIntoView({block:'center',behavior:'instant'});
   $('#guest-tour-title').textContent=step.title;
   $('#guest-tour-description').textContent=step.body;
   $('#guest-tour-count').textContent='Step '+(index+1)+' of '+steps.length;
@@ -76,6 +76,6 @@
   const btn=document.createElement('button');btn.id='guest-tour-restart';btn.type='button';btn.className='fp-ui-btn';btn.textContent='Take a guided tour';$('#guest-banner')?.append(btn);
   btn.addEventListener('click',start);
   let complete=false;try{complete=guestStorage.getItem(KEY)==='yes'}catch{}
-  if(!complete)requestAnimationFrame(()=>requestAnimationFrame(start));
+  if(!complete)requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!document.querySelector('[role=dialog]:not(#guest-tour-card):not(.hidden)'))start()}));
  });
 })();
