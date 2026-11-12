@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {reconcileReceipt} from '../receipt-reconciliation.mjs';
+test('matching receipt never creates second expense',()=>assert.deepEqual(reconcileReceipt({date:'2026-11-11',totalDollars:13.97},[{id:'tx1',date:'2026-11-12',amountDollars:13.97}]),{status:'possible-match',matchingTransactionIds:['tx1'],expenseToAddDollars:0,requiresReview:true}));
+test('ambiguous equal totals require review',()=>assert.equal(reconcileReceipt({date:'2026-11-11',totalDollars:13.97},[{id:'a',date:'2026-11-11',amountDollars:13.97},{id:'b',date:'2026-11-11',amountDollars:13.97}]).status,'ambiguous'));
+test('unmatched receipt not automatically booked',()=>assert.equal(reconcileReceipt({date:'2026-11-11',totalDollars:13.97},[]).expenseToAddDollars,0));
