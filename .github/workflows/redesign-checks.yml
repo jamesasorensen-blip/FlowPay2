@@ -8,6 +8,7 @@ on:
       - 'financial-display.mjs'
       - 'cashflow-simulator.mjs'
       - 'financial-view-adapter.mjs'
+      - 'bill-record-adapter.mjs'
       - 'flowpay-navigation.mjs'
       - 'tests/**'
       - 'preview/**'
@@ -26,7 +27,7 @@ jobs:
       - name: Install server dependencies
         run: npm install --ignore-scripts --no-package-lock
       - name: Run redesign tests
-        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs
+        run: node --test tests/financial-display.test.mjs tests/flowpay-navigation.test.mjs tests/cashflow-simulator.test.mjs tests/financial-view-adapter.test.mjs tests/redesign-preview-route.test.mjs tests/redesign-http.test.mjs tests/bill-record-adapter.test.mjs
       - name: Validate preview structure
         run: |
           test -s preview/redesign.html
