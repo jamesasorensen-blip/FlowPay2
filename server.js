@@ -45,7 +45,7 @@ if (process.env.FLOWPAY_ENABLE_REDESIGN_PREVIEW === '1') {
 // Only explicitly approved frontend assets may be served from repository root.
 // Do not expose server.js, environment files, Git metadata, package files, or policies.
 const publicAssets = new Set([
-  'index.html', 'guest-demo.html', 'manual.html', 'manual-account.mjs', 'manual-budget-store.mjs', 'manual-ledger.mjs', 'manual-mfa.mjs', 'manual-mfa-ui.mjs', 'manifest.json', 'manifest.webmanifest', 'favicon.ico',
+  'index.html', 'guest-demo.html', 'manual.html', 'manual-account.mjs', 'manual-financial-snapshot.mjs', 'manual-next-month-reserve.mjs', 'cashflow-simulator.mjs', 'manual-budget-store.mjs', 'manual-ledger.mjs', 'manual-mfa.mjs', 'manual-mfa-ui.mjs', 'manifest.json', 'manifest.webmanifest', 'favicon.ico',
   'icon-192.png', 'icon-512.png', 'sw.js', 'service-worker.js'
 ]);
 const assetAliases = new Map([
