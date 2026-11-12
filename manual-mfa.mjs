@@ -63,3 +63,21 @@ export function createMfaController(supabase) {
   }
   return { status, enroll, restartUnverifiedEnrollment, restartUnverifiedBackupEnrollment, verify, removeFactor };
 }
+
+// Passkey results must come from server verification, not merely a closed device prompt.
+export function createPasskeyController(auth) {
+  async function list() {
+    const {data,error}=await auth.passkey.list();
+    if(error)throw error;
+    const rows=Array.isArray(data)?data:data?.passkeys;
+    if(!Array.isArray(rows))throw Error('The server did not return a saved-passkey list.');
+    return rows;
+  }
+  async function enroll() {
+    const {data,error}=await auth.registerPasskey();
+    if(error)throw error;
+    if(!data?.id)throw Error('The device prompt closed, but the server did not confirm registration. Check saved passkeys before trying again.');
+    return data;
+  }
+  return {list,enroll};
+}
