@@ -33,6 +33,7 @@ async function request(owner,path,options={}){
  if(!response.ok){const error=Error(body?.message||'Account request failed ('+response.status+')');error.code=body?.code;throw error;}
  return body;
 }
+function localToday(){const now=new Date();return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');}
 function renderNextMonthEstimate(data){
  let panel=$('manual-next-month-estimate');
  if(!panel){
@@ -45,7 +46,7 @@ function renderNextMonthEstimate(data){
  const heading=document.createElement('h2');heading.className='font-bold';heading.textContent='Next Month Bills — estimate';
  const detail=document.createElement('p');detail.className='text-sm mt-2';
  try{
-  const result=manualNextMonthReserve(data,new Date().toISOString().slice(0,10));
+  const result=manualNextMonthReserve(data,localToday());
   detail.textContent='Scheduled and projected bills: '+(result.targetCents/100).toLocaleString(undefined,{style:'currency',currency:'USD'})+'. Review payment status and recurring schedules before setting money aside.';
  }catch{
   detail.textContent='Next-month estimate unavailable. Check your bill amounts and due dates.';
