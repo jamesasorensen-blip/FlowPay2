@@ -4,6 +4,13 @@
 
 ## Latest live checkpoint — revoked-session rejection passed, 2026-11-13
 
+### Existing backup authenticator challenge passed
+
+- PR #59 fixed staging's first-factor-only challenge behavior. Its commit `3dff7229325d7d9877ad610361dc71452754f76e` passed all four GitHub workflows and is live in Render deployment `dep-dbrm7ghsrm7s73egn4vg`.
+- Opened the existing staging MFA screen and explicitly selected the existing **FlowPay backup authenticator**. The user entered its fresh code directly into the page. The user reported verification success, and the operator independently observed the success message and authenticated cloud-sync status in the UI. The controller reports ready only after the verification call succeeds and the session reaches AAL2.
+- A read-only count after verification confirmed **two verified TOTP factors remain**. No factor was enrolled, removed or renamed; no code, seed or token was extracted. This verifies the backup challenge while retaining the primary. The generic success copy suggesting a backup does not mean another backup is required.
+- This completes the existing-backup challenge check. It does not establish administrative recovery after loss of all factors. Read-only schema inspection confirmed the draft private recovery schema/case store is not deployed. Outage and all-factor recovery validation remain separate gates.
+
 - User created a separate Google staging login in an Incognito window and used the opt-in session test panel from PR #58, frontend commit `5fd68f65a06e5cedc203842fb38b0271f330bd9f`. All five frontend-branch CI workflows passed; Render deployment `dep-dbrlus15efls73daulj0` reached live.
 - Enabled the existing staging `REQUIRE_ACTIVE_SESSION` gate for the drill at Worker version `69e53baf-be29-46be-8ce7-c8013040b644`. No code or secrets changed in the Worker.
 - The user ran the local-session test and reported PASS. The operator independently read the same PASS message from the visible test panel. The code first verifies `/me` for the dedicated account, invokes Supabase `signOut({scope:'local'})`, then requires `/me` to reject the same still-unexpired token with `401 SESSION_INVALID`. This is live evidence that the authoritative session gate rejects a revoked session before JWT expiry, in addition to the prior positive-session test.
