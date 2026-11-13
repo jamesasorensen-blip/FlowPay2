@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { verifyActiveSession } from '../cloudflare/mfa-session-check.mjs';
 import { createSupabaseSessionLookup } from '../cloudflare/supabase-session-lookup.mjs';
+import { createServer } from 'node:http';
 
 const user = '0b2cf21b-5147-4337-b73d-fbba9f1a514d';
 const session = 'a93af541-b3d4-4d55-97d7-6d9f9ab9a876';
@@ -10,6 +11,26 @@ const endpoint = base + '/functions/v1/flowpay-session-lookup';
 const secret = 's'.repeat(32);
 const config = { SUPABASE_URL: base, SESSION_LOOKUP_URL: endpoint, SESSION_LOOKUP_SECRET: secret };
 const claims = { sub: user, session_id: session };
+
+test('real fetch aborts a stalled lookup at the adapter deadline and denies access', {timeout:15000}, async()=>{
+  let requests=0,signal;
+  // Only a loopback fixture receives the dummy test credential. No cloud traffic.
+  const server=createServer(request=>{requests++;request.resume();});
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  try {
+    const lookup=createSupabaseSessionLookup(config,(_url,init)=>{
+      signal=init.signal;
+      return fetch('http://127.0.0.1:'+server.address().port,{...init});
+    });
+    assert.equal(await verifyActiveSession(claims,lookup),false);
+    assert.equal(requests,1);
+    assert.equal(signal.aborted,true);
+    assert.equal(signal.reason.name,'TimeoutError');
+  } finally {
+    server.closeAllConnections();
+    await new Promise(resolve=>server.close(resolve));
+  }
+});
 
 test('authoritative session ownership and expiry are checked', async () => {
   const active = { id: session, user_id: user, not_after: '2099-01-01T00:00:00Z' };

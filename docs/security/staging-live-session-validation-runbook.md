@@ -2,6 +2,14 @@
 
 **Status:** operator checklist, **not** authorization to deploy, enable MFA, rotate secrets, or modify the shared Supabase project.
 
+## Controlled outage verification — 2026-11-13
+
+- Added fault injection for timeout, HTTP 503, rejected lookup credentials (401), rate limiting (429), and malformed JSON. Each scenario uses a signature-valid AAL2 JWT across `/me` and nine protected financial route/method combinations; every request returns the exact sanitized `401 SESSION_INVALID` response, with no financial/session data.
+- The 100-test Worker suite passed against the review source, deployment bundle and captured active staging source. Source plus adapter checks passed 109 tests; bundle and captured-source runs each passed 100 tests.
+- A real loopback HTTP server deliberately leaves a request unanswered. The unchanged adapter's actual `AbortSignal.timeout(5000)` cancels native fetch; `verifyActiveSession` returns false. The fixture uses dummy credentials only, closes all sockets and leaves no server running.
+- This verifies outage denial and the real deadline in a controlled environment. It is **not** a live Supabase/Cloudflare outage drill. The shared service was not stopped, no secret was changed, and no enforcement flag was toggled for these tests.
+- Administrative recovery after loss of every factor remains undeployed. Existing draft policy/executor tests do not establish a staffed case process, independent reviewers, durable auditing or a successful live recovery drill. Neither existing authenticator should be removed to simulate that case.
+
 ## Latest live checkpoint — revoked-session rejection passed, 2026-11-13
 
 ### Existing backup authenticator challenge passed

@@ -19,6 +19,11 @@ async function probe(aal,{tamper=false,path='/me',method='GET',flags={},session=
   if(String(url)===base+'/functions/v1/flowpay-session-lookup'){
     assert.equal(init.headers.Authorization,'Bearer '+'s'.repeat(32));
     if(session==='outage')throw Error('unavailable');
+    if(session==='timeout')throw new DOMException('Timed out','TimeoutError');
+    if(session==='service-unavailable')return new Response(null,{status:503});
+    if(session==='lookup-unauthorized')return new Response(null,{status:401});
+    if(session==='rate-limited')return new Response(null,{status:429});
+    if(session==='malformed-json')return new Response('not json',{status:200});
     return Response.json({active:session!=='revoked',session:{id:'a93af541-b3d4-4d55-97d7-6d9f9ab9a876',user_id:session==='foreign'?'1b2cf21b-5147-4337-b73d-fbba9f1a514d':id,not_after:session==='expired'?'2020-01-01T00:00:00Z':null}});
   }
   assert.equal(String(url),base+'/auth/v1/.well-known/jwks.json');
@@ -87,6 +92,18 @@ for (const session of ['revoked', 'foreign', 'expired', 'outage']) {
   assert.equal(r.status,401);
   assert.equal(r.body.error,'SESSION_INVALID');
  });
+}
+
+// Fault-injection runs against source, deploy bundle and captured active code.
+// A successful signature/AAL2 must never substitute for an available session store.
+for (const failure of ['timeout','service-unavailable','lookup-unauthorized','rate-limited','malformed-json']) {
+ for (const [path,method] of [['/me','GET'],['/user-data','GET'],['/user-data','PUT'],['/consent','GET'],['/bank-accounts','GET'],['/bank-transactions','GET'],['/sync-transactions','POST'],['/link-token','POST'],['/exchange-token','POST'],['/my-data','GET']]) {
+  test(failure+' denies signed AAL2 '+method+' '+path,async()=>{
+   const r=await probe('aal2',{path,method,session:failure,flags:{REQUIRE_ACTIVE_SESSION:'true'}});
+   assert.equal(r.status,401);
+   assert.deepEqual(r.body,{success:false,error:'SESSION_INVALID'});
+  });
+ }
 }
 test('GET /me remains accessible to an active AAL1 session for MFA enrollment',async()=>{
  const r=await probe('aal1',{path:'/me',flags:{REQUIRE_ACTIVE_SESSION:'true',REQUIRE_MFA_AAL2:'true'}});
