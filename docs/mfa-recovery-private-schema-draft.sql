@@ -1,4 +1,6 @@
 -- FlowPay MFA recovery persistence DESIGN ONLY. Do not apply to the shared
+-- LEGACY TWO-REVIEWER DRAFT: incompatible with owner-managed recovery selected
+-- on 2026-11-13. See docs/security/MFA_OWNER_RECOVERY.md. Do not apply for owner mode.
 -- Supabase project until reviewer identity, case intake, and operations are staffed.
 -- Tables are deliberately in a non-exposed private schema with no client grants.
 begin;

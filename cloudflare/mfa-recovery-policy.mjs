@@ -3,7 +3,8 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ID = /^[a-zA-Z0-9._:-]{6,128}$/;
 const evidence = value => typeof value === "string" && ID.test(value);
-export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
+// mode/ownerOperatorId are trusted backend configuration, NEVER request fields.
+export function validateMfaRecoveryCase(record, { now = Date.now(), mode = "two-reviewer", ownerOperatorId = null } = {}) {
   const errors = [];
   if (!record || typeof record !== "object" || Array.isArray(record)) {
     return { approved: false, errors: ["Recovery case required"] };
@@ -11,25 +12,31 @@ export function validateMfaRecoveryCase(record, { now = Date.now() } = {}) {
   if (!evidence(record.caseId)) errors.push("Valid case ID required");
   if (typeof record.userId !== "string" || !UUID.test(record.userId)) errors.push("Valid target user ID required");
   if (!evidence(record.identityEvidenceRef) || record.identityVerified !== true ||
-      record.identityMethod === "email-only" || !evidence(record.identityMethod)) {
+      ["email-only", "password-only", "flowpay-session-only"].includes(record.identityMethod) || !evidence(record.identityMethod)) {
     errors.push("Independent identity verification required");
   }
-  if (!evidence(record.operatorId) || record.operatorId === record.userId) errors.push("Independent operator ID required");
+  const ownerMode = mode === "owner";
+  if (!["owner", "two-reviewer"].includes(mode)) errors.push("Unsupported trusted recovery mode");
+  if (ownerMode) {
+    if (!evidence(ownerOperatorId) || record.operatorId !== ownerOperatorId) errors.push("Configured app owner must operate recovery");
+  } else if (!evidence(record.operatorId) || record.operatorId === record.userId) errors.push("Independent operator ID required");
   if (!Array.isArray(record.factorIds) || record.factorIds.length === 0 ||
       record.factorIds.some(id => typeof id !== "string" || !UUID.test(id)) ||
       new Set(record.factorIds).size !== record.factorIds.length) {
     errors.push("Unique verified factor IDs required");
   }
   const approvals = record.approvals;
-  if (!Array.isArray(approvals) || approvals.length !== 2) {
-    errors.push("Exactly two independent approvals required");
+  if (!Array.isArray(approvals) || approvals.length !== (ownerMode ? 1 : 2)) {
+    errors.push(ownerMode ? "Exactly one documented app-owner approval required" : "Exactly two independent approvals required");
   } else {
     const ids = approvals.map(a => a?.approverId);
-    if (ids.some(id => !evidence(id)) || ids[0] === ids[1] || ids.includes(record.operatorId)) {
+    if (ownerMode && ids[0] !== ownerOperatorId) {
+      errors.push("Approval must match the configured app owner");
+    } else if (!ownerMode && (ids.some(id => !evidence(id)) || ids[0] === ids[1] || ids.includes(record.operatorId))) {
       errors.push("Approvers must be distinct and independent of operator");
     }
     if (approvals.some(a => a?.approved !== true || !evidence(a?.evidenceRef)) ||
-        approvals[0]?.evidenceRef === approvals[1]?.evidenceRef) {
+        (!ownerMode && approvals[0]?.evidenceRef === approvals[1]?.evidenceRef)) {
       errors.push("Documented affirmative approval required");
     }
     if (approvals.some(a => typeof a?.approvedAt !== "string" ||
