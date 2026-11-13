@@ -1,0 +1,147 @@
+# Staging-only authoritative session lookup validation
+
+**Status:** operator checklist, **not** authorization to deploy, enable MFA, rotate secrets, or modify the shared Supabase project.
+
+## Controlled outage verification — 2026-11-13
+
+- Added fault injection for timeout, HTTP 503, rejected lookup credentials (401), rate limiting (429), and malformed JSON. Each scenario uses a signature-valid AAL2 JWT across `/me` and nine protected financial route/method combinations; every request returns the exact sanitized `401 SESSION_INVALID` response, with no financial/session data.
+- The 100-test Worker suite passed against the review source, deployment bundle and captured active staging source. Source plus adapter checks passed 109 tests; bundle and captured-source runs each passed 100 tests.
+- A real loopback HTTP server deliberately leaves a request unanswered. The unchanged adapter's actual `AbortSignal.timeout(5000)` cancels native fetch; `verifyActiveSession` returns false. The fixture uses dummy credentials only, closes all sockets and leaves no server running.
+- This verifies outage denial and the real deadline in a controlled environment. It is **not** a live Supabase/Cloudflare outage drill. The shared service was not stopped, no secret was changed, and no enforcement flag was toggled for these tests.
+- Administrative recovery after loss of every factor remains undeployed. Existing draft policy/executor tests do not establish a staffed case process, independent reviewers, durable auditing or a successful live recovery drill. Neither existing authenticator should be removed to simulate that case.
+
+## Latest live checkpoint — revoked-session rejection passed, 2026-11-13
+
+### Existing backup authenticator challenge passed
+
+- PR #59 fixed staging's first-factor-only challenge behavior. Its commit `3dff7229325d7d9877ad610361dc71452754f76e` passed all four GitHub workflows and is live in Render deployment `dep-dbrm7ghsrm7s73egn4vg`.
+- Opened the existing staging MFA screen and explicitly selected the existing **FlowPay backup authenticator**. The user entered its fresh code directly into the page. The user reported verification success, and the operator independently observed the success message and authenticated cloud-sync status in the UI. The controller reports ready only after the verification call succeeds and the session reaches AAL2.
+- A read-only count after verification confirmed **two verified TOTP factors remain**. No factor was enrolled, removed or renamed; no code, seed or token was extracted. This verifies the backup challenge while retaining the primary. The generic success copy suggesting a backup does not mean another backup is required.
+- This completes the existing-backup challenge check. It does not establish administrative recovery after loss of all factors. Read-only schema inspection confirmed the draft private recovery schema/case store is not deployed. Outage and all-factor recovery validation remain separate gates.
+
+- User created a separate Google staging login in an Incognito window and used the opt-in session test panel from PR #58, frontend commit `5fd68f65a06e5cedc203842fb38b0271f330bd9f`. All five frontend-branch CI workflows passed; Render deployment `dep-dbrlus15efls73daulj0` reached live.
+- Enabled the existing staging `REQUIRE_ACTIVE_SESSION` gate for the drill at Worker version `69e53baf-be29-46be-8ce7-c8013040b644`. No code or secrets changed in the Worker.
+- The user ran the local-session test and reported PASS. The operator independently read the same PASS message from the visible test panel. The code first verifies `/me` for the dedicated account, invokes Supabase `signOut({scope:'local'})`, then requires `/me` to reject the same still-unexpired token with `401 SESSION_INVALID`. This is live evidence that the authoritative session gate rejects a revoked session before JWT expiry, in addition to the prior positive-session test.
+- Tokens stayed in the user's browser SDK and test-function memory. No token, session ID, password or OTP was extracted, displayed or copied. No budget data was modified.
+- Restored `REQUIRE_ACTIVE_SESSION=false` at Worker version `1e59c637-0dce-47fe-9673-8dc35f537567`, observed Ready at 100% traffic. Confirmed `REQUIRE_MFA_AAL2=false`. This supersedes the earlier pending live revoked-session gate and older active-version references below.
+- Reauthentication passed: after closing the panel and signing in again, the user confirmed that the staging dashboard loaded normally. This verifies ordinary sign-in recovery following the disposable-session revocation; it does not establish lost-authenticator recovery or prove that an MFA challenge occurred on that particular sign-in.
+- Rechecked both enforcement settings after the user's successful sign-in: `REQUIRE_ACTIVE_SESSION=false` and `REQUIRE_MFA_AAL2=false`.
+- Still pending: dedicated lost-authenticator/recovery and outage drills, and production rollout acceptance. The test used local scope; survival of the separate regular browser login has not yet been independently checked. Production and shared Supabase configuration were unchanged.
+
+**2026-11-13 correction:** the active staging source at version prefix `00303e2b` already contains the reviewed candidate's Worker body with inlined helpers. See `staging-mfa-deployment-gate.md` and the captured source under `cloudflare/snapshots/`. Earlier “candidate not deployed” statements below describe an outdated checkpoint and must not be used as the current deployment state. Enforcement remains disabled; authenticated lookup/revocation/recovery validation is still pending.
+
+## Authorized live positive-session test — 2026-11-13
+
+### Prepared next step: isolated revocation runner
+
+`scripts/staging-session-revocation-check.mjs` is prepared, **not live-executed**. Its eight mocked regressions cover preflight guards, identity mismatch, local-only logout, redirects/errors, retained access, ordinary expiry and sanitized output. CI runs mocks only and receives no live credentials.
+
+The runner uses fixed FlowPay staging Worker and Supabase project endpoints. It requires a **separate disposable session**, never a token copied from the working browser session. Provision `FLOWPAY_DISPOSABLE_STAGING_ACCESS_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, and `FLOWPAY_STAGING_TEST_USER_ID` only through an approved server process's secret manager. Set `FLOWPAY_STAGING_REVOCATION_TEST=I_CONFIRM_DISPOSABLE_STAGING_SESSION` after authorization for that exact disposable-session test. Do not pass credentials as command arguments or paste them into chat.
+
+Before running, separately authorize temporary staging active-session enforcement and rollback, as for the positive test; retain the working browser login. Invoke `node scripts/staging-session-revocation-check.mjs` from the secured process. The runner checks the existing signed token through `/me`, requires the matching test identity and at least two minutes of JWT lifetime, signs out **only that session** with `/auth/v1/logout?scope=local`, then requires `401 SESSION_INVALID` from `/me` while that same token remains unexpired. Generic Unauthorized, expiry, transport failures or still-accepted tokens cannot pass. Restore the flag in all outcomes using the approved operator workflow.
+
+Do not use FlowPay's existing UI Log out button for this drill: its `client.auth.signOut()` currently uses Supabase's default global scope and would invalidate other sessions for that account. No application logout behavior was changed here. A disposable-session runner with protected token provisioning is still needed before this live drill can execute; the current browser session must remain untouched.
+
+### Positive-test evidence
+
+- User explicitly approved temporarily enabling `REQUIRE_ACTIVE_SESSION` on `flowpay-plaid-api-staging`, testing the existing signed-in session, then restoring `false`.
+- Deployed the variable-only test version `0a22c68a-35a4-4ca7-be1a-0cb01aeb9dbc` with `REQUIRE_ACTIVE_SESSION=true`. No source or credential was changed.
+- Opened the existing authenticated staging frontend in a fresh tab. It reached **Cloud synced**. Opening Bank Connections reached **Sandbox bank connections ready** and rendered test accounts without `SESSION_INVALID`. Given the captured active source's fail-closed gate on those routes, this verifies a successful authoritative lookup through the configured server-to-server credential for the current allowed test session. No credential or session ID was extracted.
+- Restored `REQUIRE_ACTIVE_SESSION=false` through variable-only version `e85b7432-f47f-4c1c-b821-5741438a3b82`, observed Ready at 100% traffic. Confirmed `REQUIRE_MFA_AAL2=false` and that the staging frontend still reached Cloud synced after reload.
+- This supersedes the pending **positive authenticated transport** gate above. It does not prove unknown-session or revoked-session rejection through the live service, outage handling, or lost-device recovery; those remain pending. No session was revoked, no financial data was changed, and no production Worker or shared Supabase configuration was modified.
+
+## Scope and prerequisites
+
+- The deployed Supabase `flowpay-session-lookup` function is ACTIVE (v3 at inspection on 2026-11-12) in a Supabase project also used by production. The source snapshot is in `supabase/functions/flowpay-session-lookup/index.ts`. Do not redeploy it as part of this checklist.
+- The Cloudflare MFA integration in `cloudflare/candidates/main-worker-mfa-integration.mjs` is a review candidate, **not** a live staging integration.
+- Keep `REQUIRE_ACTIVE_SESSION=false` and `REQUIRE_MFA_AAL2=false` until the complete checks, account recovery, and rollback are approved.
+- Use a dedicated staging test account. Confirm its UUID is the **only** user in the private lookup allowlist. Do not query, revoke, or mutate production user sessions.
+- Have an authorized operator check **presence and correct target** of `SUPABASE_DB_URL`, `FLOWPAY_SESSION_LOOKUP_SECRET`, and `FLOWPAY_STAGING_TEST_USER_ID` in Supabase; and `SUPABASE_URL`, `SESSION_LOOKUP_URL`, and `SESSION_LOOKUP_SECRET` in the staging Worker. Never paste values into GitHub, logs, screenshots, chat, or a browser console. The two secret variables must have the same value, but must be checked without disclosing that value.
+- Confirm the staging Worker hostname and route, test-user ownership, and that the Worker actually runs the candidate integration **before** treating any endpoint response as an integration result.
+
+## Read-only database checkpoint (2026-11-12)
+
+- The deployed Edge Function is **ACTIVE version 3**, and its retrieved `index.ts` matches the repository snapshot **byte-for-byte** at this checkpoint. This confirms source parity, not runtime secret availability or live authentication.
+- The private lookup allowlist currently contains **one user**.
+- That allowlisted user currently has **two session rows** in `auth.sessions`.
+- These counts were obtained without retrieving account or session identifiers and without modifying records.
+- **Input-hardening follow-up:** the deployed handler parses JSON and destructures the result directly; a JSON `null` body currently reaches its catch-all 503 path rather than returning a client-input 400. This is a response-classification issue, not evidence of unauthorized access. Preserve the deployed-source snapshot and review any proposed fix separately before deployment.
+- **User confirmation (2026-11-12):** all financial data across FlowPay site/app versions is outdated and does not need to be preserved. This is not authorization to delete data, rotate credentials, or deploy changes. The Supabase account used for testing is dedicated to tests.
+- **Operator-confirmed Supabase Edge Function secret presence (2026-11-12):** `SUPABASE_DB_URL`, `FLOWPAY_SESSION_LOOKUP_SECRET`, and `FLOWPAY_STAGING_TEST_USER_ID` all exist. Values and matching credentials have not been inspected; runtime authentication is unverified.
+- **Operator-confirmed Cloudflare staging Worker configuration (2026-11-12):** the variable names `SUPABASE_URL`, `SESSION_LOOKUP_URL`, and `SESSION_LOOKUP_SECRET` are all present on `flowpay-plaid-api-staging`. Values, endpoint identity, shared-secret equality, and deployed Worker code were **not** inspected. Presence does not establish working integration.
+- **Read-only identity integrity check:** the sole allowlisted UUID resolves to exactly one existing `auth.users` record; the same user has two session rows, both with no passed `not_after` cutoff. This verifies database referential consistency, **not** that the account is the intended staging identity or that a session is authenticated.
+- Independent mapping between the intended staging test account and allowlisted UUID is still pending.
+- **Additional read-only permission check:** `anon` and `authenticated` cannot execute `flowpay_session_private.lookup_active_session(uuid)`; restricted role `flowpay_session_lookup` can execute it. The allowlist still contains one user and two session rows, both without a passed `not_after` cutoff (this alone does not prove an active authenticated session).
+- **Not yet verified:** allowlist-to-test-account UUID mapping; runtime secret presence/matching; a live authenticated lookup; or revocation behavior. Session-row count alone is not proof that either session is currently valid.
+- **Hold:** do not run a positive or revoked-session test or enable any enforcement flag until test-account ownership and isolation are confirmed.
+
+## Safe server-to-server smoke-test gate (no credentials in chat or GitHub)
+
+### Read-only live checkpoint — 2026-11-13
+
+- Review commit `25abd333c396fda91e0d67bb0ffec4b7bd72b0dd` passed all three GitHub workflows: frontend #313, application security #495, and candidate security #38 (including deployment-bundle execution).
+- The single database allowlist entry matches the staging Worker test-user binding observed in Cloudflare. That user exists. This establishes binding-to-database consistency; it does not establish a fresh authenticated login or independent account ownership.
+- The dedicated account currently has three session rows. Calling the real private lookup for those rows returned matching metadata for all three; none had a passed `not_after` cutoff. A random unknown session returned no row. No identifiers were returned to logs or written to this evidence record.
+- `anon` and `authenticated` cannot execute the private lookup. The restricted lookup role can execute it, cannot SELECT `auth.sessions` directly, and has neither superuser nor RLS-bypass privilege. The connector cannot impersonate that role (`SET ROLE` was denied), so successful execution using its actual connection credentials remains unverified. No grants were changed.
+- The deployed Edge Function remains ACTIVE v3. Live unauthenticated GET returned 405; POST with no bearer returned 401; POST with an intentionally invalid, nonsecret bearer returned 401. All three responses had `Cache-Control: no-store`, no CORS allow-origin header, and no session metadata.
+- HTTP probes to the staging Worker from the execution host were rejected with Cloudflare error 1010 (plain-text 403), including the trusted-origin preflight. These are **inconclusive for Worker authentication and CORS**; do not record them as application test passes or change CORS based on them.
+- Render discovery found four staging static sites and the production web service. None is an existing staging server runtime for this credentialed smoke test; do not place secrets on a static site or the production server to work around this.
+- No credentials were retrieved, no sessions were revoked, and no deployments or enforcement settings were changed. Remaining live gates: authenticated Edge Function transport with the existing shared secret, dedicated-account login/ownership confirmation, disposable-session revocation, candidate deployment, and end-to-end recovery/rollback validation.
+
+The **review candidate is not deployed**. Do not interpret results from the current staging Worker as evidence that its candidate integration is active.
+
+1. Confirm the staging Worker code version and that its `SESSION_LOOKUP_URL` targets exactly `https://<project-ref>.supabase.co/functions/v1/flowpay-session-lookup` for the same project as `SUPABASE_URL`; check values only inside authorized secret managers.
+2. Confirm the Supabase `FLOWPAY_SESSION_LOOKUP_SECRET` and staging Worker `SESSION_LOOKUP_SECRET` match using an authorized server-side operator process; never print, paste, hash into logs, or commit either value.
+3. Confirm the single `flowpay_session_private.allowed_user` entry is the intended staging test identity and `FLOWPAY_STAGING_TEST_USER_ID` matches it, without exposing the UUID.
+4. Only from an approved staging-only server runtime, call the Supabase function with an **invalid random UUID** and the server credential. Expect `200 {"active":false}`. This validates the authenticated transport and fail-closed unknown-session behavior without touching any real session. Record only status and boolean outcome.
+5. From that same runtime, call using a valid dedicated test session. Expect `200 {"active":true}` with minimal metadata, then revoke **only that disposable test session** and verify `active:false`. Never log tokens, identifiers, or response metadata.
+6. If any step fails, stop. Do not deploy the candidate or enable either enforcement flag. Preserve sanitized status codes and request times for review.
+
+### Guarded unknown-session smoke probe
+
+The repository includes `scripts/staging-session-lookup-smoke.mjs`. It is **not** run automatically by CI. CI only syntax-checks the file; never add production or staging secrets to GitHub Actions for this test.
+
+Run it only from an approved staging server process that already has the three environment variables `SUPABASE_URL`, `SESSION_LOOKUP_URL`, and `SESSION_LOOKUP_SECRET` provisioned through its secret manager. Set `FLOWPAY_STAGING_SMOKE_TEST=I_CONFIRM_STAGING_ONLY` in that process's configuration and invoke `node scripts/staging-session-lookup-smoke.mjs`. Do not paste secret values into command arguments, shell history, or chat. The script emits a sanitized PASS/FAIL and uses a random UUID; it does not test a valid session or revocation. A PASS is **not** proof that the Cloudflare candidate is deployed or that MFA enforcement works.
+
+## Verification matrix (run only after prerequisites)
+
+| Scenario | Expected result | Evidence to record |
+| --- | --- | --- |
+| No authorization header to Edge Function | 401; no session metadata | HTTP status, timestamp |
+| Invalid bearer secret | 401; no session metadata | HTTP status, timestamp |
+| Non-POST request | 405 | HTTP status |
+| Malformed or oversized request with valid server credential | 400 or documented safe error; no metadata | HTTP status, sanitized category |
+| Valid allowlisted staging session | 200, `active:true`, only `id`, `user_id`, `not_after` | Boolean pass/fail; **do not** record IDs |
+| Revoked staging session | 200, `active:false` | Boolean pass/fail |
+| Expired or unknown staging session | 200, `active:false` | Boolean pass/fail |
+| Valid session belonging to another user | `active:false`; no other user's metadata | Boolean pass/fail; use authorized test accounts only |
+| Database unavailable / lookup timeout | non-2xx, and Worker denies protected requests | HTTP status; no credentials |
+| Staging Worker with AAL1 token and enabled gate (after approval) | MFA bootstrap remains accessible; financial routes denied | Route category and status |
+| Staging Worker with AAL2 token and enabled gate (after approval) | Permitted financial route accessible; revoked token denied | Route category and status |
+| Plaid webhook and scheduled sync | Existing independently authenticated behavior unaffected | Pass/fail and sanitized logs |
+
+## Execution order
+
+1. Record deployed versions, staging hostname, CI commit, and secret **presence only**. Check that staging is isolated from production and no actual user data will be accessed.
+2. Run unauthenticated negative tests against the Edge Function only after verifying the correct endpoint and authorization to test. Never send the shared secret from a browser or an untrusted host.
+3. Run authenticated positive and revoked-session tests **server-to-server** from an approved staging-only environment, with dedicated test credentials. Never store credentials in test fixtures.
+4. Only after these pass, review deploying the Cloudflare candidate to a **staging-only** Worker. Test with both enforcement flags disabled first.
+5. Review and approve one-at-a-time staging flag enablement, MFA enrollment, recovery, lost-device and rollback procedures. Never enable gates on a shared production route.
+6. Attach sanitized evidence to PR #57; do not merge into main until separate production readiness review.
+
+## Abort / rollback criteria
+
+Stop if the staging endpoint resolves to a production route, a secret is missing, the allowlist is broader than the dedicated staging user, any production record is implicated, a revoked session is accepted, a request redirects to an unexpected host, or an outage permits protected financial access. Keep both gates disabled. Do not improvise changes to production auth or Supabase shared-project settings.
+
+## Evidence record (no secrets or identifiers)
+
+- Date/time (UTC):
+- GitHub commit / CI run:
+- Supabase function version:
+- Cloudflare staging Worker version:
+- Isolated staging account confirmed: yes/no
+- Secret presence verified: yes/no (no values)
+- Test scenario / result / expected:
+- Sanitized log reference:
+- Recovery and rollback verified: yes/no
+- Reviewer approval for next stage: pending/approved
