@@ -1,5 +1,13 @@
 # Staging-only MFA candidate deployment gate
 
+## Current state correction — 2026-11-13
+
+Read-only inspection of Cloudflare's active `00303e2b` editor source confirms that staging **already contains the integrated MFA/session-gate implementation**, with helpers inlined. Earlier statements that staging lacks this integration are superseded. No deployment was performed during this inspection. Both new enforcement flags remain false and the legacy alias is absent.
+
+The normalized source snapshot is `cloudflare/snapshots/staging-worker-00303e2b.mjs` (SHA-256 `de74c794a30af2242587d28598a863513eeedcbedb5c3764a3ec29ad61756922`). Its body beginning at `const PLAID_URL` matches the reviewed candidate exactly after trailing-whitespace normalization. All 50 Worker regression tests pass against the snapshot, including signed assurance, forged-token rejection, both MFA flag aliases, revoked/foreign/expired/unavailable sessions, enrollment bootstrap and financial routes. These are offline executions of captured live code, not evidence of live authenticated lookup or enabled gates. The source/helper suite passes 67 tests and the bundle passes 50.
+
+The connected browser also confirmed that anonymous `/me` and `/user-data` return Unauthorized, while the existing signed-in staging frontend reaches Cloud synced and loads Sandbox accounts and transactions. This establishes current normal browser connectivity; it does not test the authoritative session service with its shared secret. Complete the live authenticated transport, disposable-session revocation and recovery gates before enabling enforcement. Do not redeploy merely to install code already present.
+
 **Preparation only.** This document does not authorize or execute a deployment, change production configuration, or merge PR #57.
 
 ## Deployment target

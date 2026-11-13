@@ -2,6 +2,8 @@
 
 Status: **review-only integration; the Supabase Edge Function is already active in the shared project, but the Cloudflare candidate is not approved or deployed for production**.
 
+**Staging checkpoint, 2026-11-13:** active Worker prefix `00303e2b` already contains the integrated Worker body with inlined helpers; source captured and tested under `cloudflare/snapshots/`. This does not establish live session-service authentication or active enforcement. Production rollout remains pending.
+
 ## Why this is required
 
 The Worker adapter in `cloudflare/supabase-session-lookup.mjs` expects a server-side POST endpoint at `/functions/v1/flowpay-session-lookup`. The repository now contains a source snapshot of the active Edge Function at `supabase/functions/flowpay-session-lookup/index.ts`. The adapter and mocked tests do not establish that a real Supabase session was verified.

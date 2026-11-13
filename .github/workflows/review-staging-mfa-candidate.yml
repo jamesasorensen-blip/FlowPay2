@@ -5,6 +5,7 @@ on:
     paths:
       - 'cloudflare/candidates/main-worker-mfa-integration.mjs'
       - 'cloudflare/candidates/staging-mfa-bundled.mjs'
+      - 'cloudflare/snapshots/staging-worker-00303e2b.mjs'
       - 'cloudflare/mfa-session-check.mjs'
       - 'cloudflare/supabase-session-lookup.mjs'
       - 'tests/main-worker-mfa-integration.test.mjs'
@@ -45,4 +46,8 @@ jobs:
       - name: Deployment bundle signed JWT, session and financial-route regressions
         env:
           FLOWPAY_TEST_BUNDLE: 'true'
+        run: node --test tests/main-worker-mfa-integration.test.mjs
+      - name: Captured active staging Worker security regressions
+        env:
+          FLOWPAY_TEST_LIVE_SNAPSHOT: 'true'
         run: node --test tests/main-worker-mfa-integration.test.mjs

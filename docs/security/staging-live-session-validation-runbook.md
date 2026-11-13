@@ -2,6 +2,8 @@
 
 **Status:** operator checklist, **not** authorization to deploy, enable MFA, rotate secrets, or modify the shared Supabase project.
 
+**2026-11-13 correction:** the active staging source at version prefix `00303e2b` already contains the reviewed candidate's Worker body with inlined helpers. See `staging-mfa-deployment-gate.md` and the captured source under `cloudflare/snapshots/`. Earlier “candidate not deployed” statements below describe an outdated checkpoint and must not be used as the current deployment state. Enforcement remains disabled; authenticated lookup/revocation/recovery validation is still pending.
+
 ## Scope and prerequisites
 
 - The deployed Supabase `flowpay-session-lookup` function is ACTIVE (v3 at inspection on 2026-11-12) in a Supabase project also used by production. The source snapshot is in `supabase/functions/flowpay-session-lookup/index.ts`. Do not redeploy it as part of this checklist.

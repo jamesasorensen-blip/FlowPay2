@@ -1,7 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 // Exercise the exact deploy artifact with the same signed-JWT and route probes.
-const { default: worker } = await import(process.env.FLOWPAY_TEST_BUNDLE === 'true'
+const { default: worker } = await import(process.env.FLOWPAY_TEST_LIVE_SNAPSHOT === 'true'
+ ? '../cloudflare/snapshots/staging-worker-00303e2b.mjs'
+ : process.env.FLOWPAY_TEST_BUNDLE === 'true'
  ? '../cloudflare/candidates/staging-mfa-bundled.mjs'
  : '../cloudflare/candidates/main-worker-mfa-integration.mjs');
 const base='https://test-flowpay.supabase.co',id='0b2cf21b-5147-4337-b73d-fbba9f1a514d',enc=new TextEncoder();
@@ -56,6 +58,13 @@ test('different signed user is denied before data access',async()=>{
 // The candidate changes only authentication and the pre-route security gate.
 // Preserve the newer banking, webhook validation, job processing and scheduler.
 import fs from 'node:fs';
+test('captured active staging Worker retains the reviewed candidate body',()=>{
+ const snapshot=fs.readFileSync(new URL('../cloudflare/snapshots/staging-worker-00303e2b.mjs',import.meta.url),'utf8');
+ const candidate=fs.readFileSync(new URL('../cloudflare/candidates/main-worker-mfa-integration.mjs',import.meta.url),'utf8');
+ const marker='const PLAID_URL =';
+ assert.ok(snapshot.includes(marker) && candidate.includes(marker));
+ assert.equal(snapshot.slice(snapshot.indexOf(marker)).trimEnd(),candidate.slice(candidate.indexOf(marker)).trimEnd());
+});
 test('newer webhook, banking and scheduled implementations are retained verbatim',()=>{
  const live=fs.readFileSync(new URL('../cloudflare/staging-worker.mjs',import.meta.url),'utf8');
  const candidate=fs.readFileSync(new URL('../cloudflare/candidates/main-worker-mfa-integration.mjs',import.meta.url),'utf8');
