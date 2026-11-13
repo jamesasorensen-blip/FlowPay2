@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'cloudflare/candidates/main-worker-mfa-integration.mjs'
+      - 'cloudflare/candidates/staging-mfa-bundled.mjs'
       - 'cloudflare/mfa-session-check.mjs'
       - 'cloudflare/supabase-session-lookup.mjs'
       - 'tests/main-worker-mfa-integration.test.mjs'
@@ -33,6 +34,7 @@ jobs:
       - name: Check candidate and helper syntax
         run: |
           node --check cloudflare/candidates/main-worker-mfa-integration.mjs
+          node --check cloudflare/candidates/staging-mfa-bundled.mjs
           node --check cloudflare/mfa-session-check.mjs
           node --check cloudflare/supabase-session-lookup.mjs
           node --check scripts/staging-session-lookup-smoke.mjs
@@ -40,3 +42,7 @@ jobs:
           node scripts/check-staging-mfa-deployment.mjs
       - name: Signed JWT, session, MFA and banking preservation regression tests
         run: node --test tests/main-worker-mfa-integration.test.mjs tests/supabase-session-lookup.test.mjs tests/deployed-session-edge-function.test.mjs tests/staging-session-lookup-smoke.test.mjs
+      - name: Deployment bundle signed JWT, session and financial-route regressions
+        env:
+          FLOWPAY_TEST_BUNDLE: 'true'
+        run: node --test tests/main-worker-mfa-integration.test.mjs

@@ -40,3 +40,13 @@ Keep the staging-only `STAGING_TEST_USER_ID` binding; the candidate rejects othe
 5. If any test fails, roll back staging to the recorded version; leave all MFA gates disabled.
 
 **Not yet performed:** live authenticated lookup, candidate staging deployment, or postdeployment tests.
+
+## Read-only checkpoint — 2026-11-13
+
+- Confirmed review branch bundle commit `c385affde29cdd5a010c3532b663b1d77373793b` is pushed. Its frontend, application-security, and candidate-review workflows passed.
+- Cloudflare dashboard reports active staging version prefix `00303e2b`, at 100% traffic. This supersedes the older `c316faee` observation; obtain the full rollback version before deployment.
+- Effective `REQUIRE_ACTIVE_SESSION=false` and `REQUIRE_MFA_AAL2=false`; legacy `REQUIRE_AAL2` is absent from the runtime variable table.
+- `PLAID_ENV=sandbox`, D1 binding `DB` targets `flowpay-plaid-db-staging`, and the dedicated staging test-user binding is present. The scheduler runs every minute.
+- The staging Worker URL is enabled; no custom domains or zone routes are configured. Session lookup URL targets the configured function path; secret values were not revealed or compared.
+- Re-ran 66 source/helper security regressions successfully. Added execution of the same 49 Worker regressions against `staging-mfa-bundled.mjs`; all passed. CI now triggers on bundle changes and syntax-checks/tests the deployment artifact.
+- No deployment, flag change, session revocation, or shared-project modification was performed. Authenticated transport, test-identity mapping, recovery and live session checks remain pending.

@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker from '../cloudflare/candidates/main-worker-mfa-integration.mjs';
+// Exercise the exact deploy artifact with the same signed-JWT and route probes.
+const { default: worker } = await import(process.env.FLOWPAY_TEST_BUNDLE === 'true'
+ ? '../cloudflare/candidates/staging-mfa-bundled.mjs'
+ : '../cloudflare/candidates/main-worker-mfa-integration.mjs');
 const base='https://test-flowpay.supabase.co',id='0b2cf21b-5147-4337-b73d-fbba9f1a514d',enc=new TextEncoder();
 const b64=s=>Buffer.from(s).toString('base64url');
 let seq=0;
