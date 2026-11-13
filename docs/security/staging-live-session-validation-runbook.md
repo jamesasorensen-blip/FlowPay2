@@ -29,6 +29,17 @@
 
 ## Safe server-to-server smoke-test gate (no credentials in chat or GitHub)
 
+### Read-only live checkpoint — 2026-11-13
+
+- Review commit `25abd333c396fda91e0d67bb0ffec4b7bd72b0dd` passed all three GitHub workflows: frontend #313, application security #495, and candidate security #38 (including deployment-bundle execution).
+- The single database allowlist entry matches the staging Worker test-user binding observed in Cloudflare. That user exists. This establishes binding-to-database consistency; it does not establish a fresh authenticated login or independent account ownership.
+- The dedicated account currently has three session rows. Calling the real private lookup for those rows returned matching metadata for all three; none had a passed `not_after` cutoff. A random unknown session returned no row. No identifiers were returned to logs or written to this evidence record.
+- `anon` and `authenticated` cannot execute the private lookup. The restricted lookup role can execute it, cannot SELECT `auth.sessions` directly, and has neither superuser nor RLS-bypass privilege. The connector cannot impersonate that role (`SET ROLE` was denied), so successful execution using its actual connection credentials remains unverified. No grants were changed.
+- The deployed Edge Function remains ACTIVE v3. Live unauthenticated GET returned 405; POST with no bearer returned 401; POST with an intentionally invalid, nonsecret bearer returned 401. All three responses had `Cache-Control: no-store`, no CORS allow-origin header, and no session metadata.
+- HTTP probes to the staging Worker from the execution host were rejected with Cloudflare error 1010 (plain-text 403), including the trusted-origin preflight. These are **inconclusive for Worker authentication and CORS**; do not record them as application test passes or change CORS based on them.
+- Render discovery found four staging static sites and the production web service. None is an existing staging server runtime for this credentialed smoke test; do not place secrets on a static site or the production server to work around this.
+- No credentials were retrieved, no sessions were revoked, and no deployments or enforcement settings were changed. Remaining live gates: authenticated Edge Function transport with the existing shared secret, dedicated-account login/ownership confirmation, disposable-session revocation, candidate deployment, and end-to-end recovery/rollback validation.
+
 The **review candidate is not deployed**. Do not interpret results from the current staging Worker as evidence that its candidate integration is active.
 
 1. Confirm the staging Worker code version and that its `SESSION_LOOKUP_URL` targets exactly `https://<project-ref>.supabase.co/functions/v1/flowpay-session-lookup` for the same project as `SUPABASE_URL`; check values only inside authorized secret managers.
