@@ -1,5 +1,7 @@
 # FlowPay MFA recovery and activation checklist
 
+**Policy update, 2026-11-13:** the user selected recovery by the app owner alone. [MFA_OWNER_RECOVERY.md](MFA_OWNER_RECOVERY.md) is authoritative and supersedes two-reviewer requirements in the historical checklist below. Owner-mode code is prepared and tested, but recovery is not deployed; independently authenticated owner authority, durable cases/audit and a live drill remain required.
+
 Status: **NOT ENABLED**. This document is a design and operational checklist, not an implemented automated recovery feature.
 
 ## Safe recovery policy

@@ -5,14 +5,24 @@ import { validateMfaRecoveryCase } from "./mfa-recovery-policy.mjs";
 // The caller must provide an append-only, externally persisted audit writer.
 export async function executeMfaRecovery({
   record, admin, audit, getVerifiedFactors, verifyTrustedCase, claimRecoveryCase, verifySessionsRevoked, now = Date.now(),
-  dryRun = true
+  dryRun = true, policy = {}, verifyOwnerAuthority
 }) {
   // Snapshot untrusted input before any awaited call. A caller must not be able
   // to mutate the approved user, factor list, or approvals mid-operation.
   const submitted = structuredClone(record);
-  const validation = validateMfaRecoveryCase(submitted, { now });
+  const trustedPolicy = structuredClone(policy);
+  const validation = validateMfaRecoveryCase(submitted, { ...trustedPolicy, now });
   if (!validation.approved) {
     return { status: "denied", errors: validation.errors };
+  }
+  if (trustedPolicy.mode === "owner") {
+    // Verify a separately authenticated control-plane owner, not a claimed
+    // owner ID, email link, or the FlowPay session whose MFA is being recovered.
+    if (typeof verifyOwnerAuthority !== "function" || await verifyOwnerAuthority({
+      ownerOperatorId: trustedPolicy.ownerOperatorId,
+      caseId: submitted.caseId,
+      targetUserId: submitted.userId
+    }) !== true) throw new Error("Independently authenticated app-owner authority required");
   }
   if (typeof getVerifiedFactors !== "function" || typeof audit !== "function" ||
       typeof verifyTrustedCase !== "function" || typeof claimRecoveryCase !== "function" ||
@@ -22,7 +32,7 @@ export async function executeMfaRecovery({
   // Approval flags supplied in a request are not proof of independent authorization.
   // The trusted verifier must independently validate case ownership, identity evidence,
   // operator and both approvals against authoritative records.
-  const trusted = await verifyTrustedCase(structuredClone(submitted));
+  const trusted = await verifyTrustedCase(structuredClone(submitted), structuredClone(trustedPolicy));
   if (trusted !== true) throw new Error("Recovery case not independently authorized");
   const verified = await getVerifiedFactors(submitted.userId);
   if (!Array.isArray(verified) || verified.some(f => !f || typeof f.id !== "string")) {
@@ -40,7 +50,8 @@ export async function executeMfaRecovery({
   const metadata = {
     caseId: submitted.caseId, userId: submitted.userId,
     factorIds: [...submitted.factorIds], operatorId: submitted.operatorId,
-    approverIds: submitted.approvals.map(a => a.approverId)
+    approverIds: submitted.approvals.map(a => a.approverId),
+    recoveryMode: trustedPolicy.mode || "two-reviewer"
   };
   if (dryRun) return { status: "dry-run", ...metadata };
   if (typeof admin?.auth?.admin?.mfa?.deleteFactor !== "function") {

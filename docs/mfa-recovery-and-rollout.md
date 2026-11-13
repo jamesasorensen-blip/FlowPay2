@@ -1,5 +1,7 @@
 # FlowPay MFA recovery and rollout gate (draft — NOT enabled)
 
+**Current policy, 2026-11-13:** owner-managed recovery was selected by the user. See [MFA_OWNER_RECOVERY.md](security/MFA_OWNER_RECOVERY.md); its owner-authentication and single-owner-approval requirements supersede the historical two-reviewer requirements below. Recovery remains undeployed. Existing authenticators must remain intact.
+
 ## Current policy
 - Production mandatory MFA must remain **off** until all gates below pass.
 - Existing enrolled users retain both authenticators. Never remove a factor to simulate recovery.
