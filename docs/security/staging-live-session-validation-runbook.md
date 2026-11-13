@@ -6,6 +6,18 @@
 
 ## Authorized live positive-session test — 2026-11-13
 
+### Prepared next step: isolated revocation runner
+
+`scripts/staging-session-revocation-check.mjs` is prepared, **not live-executed**. Its eight mocked regressions cover preflight guards, identity mismatch, local-only logout, redirects/errors, retained access, ordinary expiry and sanitized output. CI runs mocks only and receives no live credentials.
+
+The runner uses fixed FlowPay staging Worker and Supabase project endpoints. It requires a **separate disposable session**, never a token copied from the working browser session. Provision `FLOWPAY_DISPOSABLE_STAGING_ACCESS_TOKEN`, `SUPABASE_PUBLISHABLE_KEY`, and `FLOWPAY_STAGING_TEST_USER_ID` only through an approved server process's secret manager. Set `FLOWPAY_STAGING_REVOCATION_TEST=I_CONFIRM_DISPOSABLE_STAGING_SESSION` after authorization for that exact disposable-session test. Do not pass credentials as command arguments or paste them into chat.
+
+Before running, separately authorize temporary staging active-session enforcement and rollback, as for the positive test; retain the working browser login. Invoke `node scripts/staging-session-revocation-check.mjs` from the secured process. The runner checks the existing signed token through `/me`, requires the matching test identity and at least two minutes of JWT lifetime, signs out **only that session** with `/auth/v1/logout?scope=local`, then requires `401 SESSION_INVALID` from `/me` while that same token remains unexpired. Generic Unauthorized, expiry, transport failures or still-accepted tokens cannot pass. Restore the flag in all outcomes using the approved operator workflow.
+
+Do not use FlowPay's existing UI Log out button for this drill: its `client.auth.signOut()` currently uses Supabase's default global scope and would invalidate other sessions for that account. No application logout behavior was changed here. A disposable-session runner with protected token provisioning is still needed before this live drill can execute; the current browser session must remain untouched.
+
+### Positive-test evidence
+
 - User explicitly approved temporarily enabling `REQUIRE_ACTIVE_SESSION` on `flowpay-plaid-api-staging`, testing the existing signed-in session, then restoring `false`.
 - Deployed the variable-only test version `0a22c68a-35a4-4ca7-be1a-0cb01aeb9dbc` with `REQUIRE_ACTIVE_SESSION=true`. No source or credential was changed.
 - Opened the existing authenticated staging frontend in a fresh tab. It reached **Cloud synced**. Opening Bank Connections reached **Sandbox bank connections ready** and rendered test accounts without `SESSION_INVALID`. Given the captured active source's fail-closed gate on those routes, this verifies a successful authoritative lookup through the configured server-to-server credential for the current allowed test session. No credential or session ID was extracted.

@@ -13,6 +13,8 @@ on:
       - 'tests/deployed-session-edge-function.test.mjs'
       - 'supabase/functions/flowpay-session-lookup/index.ts'
       - 'scripts/staging-session-lookup-smoke.mjs'
+      - 'scripts/staging-session-revocation-check.mjs'
+      - 'tests/staging-session-revocation-check.test.mjs'
       - 'scripts/check-staging-mfa-deployment.mjs'
       - 'tests/staging-session-lookup-smoke.test.mjs'
       - '.github/workflows/review-staging-mfa-candidate.yml'
@@ -39,6 +41,7 @@ jobs:
           node --check cloudflare/mfa-session-check.mjs
           node --check cloudflare/supabase-session-lookup.mjs
           node --check scripts/staging-session-lookup-smoke.mjs
+          node --check scripts/staging-session-revocation-check.mjs
           node --check scripts/check-staging-mfa-deployment.mjs
           node scripts/check-staging-mfa-deployment.mjs
       - name: Signed JWT, session, MFA and banking preservation regression tests
@@ -51,3 +54,5 @@ jobs:
         env:
           FLOWPAY_TEST_LIVE_SNAPSHOT: 'true'
         run: node --test tests/main-worker-mfa-integration.test.mjs
+      - name: Disposable-session revocation runner guardrails (mocked only)
+        run: node --test tests/staging-session-revocation-check.test.mjs
