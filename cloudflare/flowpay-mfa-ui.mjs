@@ -36,6 +36,13 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   setupDetails.append(manualLabel, manual);
   const form = document.createElement("form");
   form.hidden = true;
+  const factorLabel = document.createElement("label");
+  factorLabel.textContent = "Choose authenticator";
+  const factorSelect = document.createElement("select");
+  factorSelect.setAttribute("aria-label", "Choose authenticator");
+  factorSelect.style.cssText = "display:block;max-width:100%;width:100%;padding:10px;border-radius:6px;color:#111827;background:#fff;margin-top:6px";
+  factorLabel.append(factorSelect);
+  factorLabel.hidden = true;
   const input = document.createElement("input");
   input.type = "text";
   input.inputMode = "numeric";
@@ -48,7 +55,7 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   const button = document.createElement("button");
   button.type = "submit";
   button.textContent = "Verify authenticator";
-  form.append(input, button);
+  form.append(factorLabel, input, button);
   const enrollButton = document.createElement("button");
   enrollButton.type = "button";
   enrollButton.textContent = "Set up authenticator";
@@ -70,8 +77,19 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   input.style.cssText = "min-width:0;max-width:100%;padding:10px;border-radius:6px;color:#111827;background:#fff;";
   host.append(panel);
   let factorId = null;
+  let factorChoices = [];
+  let currentUserId = null;
+  let challengeMode = false;
+  factorSelect.addEventListener("change", () => {
+    factorId = factorChoices.some(f => f.id === factorSelect.value) ? factorSelect.value : null;
+    input.value = "";
+    button.disabled = !factorId;
+    message.textContent = factorId ? "Enter the code from the selected authenticator." : "Choose the authenticator app you want to use.";
+  });
   async function render() {
     const result = await controller.status();
+    const previousFactor = currentUserId === (result.userId || null) ? factorId : null;
+    currentUserId = result.userId || null;
     qr.hidden = true;
     qr.removeAttribute("src");
     manual.textContent = "";
@@ -83,6 +101,10 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     backupButton.hidden = true;
     restartButton.hidden = true;
     factorId = null;
+    factorChoices = [];
+    challengeMode = false;
+    factorLabel.hidden = true;
+    button.disabled = false;
     if (result.state === "signed-out") {
       message.textContent = "Sign in before setting up multi-factor authentication.";
       form.hidden = true;
@@ -94,8 +116,23 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
       backupButton.hidden = false;
       onReady();
     } else if (result.state === "challenge-required") {
-      factorId = result.factors[0].id;
-      message.textContent = "Enter the code from your authenticator app to continue.";
+      challengeMode = true;
+      factorChoices = result.factors;
+      factorId = factorChoices.some(f => f.id === previousFactor) ? previousFactor : factorChoices.length === 1 ? factorChoices[0].id : null;
+      factorSelect.replaceChildren();
+      const placeholder = document.createElement("option");
+      placeholder.value = ""; placeholder.textContent = "Choose an authenticator…";
+      factorSelect.append(placeholder);
+      for (const factor of factorChoices) {
+        const option = document.createElement("option");
+        option.value = factor.id;
+        option.textContent = (factor.friendly_name || "Authenticator") + " · " + String(factor.id).slice(0, 8);
+        factorSelect.append(option);
+      }
+      factorSelect.value = factorId || "";
+      factorLabel.hidden = false;
+      button.disabled = !factorId;
+      message.textContent = factorId ? "Enter the code from the selected authenticator." : "Choose the authenticator app you want to use.";
     } else {
       message.textContent = "Set up an authenticator app to protect your account.";
       enrollButton.hidden = (result.pendingFactors || []).some(f => f.friendly_name === "FlowPay authenticator");
@@ -205,7 +242,10 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
   });
   form.addEventListener("submit", async event => {
     event.preventDefault();
+    if (button.disabled || (challengeMode && !factorChoices.some(f => f.id === factorId))) return;
     button.disabled = true;
+    factorSelect.disabled = true;
+    input.disabled = true;
     message.textContent = "Verifying…";
     try {
       await controller.verify(factorId, input.value.trim());
@@ -214,7 +254,9 @@ export async function mountFlowPayMfa({ supabase, host, onReady = () => {} }) {
     } catch (error) {
       message.textContent = error?.message || "Unable to verify. Try again.";
     } finally {
-      button.disabled = false;
+      factorSelect.disabled = false;
+      input.disabled = false;
+      button.disabled = challengeMode && !factorId;
     }
   });
   try { await render(); } catch (error) {

@@ -19,7 +19,7 @@ export function createMfaController(supabase) {
     const pending = (factors.all || factors.totp || []).filter(f => f.factor_type === "totp" || f.factorType === "totp" || (factors.totp || []).some(t => t.id === f.id)).filter(f => f.status === "unverified");
     const state = assurance.currentLevel === "aal2" && verified.length ? "ready" :
       verified.length ? "challenge-required" : "enrollment-required";
-    return { state, factors: verified, pendingFactors: pending, currentLevel: assurance.currentLevel,
+    return { state, userId: session.session.user?.id || null, factors: verified, pendingFactors: pending, currentLevel: assurance.currentLevel,
       nextLevel: assurance.nextLevel };
   }
   async function enroll(friendlyName = "FlowPay authenticator") {
