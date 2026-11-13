@@ -24,6 +24,10 @@ Selected by James Sorensen on 2026-11-13: **the app owner handles recovery**, wi
 
 Implemented and offline-tested: owner-mode preflight, independent owner-verification requirement, one owner approval, existing claim/audit/inventory/revocation safeguards, and dry-run default.
 
-**Not deployed or operational:** verified control-plane owner binding, owner-compatible durable private case/audit store and claim adapter, privileged recovery service integration, and a disposable-account end-to-end reset/re-enrollment drill. The old SQL draft enforces two reviewers and must not be applied as an owner-mode implementation. No schema or permission changes accompany this policy update.
+Prepared and verified in isolated PostgreSQL: `docs/owner-recovery-store-draft.sql` and `cloudflare/owner-recovery-store.mjs`. The new private schema uses an empty-by-default singleton database-role-to-owner binding, RLS with no browser grants, immutable approval/audit history, server-assigned timestamps, conditional one-time claims and atomic claim/audit recording. The adapter compares submitted cases to authoritative records and uses parameterized SQL. Test dependencies are pinned separately under `tools/recovery-store-tests`; they are not frontend/application dependencies.
+
+**Not deployed or operational:** verified live control-plane owner binding, deployment/configuration of the tested private store and restricted database login, privileged recovery service integration, and a disposable-account end-to-end reset/re-enrollment drill. The old `mfa-recovery-private-schema-draft.sql` enforces two reviewers and must not be applied as an owner-mode implementation. The new owner draft has not been applied either. No shared schema or permission changes accompany this work.
+
+Before deployment, confirm the dedicated login's real `session_user` (including pooler behavior), prove that the schema is not exposed through the Data API, review owner authority outside the lost FlowPay session, and retain external audit monitoring. The database owner can bypass trigger protections; append-only enforcement here constrains runtime access.
 
 No existing authenticator was removed, no session revoked, and no production or shared Supabase setting changed during implementation. A live reset requires review of the exact disposable account and explicit authorization for that action.
