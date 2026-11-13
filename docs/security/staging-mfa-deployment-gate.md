@@ -1,6 +1,6 @@
 # Staging-only MFA candidate deployment gate
 
-**Latest checkpoint (2026-11-13):** the real disposable-session revocation drill passed through PR #58's staging panel: the same unexpired token was rejected with `SESSION_INVALID` after session-local sign-out. Restored version `1e59c637-0dce-47fe-9673-8dc35f537567` is Ready at 100% traffic; both enforcement flags are false. Positive lookup and live revoked-session rejection are verified. Reauthentication, outage and lost-device recovery checks remain pending. See the live validation runbook for exact versions and evidence.
+**Latest checkpoint (2026-11-13):** the real disposable-session revocation drill passed through PR #58's staging panel: the same unexpired token was rejected with `SESSION_INVALID` after session-local sign-out. The user then signed in again and confirmed the dashboard loaded normally. Restored version `1e59c637-0dce-47fe-9673-8dc35f537567` is Ready at 100% traffic; both enforcement flags were rechecked as false. Positive lookup, live revoked-session rejection and ordinary reauthentication are verified. Outage and lost-device recovery checks remain pending. See the live validation runbook for exact versions and evidence.
 
 ## Current state correction — 2026-11-13
 
