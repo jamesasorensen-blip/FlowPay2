@@ -2,6 +2,15 @@
 
 **Status:** operator checklist, **not** authorization to deploy, enable MFA, rotate secrets, or modify the shared Supabase project.
 
+## Latest live checkpoint — revoked-session rejection passed, 2026-11-13
+
+- User created a separate Google staging login in an Incognito window and used the opt-in session test panel from PR #58, frontend commit `5fd68f65a06e5cedc203842fb38b0271f330bd9f`. All five frontend-branch CI workflows passed; Render deployment `dep-dbrlus15efls73daulj0` reached live.
+- Enabled the existing staging `REQUIRE_ACTIVE_SESSION` gate for the drill at Worker version `69e53baf-be29-46be-8ce7-c8013040b644`. No code or secrets changed in the Worker.
+- The user ran the local-session test and reported PASS. The operator independently read the same PASS message from the visible test panel. The code first verifies `/me` for the dedicated account, invokes Supabase `signOut({scope:'local'})`, then requires `/me` to reject the same still-unexpired token with `401 SESSION_INVALID`. This is live evidence that the authoritative session gate rejects a revoked session before JWT expiry, in addition to the prior positive-session test.
+- Tokens stayed in the user's browser SDK and test-function memory. No token, session ID, password or OTP was extracted, displayed or copied. No budget data was modified.
+- Restored `REQUIRE_ACTIVE_SESSION=false` at Worker version `1e59c637-0dce-47fe-9673-8dc35f537567`, observed Ready at 100% traffic. Confirmed `REQUIRE_MFA_AAL2=false`. This supersedes the earlier pending live revoked-session gate and older active-version references below.
+- Still pending: user reauthentication after this local sign-out, dedicated lost-authenticator/recovery and outage drills, and production rollout acceptance. The test used local scope; survival of the separate regular browser login has not yet been independently checked. Production and shared Supabase configuration were unchanged.
+
 **2026-11-13 correction:** the active staging source at version prefix `00303e2b` already contains the reviewed candidate's Worker body with inlined helpers. See `staging-mfa-deployment-gate.md` and the captured source under `cloudflare/snapshots/`. Earlier “candidate not deployed” statements below describe an outdated checkpoint and must not be used as the current deployment state. Enforcement remains disabled; authenticated lookup/revocation/recovery validation is still pending.
 
 ## Authorized live positive-session test — 2026-11-13
