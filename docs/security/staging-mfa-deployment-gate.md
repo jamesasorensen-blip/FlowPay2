@@ -2,6 +2,8 @@
 
 ## Current state correction — 2026-11-13
 
+**Later authorized live test:** temporarily enabled active-session enforcement, confirmed authenticated cloud and Sandbox-account reads succeeded, then restored the flag to false. Current restored version is `e85b7432-f47f-4c1c-b821-5741438a3b82` (Ready, 100% traffic). Positive authenticated server-to-server transport is now verified; live unknown/revoked-session and recovery gates remain pending. See the live validation runbook for test version and scope.
+
 Read-only inspection of Cloudflare's active `00303e2b` editor source confirms that staging **already contains the integrated MFA/session-gate implementation**, with helpers inlined. Earlier statements that staging lacks this integration are superseded. No deployment was performed during this inspection. Both new enforcement flags remain false and the legacy alias is absent.
 
 The normalized source snapshot is `cloudflare/snapshots/staging-worker-00303e2b.mjs` (SHA-256 `de74c794a30af2242587d28598a863513eeedcbedb5c3764a3ec29ad61756922`). Its body beginning at `const PLAID_URL` matches the reviewed candidate exactly after trailing-whitespace normalization. All 50 Worker regression tests pass against the snapshot, including signed assurance, forged-token rejection, both MFA flag aliases, revoked/foreign/expired/unavailable sessions, enrollment bootstrap and financial routes. These are offline executions of captured live code, not evidence of live authenticated lookup or enabled gates. The source/helper suite passes 67 tests and the bundle passes 50.

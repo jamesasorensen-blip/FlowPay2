@@ -4,6 +4,14 @@
 
 **2026-11-13 correction:** the active staging source at version prefix `00303e2b` already contains the reviewed candidate's Worker body with inlined helpers. See `staging-mfa-deployment-gate.md` and the captured source under `cloudflare/snapshots/`. Earlier “candidate not deployed” statements below describe an outdated checkpoint and must not be used as the current deployment state. Enforcement remains disabled; authenticated lookup/revocation/recovery validation is still pending.
 
+## Authorized live positive-session test — 2026-11-13
+
+- User explicitly approved temporarily enabling `REQUIRE_ACTIVE_SESSION` on `flowpay-plaid-api-staging`, testing the existing signed-in session, then restoring `false`.
+- Deployed the variable-only test version `0a22c68a-35a4-4ca7-be1a-0cb01aeb9dbc` with `REQUIRE_ACTIVE_SESSION=true`. No source or credential was changed.
+- Opened the existing authenticated staging frontend in a fresh tab. It reached **Cloud synced**. Opening Bank Connections reached **Sandbox bank connections ready** and rendered test accounts without `SESSION_INVALID`. Given the captured active source's fail-closed gate on those routes, this verifies a successful authoritative lookup through the configured server-to-server credential for the current allowed test session. No credential or session ID was extracted.
+- Restored `REQUIRE_ACTIVE_SESSION=false` through variable-only version `e85b7432-f47f-4c1c-b821-5741438a3b82`, observed Ready at 100% traffic. Confirmed `REQUIRE_MFA_AAL2=false` and that the staging frontend still reached Cloud synced after reload.
+- This supersedes the pending **positive authenticated transport** gate above. It does not prove unknown-session or revoked-session rejection through the live service, outage handling, or lost-device recovery; those remain pending. No session was revoked, no financial data was changed, and no production Worker or shared Supabase configuration was modified.
+
 ## Scope and prerequisites
 
 - The deployed Supabase `flowpay-session-lookup` function is ACTIVE (v3 at inspection on 2026-11-12) in a Supabase project also used by production. The source snapshot is in `supabase/functions/flowpay-session-lookup/index.ts`. Do not redeploy it as part of this checklist.
