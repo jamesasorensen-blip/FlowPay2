@@ -2879,7 +2879,7 @@ const TEST_USER = '0b2cf21b-5147-4337-b73d-fbba9f1a514d';
 const PROJECT = 'https://sdiovjwtphqvfjlyoxeq.supabase.co';
 const PUBLIC_KEY = 'sb_publishable_rt8itouJe2nsO1wofOqROQ_-6aJ4zlM';
 
-export async function runSessionRevocationTest(client, request = fetch, now = Date.now) {
+async function runSessionRevocationTest(client, request = fetch, now = Date.now) {
   let revoked = false;
   try {
     const { data, error } = await client.auth.getSession();
@@ -2909,7 +2909,7 @@ export async function runSessionRevocationTest(client, request = fetch, now = Da
   }
 }
 
-export function installSessionTestPanel(page) {
+function installSessionTestPanel(page) {
   if (page.location.origin !== STAGING_ORIGIN || new URL(page.location.href).searchParams.get('session-revocation-test') !== '1') return;
   const doc=page.document;
   const panel=doc.createElement('section');

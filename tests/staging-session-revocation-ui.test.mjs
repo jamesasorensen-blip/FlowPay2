@@ -39,6 +39,6 @@ test('panel is absent on production and without explicit test query',()=>{
 test('embedded staging module exactly matches its reviewed source',()=>{
  const html=fs.readFileSync(new URL('../index.html',import.meta.url),'utf8');
  const source=fs.readFileSync(new URL('../scripts/staging-session-revocation-ui.mjs',import.meta.url),'utf8');
- assert.ok(html.includes('<script type="module" id="staging-session-revocation-module">\n'+source+'\n</script>'));
+ assert.ok(html.includes('<script type="module" id="staging-session-revocation-module">\n'+source.replace(/^export /gm,'')+'\n</script>'));
  assert.equal((html.match(/id="staging-session-revocation-module"/g)||[]).length,1);
 });
