@@ -31,6 +31,13 @@ Read-only advisor scan of connected FlowPay Supabase project:
 - **WARN performance (3), inspected:** `public.manual_budgets` policies `manual_budget_read`, `manual_budget_insert`, and `manual_budget_update` were inspected using read-only `pg_policies`. All already wrap `auth.uid()` and `auth.jwt()` in scalar `SELECT` expressions, and require both `owner_id` ownership and JWT `aal2`. The advisor warnings may be false positives or reflect another planner detail; no policy changes are warranted without an execution-plan-based diagnosis. Reference: https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan
 - [ ] Determine whether the connected Supabase project is staging, production, or shared before any database/auth configuration changes. The connected project is ACTIVE_HEALTHY and its Supabase branch list is empty (read-only verification on 2026-11-14); this does not prove separation or sharing. Do not alter authentication settings or RLS until the environment mapping is established.
 
+## Deployment configuration evidence (2026-11-14)
+
+- The repository frontend workflow uses Node 24, installs dependencies without a lockfile, runs `npm test`, and builds the Docker image.
+- The Dockerfile uses Node 24 Alpine and `npm install --omit=dev --ignore-scripts --no-audit --no-fund`, which is not lockfile-reproducible.
+- No root-level `render.yaml`, `wrangler.toml`, or `wrangler.jsonc` was found in the default branch. Absence of these files does **not** establish the actual deployed service configuration; settings may live in the hosting dashboards.
+- [ ] Confirm actual Render and Cloudflare deployment revision, environment bindings, and separation before live verification.
+
 ## Release discipline
 
 Keep this PR in draft until checks are complete. Do not merge or deploy to production automatically.
