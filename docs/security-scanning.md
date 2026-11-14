@@ -2,7 +2,7 @@
 
 This repository configures Dependabot version updates for npm and GitHub Actions, and a GitHub Actions npm audit on relevant pull requests, pushes to main, every Monday, and manual dispatch.
 
-The audit job generates a temporary lockfile because the repository currently has no committed npm lockfile. It does not run dependency lifecycle scripts. A nonzero exit code for high/critical advisories makes the check fail. Review all severities, not only the failing threshold.
+The audit job uses `npm ci` with the committed lockfile and does not run dependency lifecycle scripts. A nonzero exit code for high/critical advisories makes the check fail. Review all severities, not only the failing threshold.
 
 ## Operational follow-up required
 
@@ -14,3 +14,7 @@ The audit job generates a temporary lockfile because the repository currently ha
 - Review GitHub Actions workflow permissions and branch protection; do not treat this baseline as a complete security program.
 
 These files provide automated dependency checks only. They do not establish compliance with every Plaid attestation.
+
+## Staging deployment safeguards
+
+The frontend checks workflow also runs the Python inspection and version-management unit tests on every pull request. They use mocked Cloudflare responses without cloud credentials or deployments, covering rejected configuration, source/commit checks, stale versions, and upload/promotion failures. Live environment protection and staging configuration still require separate verification.

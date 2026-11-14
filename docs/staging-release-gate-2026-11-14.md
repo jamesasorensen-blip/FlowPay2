@@ -4,9 +4,11 @@ This document records verified evidence and outstanding checks. Passing unit tes
 
 ## Verified in GitHub Actions
 
-- Frontend checks: successful on commit `9bfd2a9e3b78b6b5a20b51de4978423fc5415468` (run 43613875326).
-- Application security regression: successful on that commit (run 43613875318).
-- PWA install regression: successful on that commit (run 43613875397).
+- Frontend checks and Docker build: successful on commit `bd76c5a2752cacb6b4ecaec4e061791653850a11` (run 43623420564).
+- Application security regression: successful on that commit (run 43623420598).
+- PWA install regression: successful on that commit (run 43623420618).
+- Dependency security scan: successful on that commit (run 43623420570).
+- Local Python inspection/version-management suite: all 24 tests passed; now included in normal pull-request CI as well as the protected manual workflows.
 - Frontend routes block private repository files and retire legacy `/api` endpoints; regression coverage added in this PR.
 
 ## Must verify against deployed staging before promotion

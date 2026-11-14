@@ -34,3 +34,8 @@ jobs:
         run: node --check cloudflare/staging-worker.mjs
       - name: Run banking isolation and sync contract tests
         run: node --test cloudflare/tests/account-isolation.test.mjs test/worker-sync-contract.test.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test staging inspection and deployment safeguards without credentials
+        run: python3 -m unittest discover -s cloudflare/tests -v
