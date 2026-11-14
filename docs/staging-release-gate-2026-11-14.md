@@ -20,7 +20,7 @@ This document records verified evidence and outstanding checks. Passing unit tes
 - [ ] Check staging logs for errors after these scenarios without copying tokens or personal financial records.
 - [ ] Confirm guest workspace cannot call financial APIs and cannot read authenticated data.
 - [ ] Verify mobile installation, responsive layout, and browser compatibility against the deployed staging URL.
-- [ ] Review dependency lockfile/reproducible install strategy. Current frontend workflow uses `npm install --no-package-lock`.
+- [x] Commit the CI-generated dependency lockfile and use `npm ci` for frontend CI, security scans, and Docker builds. The lockfile candidate came from successful frontend run 43616980913 at commit `b4f13f44e25860f7fcbf00f8215897aadacd0d97`.
 - [ ] Review and approve the draft PR only after the above gates are complete.
 
 ## Supabase advisor findings (2026-11-14)
@@ -33,11 +33,15 @@ Read-only advisor scan of connected FlowPay Supabase project:
 
 ## Deployment configuration evidence (2026-11-14)
 
-- The repository frontend workflow uses Node 24, installs dependencies without a lockfile, runs `npm test`, and builds the Docker image.
-- The Dockerfile uses Node 24 Alpine and `npm install --omit=dev --ignore-scripts --no-audit --no-fund`, which is not lockfile-reproducible.
+- The repository frontend workflow uses Node 24, installs locked dependencies with `npm ci`, runs `npm test`, and builds the Docker image.
+- The Dockerfile uses Node 24 Alpine and `npm ci --omit=dev --ignore-scripts --no-audit --no-fund`. The committed lockfile is explicitly copied and included in the Docker build context.
 - No root-level `render.yaml`, `wrangler.toml`, or `wrangler.jsonc` was found in the default branch. Absence of these files does **not** establish the actual deployed service configuration; settings may live in the hosting dashboards.
 - [ ] Confirm actual Render and Cloudflare deployment revision, environment bindings, and separation before live verification.
 
 ## Release discipline
 
 Keep this PR in draft until checks are complete. Do not merge or deploy to production automatically.
+
+## Preview build finding
+
+The Cloudflare integration reports failed preview builds for `flowpay2` and `flowpay-api` on commit `b4f13f4`. These are separate from the three successful GitHub Actions workflows. Preview hosting remains unverified; do not claim deployed staging readiness from CI results.
