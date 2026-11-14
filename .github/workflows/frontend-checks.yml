@@ -14,8 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      # Repository currently has no package-lock.json; npm ci requires one.
-      - run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies for high-severity vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - name: Verify production Docker image builds
         run: docker build --tag flowpay-frontend-ci .

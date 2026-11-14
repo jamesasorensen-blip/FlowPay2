@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install server dependencies without lifecycle scripts
-        run: npm install --ignore-scripts --no-audit --no-fund
+        run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Check syntax
         run: node --check server.js
       - name: Verify protected routes and security headers

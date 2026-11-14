@@ -6,8 +6,14 @@ const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
+  // Financial app HTML and service workers must not be retained in shared caches.
+  if (req.path === '/' || /\.(?:html|js)$/.test(req.path) || req.path === '/sw.js' || req.path === '/service-worker.js') {
+    res.set('Cache-Control', 'no-store');
+  }
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('X-Frame-Options', 'DENY');
+  // The budgeting frontend does not require camera, microphone, or geolocation.
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
@@ -31,7 +37,7 @@ app.get('/:filename', (req, res, next) => {
   if (!publicAssets.has(req.params.filename)) return next();
   const filename = assetAliases.get(req.params.filename) || req.params.filename;
   if (req.params.filename === 'manifest.webmanifest') res.type('application/manifest+json');
-  res.sendFile(path.join(__dirname, filename), err => {
+  res.sendFile(path.join(__dirname, filename), { headers: { 'Cache-Control': 'no-store' } }, err => {
     if (err?.status === 404 && !res.headersSent) return next();
     if (err && !res.headersSent) next(err);
   });
