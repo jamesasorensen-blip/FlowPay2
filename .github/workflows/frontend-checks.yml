@@ -16,6 +16,14 @@ jobs:
           node-version: '24'
       # Repository currently has no package-lock.json; npm ci requires one.
       - run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - name: Generate reproducible dependency lockfile candidate
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Upload dependency lockfile candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: flowpay-package-lock-candidate
+          path: package-lock.json
+          retention-days: 7
       - name: Audit production dependencies for high-severity vulnerabilities
         run: npm audit --omit=dev --audit-level=high --package-lock=false
       - run: npm test
