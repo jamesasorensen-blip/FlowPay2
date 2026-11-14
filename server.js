@@ -6,6 +6,10 @@ const app = express();
 app.disable('x-powered-by');
 app.use((req, res, next) => {
   res.set('X-Content-Type-Options', 'nosniff');
+  // Financial app HTML and service workers must not be retained in shared caches.
+  if (req.path === '/' || /\.(?:html|js)$/.test(req.path) || req.path === '/sw.js' || req.path === '/service-worker.js') {
+    res.set('Cache-Control', 'no-store');
+  }
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('X-Frame-Options', 'DENY');
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
