@@ -40,8 +40,14 @@ test('frontend security headers and retired API', { timeout: 15000 }, async () =
     }
     const legacy = await fetch('http://127.0.0.1:' + port + '/api/plaid');
     assert.equal(legacy.status, 410);
-    const privateFile = await fetch('http://127.0.0.1:' + port + '/package.json');
-    assert.equal(privateFile.status, 404);
+    for (const privatePath of ['/package.json', '/server.js', '/Dockerfile', '/.env', '/.git/config', '/cloudflare/staging-worker.mjs', '/scripts/build-manual-account.mjs']) {
+      const privateFile = await fetch('http://127.0.0.1:' + port + privatePath);
+      assert.equal(privateFile.status, 404, privatePath);
+    }
+    for (const method of ['GET', 'POST', 'PUT', 'DELETE']) {
+      const response = await fetch('http://127.0.0.1:' + port + '/api/plaid', { method });
+      assert.equal(response.status, 410, method + ' retired API');
+    }
   } finally {
     child.kill();
   }
