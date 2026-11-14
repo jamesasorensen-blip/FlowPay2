@@ -28,7 +28,7 @@ This document records verified evidence and outstanding checks. Passing unit tes
 Read-only advisor scan of connected FlowPay Supabase project:
 - **WARN security:** leaked-password protection disabled. Enable through Auth settings after verifying plan/availability and account policy. Reference: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 - **INFO security:** `flowpay_session_private.allowed_user` has RLS enabled without policies. Review intent; do not add permissive policies merely to clear this notice.
-- **WARN performance (3):** `public.manual_budgets` policies `manual_budget_read`, `manual_budget_insert`, and `manual_budget_update` re-evaluate auth helpers per row. Review their definitions and consider `(select auth.uid())`-style initialization optimizations, preserving exact access semantics. Reference: https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan
+- **WARN performance (3), inspected:** `public.manual_budgets` policies `manual_budget_read`, `manual_budget_insert`, and `manual_budget_update` were inspected using read-only `pg_policies`. All already wrap `auth.uid()` and `auth.jwt()` in scalar `SELECT` expressions, and require both `owner_id` ownership and JWT `aal2`. The advisor warnings may be false positives or reflect another planner detail; no policy changes are warranted without an execution-plan-based diagnosis. Reference: https://supabase.com/docs/guides/database/database-linter?lint=0003_auth_rls_initplan
 - [ ] Determine whether the connected Supabase project is staging, production, or shared before any database/auth configuration changes.
 
 ## Release discipline
