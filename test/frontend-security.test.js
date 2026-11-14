@@ -36,6 +36,7 @@ test('frontend security headers and retired API', { timeout: 15000 }, async () =
       assert.equal(response.headers.get('cache-control'), 'no-store', route);
       assert.equal(response.headers.get('x-content-type-options'), 'nosniff', route);
       assert.equal(response.headers.get('x-frame-options'), 'DENY', route);
+      assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=()', route);
     }
     const legacy = await fetch('http://127.0.0.1:' + port + '/api/plaid');
     assert.equal(legacy.status, 410);
