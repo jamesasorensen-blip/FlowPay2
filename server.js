@@ -35,7 +35,7 @@ app.get('/:filename', (req, res, next) => {
   if (!publicAssets.has(req.params.filename)) return next();
   const filename = assetAliases.get(req.params.filename) || req.params.filename;
   if (req.params.filename === 'manifest.webmanifest') res.type('application/manifest+json');
-  res.sendFile(path.join(__dirname, filename), err => {
+  res.sendFile(path.join(__dirname, filename), { headers: { 'Cache-Control': 'no-store' } }, err => {
     if (err?.status === 404 && !res.headersSent) return next();
     if (err && !res.headersSent) next(err);
   });
