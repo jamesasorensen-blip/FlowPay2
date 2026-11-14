@@ -12,6 +12,8 @@ app.use((req, res, next) => {
   }
   res.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.set('X-Frame-Options', 'DENY');
+  // The budgeting frontend does not require camera, microphone, or geolocation.
+  res.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
