@@ -26,7 +26,6 @@ function parseJwtPart(value) {
   return JSON.parse(decoder.decode(b64decode(value)));
 }
 let jwksCache = null;
-let jwksExpiry = 0;
 async function authenticate(request, env) {
   const auth = request.headers.get("Authorization") || "";
   if (!auth.startsWith("Bearer ")) throw Error("Missing token");
@@ -61,11 +60,15 @@ async function authenticate(request, env) {
     if (!response.ok) throw Error("JWKS unavailable");
     const data = await response.json();
     if (!Array.isArray(data.keys)) throw Error("Invalid JWKS");
-    jwksCache = data.keys;
-    jwksExpiry = Date.now() + 300000;
+    const refreshed = { issuer, keys: data.keys, expires: Date.now() + 300000 };
+    jwksCache = refreshed;
+    return refreshed;
   }
-  if (!jwksCache || Date.now() >= jwksExpiry) {
-    await refreshKeys();
+  // Keep a request-local snapshot so concurrent issuer refreshes cannot swap
+  // the trust source used by this request. Never reuse another project's keys.
+  let cached = jwksCache;
+  if (!cached || cached.issuer !== issuer || Date.now() >= cached.expires) {
+    cached = await refreshKeys();
   }
   const matches = key =>
     key.kid === header.kid &&
@@ -74,10 +77,10 @@ async function authenticate(request, env) {
     (header.alg === "ES256"
       ? key.kty === "EC" && key.crv === "P-256"
       : key.kty === "RSA");
-  let jwk = jwksCache.find(matches);
+  let jwk = cached.keys.find(matches);
   if (!jwk) {
-    await refreshKeys();
-    jwk = jwksCache.find(matches);
+    cached = await refreshKeys();
+    jwk = cached.keys.find(matches);
   }
   if (!jwk) throw Error("Signing key not found");
   const algorithm = header.alg === "ES256"

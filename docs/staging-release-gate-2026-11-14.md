@@ -51,3 +51,9 @@ The Cloudflare integration reports failed preview builds for `flowpay2` and `flo
 ## Request body limits (staging source only)
 
 The Worker now enforces request body byte limits while reading the stream, before accumulating the full payload. Existing JSON limits (4 KiB by default and 512 KiB for cloud writes) remain in place. Webhooks use a 64 KiB byte limit and return HTTP 413 when exceeded. This prevents multibyte text or requests without Content-Length from bypassing the intended limits. Five regression tests cover exact boundaries, early cancellation, split UTF-8, interrupted streams, and oversized webhook rejection before external/database work. Local validation: all 140 Node tests and 55 explicit banking isolation/sync checks passed. This source has not been deployed to staging or production.
+
+## Signing-key cache isolation (staging source only)
+
+Cached JWKS entries are now bound to the exact configured Supabase issuer. Each request retains its own cache snapshot while verifying its token. A synthetic regression reproduced acceptance of project-B claims signed with a previously cached project-A key when both keys used the same key ID and configuration changed within the same module instance; the fixed source rejects it. Repeated sign-ins still reuse the same issuer's cache, and a new key ID triggers refresh. This test does not establish that live deployments share a runtime or that any live account was affected.
+
+Validation: all 142 Node tests, 55 explicit banking checks, and 24 Python safeguards passed locally. Prior commit `d19bffb6819d0bf783e65d3a2b96d6406275ebe9` passed all four GitHub workflows. No hosted Supabase configuration, authentication settings, or Worker deployments were changed. Reference: https://supabase.com/docs/guides/auth/jwts
