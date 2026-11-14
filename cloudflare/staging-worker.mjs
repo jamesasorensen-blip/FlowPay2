@@ -209,8 +209,7 @@ async function verifyPlaidWebhook(request, env) {
       now - claims.iat > 300 ||
       typeof claims.request_body_sha256 !== "string" ||
       !/^[0-9a-f]{64}$/i.test(claims.request_body_sha256)) return null;
-  const body = await request.text();
-  if (body.length > 65536) return null;
+  const body = await readRequestText(request, 65536);
   const response = await plaid(env, "/webhook_verification_key/get", { key_id: header.kid });
   const jwk = response.key;
   if (!jwk || jwk.kid !== header.kid || jwk.kty !== "EC" ||
@@ -657,13 +656,36 @@ async function syncConnection(env, user, connection, leaseToken) {
   });
 }
 
-async function readJson(request, maxBytes = 4096) {
-  const raw = await request.text();
-  if (encoder.encode(raw).byteLength > maxBytes) {
-    const error = Error("Payload too large");
-    error.status = 413;
-    throw error;
+// Enforce byte limits before buffering the complete request, including requests
+// without Content-Length and UTF-8 characters split across stream chunks.
+export async function readRequestText(request, maxBytes) {
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const textDecoder = new TextDecoder();
+  const parts = [];
+  let bytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel().catch(() => {});
+        const error = Error("Payload too large");
+        error.status = 413;
+        throw error;
+      }
+      parts.push(textDecoder.decode(value, { stream: true }));
+    }
+    parts.push(textDecoder.decode());
+    return parts.join("");
+  } finally {
+    reader.releaseLock();
   }
+}
+
+export async function readJson(request, maxBytes = 4096) {
+  const raw = await readRequestText(request, maxBytes);
   try {
     return JSON.parse(raw);
   } catch {
@@ -741,7 +763,8 @@ export default {
           console.error("FlowPay background sync unavailable");
         }));
         return send({ success: true });
-      } catch {
+      } catch (error) {
+        if (error.status === 413) return send({ error: "Payload too large" }, 413);
         return send({ error: "Webhook processing unavailable" }, 503);
       }
     }

@@ -47,3 +47,7 @@ Keep this PR in draft until checks are complete. Do not merge or deploy to produ
 ## Preview build finding
 
 The Cloudflare integration reports failed preview builds for `flowpay2` and `flowpay-api` on commit `b4f13f4`. These are separate from the three successful GitHub Actions workflows. Preview hosting remains unverified; do not claim deployed staging readiness from CI results.
+
+## Request body limits (staging source only)
+
+The Worker now enforces request body byte limits while reading the stream, before accumulating the full payload. Existing JSON limits (4 KiB by default and 512 KiB for cloud writes) remain in place. Webhooks use a 64 KiB byte limit and return HTTP 413 when exceeded. This prevents multibyte text or requests without Content-Length from bypassing the intended limits. Five regression tests cover exact boundaries, early cancellation, split UTF-8, interrupted streams, and oversized webhook rejection before external/database work. Local validation: all 140 Node tests and 55 explicit banking isolation/sync checks passed. This source has not been deployed to staging or production.
