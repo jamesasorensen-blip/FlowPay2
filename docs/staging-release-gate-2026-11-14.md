@@ -80,3 +80,35 @@ Both dashboard views identify the service environment as Production, while these
 Official reference: https://developers.cloudflare.com/workers/previews/configuration/
 
 All five GitHub check jobs passed on `5ea9522`: smoke-test, worker-isolation, server-security, pwa, and npm-audit. These checks do not verify hosted deployment behavior.
+
+## Service mapping and source drift (2026-11-15, read-only dashboard inspection)
+
+| Service | Verified hosting role | Active version / source | Data binding |
+| --- | --- | --- | --- |
+| flowpay-api | Static assets only; not the banking API despite its name | 0252b949; main commit dda276bfb2d0d9f2282a0e704eb1cd3b24468fc1 | No runtime bindings; dashboard says runtime variables/bindings cannot be added to static-only Workers |
+| flowpay2 | Static assets only | 8a174b0d; same main commit | No runtime bindings |
+| flowpay-plaid-api-staging | Banking staging Worker, PLAID_ENV=sandbox | 1e59c637 at 100%; latest deployment message updates REQUIRE_ACTIVE_SESSION | DB -> flowpay-plaid-db-staging |
+| flowpay-plaid-api | Separate banking Worker | 9adf6250 at 100% | DB -> flowpay-plaid-db |
+
+The two banking DB links have different database IDs, confirming D1 binding separation. This does not verify secret-value separation, Supabase project separation, schema parity, or deployed-source parity.
+
+Both static frontend services have production branch main and production deploy command `npx wrangler deploy`, root /, no build command. The flowpay2 Previews Base tab has preview branch builds enabled and preview command `npx wrangler preview`, root /, no build command or build variables. The flowpay-api production build settings include Plaid sandbox build variable/secret names; secret values were not revealed. Do not copy those build secrets into a frontend bundle. No settings were saved and no build or deployment was triggered manually.
+
+### Staging security configuration drift — deployment blocker
+
+The staging runtime settings show:
+- REQUIRE_ACTIVE_SESSION=false
+- REQUIRE_MFA_AAL2=false
+- PLAID_ENV=sandbox
+- STAGING_TEST_USER_ID configured (value deliberately omitted here)
+- SESSION_LOOKUP_URL configured to a Supabase session-lookup function
+- Session-lookup secrets, SUPABASE_URL, Plaid credentials, and token-encryption key are marked encrypted.
+
+The reviewed repository Worker uses REQUIRE_AAL2 and has no REQUIRE_ACTIVE_SESSION/REQUIRE_MFA_AAL2 handling. This is evidence of configuration/source drift, not proof of the deployed authorization behavior. The active version is not linked to the current review commit. Do not promote this source over staging until the deployed code is inspected and its session-revocation/MFA logic reconciled and tested. Do not toggle flags blindly: enrollment/recovery and server-side session lookup must be verified first.
+
+### Concrete next work
+
+1. Inspect the active staging source using the protected inspection workflow and compare its authentication/session logic with the reviewed source.
+2. Reconcile source and setting names with regression coverage for revoked sessions, AAL1 denial, AAL2 success, and failed lookup.
+3. Prepare a separate static-only preview package/configuration using an explicit allowlist of public assets. Do not point static assets at the repository root or attach banking secrets/bindings.
+4. Validate that package locally before wiring preview settings; keep main/production deployment unchanged.
