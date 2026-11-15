@@ -170,9 +170,11 @@ test('failed sync batch rolls back transaction changes, cursor and audit togethe
 test('optional MFA gate rejects AAL1 and accepts signed AAL2 token', async () => {
   const f = fixture();
   try {
-    const denied = await f.call(A, '/me', 'GET', undefined, A, true);
-    assert.notEqual(denied.status, 200);
-    const accepted = await f.call(A, '/me', 'GET', undefined, A, true, aal2Token);
+    const metadata = await f.call(A, '/me', 'GET', undefined, A, true);
+    assert.equal(metadata.status, 200);
+    const denied = await f.call(A, '/bank-accounts', 'GET', undefined, A, true);
+    assert.equal(denied.status, 403);
+    const accepted = await f.call(A, '/bank-accounts', 'GET', undefined, A, true, aal2Token);
     assert.equal(accepted.status, 200);
   } finally {
     f.close();

@@ -1,3 +1,69 @@
+// Server-only helper. Call AFTER JWT signature, issuer, audience and expiry verification.
+// The supplied lookup MUST query authoritative auth.sessions data using server credentials;
+// never trust a client-provided session status or expose service credentials in the browser.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+export async function verifyActiveSession(claims, lookupSession, now = Date.now()) {
+  if (!claims || typeof claims !== "object" ||
+      typeof claims.sub !== "string" || !UUID.test(claims.sub) ||
+      typeof claims.session_id !== "string" || !UUID.test(claims.session_id) ||
+      typeof lookupSession !== "function") return false;
+  try {
+    const row = await lookupSession(claims.session_id);
+    if (!row || row.id !== claims.session_id || row.user_id !== claims.sub) return false;
+    if (row.not_after != null) {
+      const expiry = Date.parse(row.not_after);
+      if (!Number.isFinite(expiry) || expiry <= now) return false;
+    }
+    return true;
+  } catch {
+    // Financial endpoints must fail closed on session-store outage.
+    return false;
+  }
+}
+
+// Server-only adapter for the authoritative Supabase session lookup endpoint.
+// The endpoint MUST be a trusted server-side service that queries auth.sessions,
+// authenticates this Worker with a secret, and never trusts a browser-supplied result.
+// Do not configure SESSION_LOOKUP_URL to a public client-accessible endpoint.
+
+export function createSupabaseSessionLookup(env, fetcher = fetch) {
+  const endpoint = env.SESSION_LOOKUP_URL;
+  // Do not permit credentials to be sent to an arbitrary host.
+  const expectedHost = (env.SUPABASE_URL || "").replace(/^https:\/\//, "").replace(/\/$/, "");
+  let parsed;
+  try { parsed = new URL(endpoint); } catch { throw new Error("Invalid session lookup endpoint"); }
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(env.SUPABASE_URL || "") ||
+      parsed.protocol !== "https:" || parsed.hostname !== expectedHost ||
+      parsed.pathname !== "/functions/v1/flowpay-session-lookup" ||
+      parsed.search || parsed.hash || parsed.username || parsed.password || parsed.port) {
+    throw new Error("Session lookup endpoint must match configured Supabase project");
+  }
+  const secret = env.SESSION_LOOKUP_SECRET;
+  if (typeof endpoint !== "string" || !/^https:\/\//.test(endpoint) ||
+      typeof secret !== "string" || secret.length < 32) {
+    throw new Error("Secure session lookup endpoint and credential required");
+  }
+  return async function lookupSession(sessionId) {
+    if (typeof sessionId !== "string" || !UUID.test(sessionId)) return null;
+    const response = await fetcher(endpoint, {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + secret, "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id: sessionId }),
+      redirect: "manual",
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok) throw new Error("Session lookup unavailable");
+    const data = await response.json();
+    if (data?.active !== true || !data.session) return null;
+    const row = data.session;
+    if (row.id !== sessionId || !UUID.test(row.user_id || "")) {
+      throw new Error("Invalid authoritative session response");
+    }
+    return { id: row.id, user_id: row.user_id, not_after: row.not_after ?? null };
+  };
+}
+
 const PLAID_URL = "https://sandbox.plaid.com";
 const FLOWPAY_ORIGIN = "https://flowpay-6aay.onrender.com";
 const encoder = new TextEncoder();
@@ -98,16 +164,14 @@ async function authenticate(request, env) {
     encoder.encode(`${headerPart}.${payloadPart}`)
   );
   if (!valid) throw Error("Invalid signature");
-  // Opt-in staging gate. Do not enable until existing users can enroll and
-  // recover MFA; a JWT without verified AAL2 must not access financial data.
-  if (env.REQUIRE_AAL2 === "true" && claims.aal !== "aal2") {
-    throw Error("MFA verification required");
-  }
   return {
     id: claims.sub,
-    email: claims.email || null
+    email: claims.email || null,
+    aal: claims.aal === "aal2" ? "aal2" : "aal1",
+    session_id: claims.session_id || null
   };
 }
+
 function getKeyBytes(value) {
   if (!value) throw Error("Encryption key missing");
   const key = value.trim();
@@ -800,8 +864,24 @@ export default {
         error: "Staging access restricted"
       }, 403);
     }
+    // Retain the live banking routes while applying the staging security gates.
+    // Keep identity metadata available for MFA enrollment; never expose session IDs.
+    if (env.REQUIRE_ACTIVE_SESSION === "true") {
+      let validSession = false;
+      try {
+        validSession = await verifyActiveSession(
+          { sub: user.id, session_id: user.session_id }, createSupabaseSessionLookup(env)
+        );
+      } catch { /* Configuration failures and outages fail closed. */ }
+      if (!validSession) return send({ success: false, error: "SESSION_INVALID" }, 401);
+    }
+    if ((env.REQUIRE_MFA_AAL2 === "true" || env.REQUIRE_AAL2 === "true") &&
+        user.aal !== "aal2" && !(url.pathname === "/me" && request.method === "GET")) {
+      return send({ success: false, error: "MFA_REQUIRED",
+        message: "Complete multi-factor authentication before accessing financial data." }, 403);
+    }
     if (url.pathname === "/me" && request.method === "GET") {
-      return send({ success: true, user });
+      return send({ success: true, user: { id: user.id, email: user.email, aal: user.aal } });
     }
     if (!env.DB) {
       return send({ error: "Database unavailable" }, 503);
