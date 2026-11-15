@@ -112,3 +112,11 @@ The reviewed repository Worker uses REQUIRE_AAL2 and has no REQUIRE_ACTIVE_SESSI
 2. Reconcile source and setting names with regression coverage for revoked sessions, AAL1 denial, AAL2 success, and failed lookup.
 3. Prepare a separate static-only preview package/configuration using an explicit allowlist of public assets. Do not point static assets at the repository root or attach banking secrets/bindings.
 4. Validate that package locally before wiring preview settings; keep main/production deployment unchanged.
+
+## Authentication reconciliation candidate (2026-11-15, not deployed)
+
+The review source now recognizes both REQUIRE_MFA_AAL2 and REQUIRE_AAL2 and retains a server-only active-session check controlled by REQUIRE_ACTIVE_SESSION. The session lookup endpoint must match the configured Supabase project; credentials are sent only to that endpoint with redirects refused and a five-second deadline. Missing/revoked/foreign/expired sessions and lookup failures fail closed. GET /me exposes only id, email and signed assurance level, allowing AAL1 enrollment metadata while financial endpoints require AAL2 when either MFA flag is enabled. Session IDs are never returned by /me.
+
+Recovered implementation basis: the earlier local main-worker-mfa-integration candidate and session lookup tests from the November 12 review workspace. The browser confirmed active version 1e59c637 and its source editor, but source extraction failed when the connected browser approval session became unavailable. This candidate is therefore NOT claimed byte-equivalent to the active Worker. Live-source comparison remains required.
+
+Session helpers are embedded in the single Worker module, preserving compatibility with the protected single-file upload workflow. Existing streaming request limits, issuer-bound key cache, banking routes and webhook implementation remain in place. No enforcement flags or hosted services were changed. Local verification: all 193 Node tests passed, including 39 gate cases; all 24 Python safeguards passed. Live authentication/lookup behavior remains unverified. Reference: https://supabase.com/docs/guides/auth/sessions
