@@ -65,3 +65,18 @@ The bounded request reader now rejects malformed or truncated UTF-8 with HTTP 40
 Verified the prior head `0e0254f` has successful GitHub checks for smoke-test, worker-isolation, server-security, PWA, and dependency audit. Cloudflare's two preview builds still report failure; their hosting state is not established by successful GitHub checks. Local follow-up validation: full Node suite passed (145 tests), all 8 focused request-reader tests passed, 55 banking contract/isolation checks passed, and 24 Python deployment safeguards passed. No live service, database, authentication setting, or production deployment changed.
 
 The user explicitly authorized uploading this follow-up on 2026-11-15. The connected GitHub app was used because command-line git had no credentials. No live service or production deployment was changed.
+
+## Verified preview failure diagnosis (2026-11-15)
+
+Read the signed-in Cloudflare dashboard logs for commit `5ea9522`:
+
+| Service | Build | Observed configuration/result |
+| --- | --- | --- |
+| flowpay-api | d762813d-9c10-42c8-af4f-ecd3b5b0a04b | Root `/`, no build command, deploy `npx wrangler preview`; dependencies install successfully, Wrangler 4.162.0 fails because configuration lacks a `previews` block. |
+| flowpay2 | 9c4bdccc-e6e1-4775-9c2e-e76b17c71ef9 | Same root, commands, Wrangler version, and missing-`previews` failure. |
+
+Both dashboard views identify the service environment as Production, while these builds use the review branch. This does not establish that either service is the deployed banking staging Worker. Do not blindly add root-level Wrangler configuration or retry a deployment: first map these services to their intended roles, verify production/non-production build commands and branch rules, and verify resource isolation. The separately protected staging Worker upload/promotion flow remains authoritative. No build was retried and no service setting was changed during this investigation.
+
+Official reference: https://developers.cloudflare.com/workers/previews/configuration/
+
+All five GitHub check jobs passed on `5ea9522`: smoke-test, worker-isolation, server-security, pwa, and npm-audit. These checks do not verify hosted deployment behavior.
