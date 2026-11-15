@@ -664,7 +664,14 @@ async function syncConnection(env, user, connection, leaseToken) {
 export async function readRequestText(request, maxBytes) {
   if (!request.body) return "";
   const reader = request.body.getReader();
-  const textDecoder = new TextDecoder();
+  const textDecoder = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
+  function decode(chunk, options) {
+    try { return textDecoder.decode(chunk, options); } catch {
+      const error = Error("Invalid UTF-8");
+      error.status = 400;
+      throw error;
+    }
+  }
   const parts = [];
   let bytes = 0;
   try {
@@ -678,9 +685,9 @@ export async function readRequestText(request, maxBytes) {
         error.status = 413;
         throw error;
       }
-      parts.push(textDecoder.decode(value, { stream: true }));
+      parts.push(decode(value, { stream: true }));
     }
-    parts.push(textDecoder.decode());
+    parts.push(decode());
     return parts.join("");
   } finally {
     reader.releaseLock();
@@ -768,6 +775,7 @@ export default {
         return send({ success: true });
       } catch (error) {
         if (error.status === 413) return send({ error: "Payload too large" }, 413);
+        if (error.status === 400) return send({ error: "Invalid webhook" }, 400);
         return send({ error: "Webhook processing unavailable" }, 503);
       }
     }

@@ -57,3 +57,11 @@ The Worker now enforces request body byte limits while reading the stream, befor
 Cached JWKS entries are now bound to the exact configured Supabase issuer. Each request retains its own cache snapshot while verifying its token. A synthetic regression reproduced acceptance of project-B claims signed with a previously cached project-A key when both keys used the same key ID and configuration changed within the same module instance; the fixed source rejects it. Repeated sign-ins still reuse the same issuer's cache, and a new key ID triggers refresh. This test does not establish that live deployments share a runtime or that any live account was affected.
 
 Validation: all 142 Node tests, 55 explicit banking checks, and 24 Python safeguards passed locally. Prior commit `d19bffb6819d0bf783e65d3a2b96d6406275ebe9` passed all four GitHub workflows. No hosted Supabase configuration, authentication settings, or Worker deployments were changed. Reference: https://supabase.com/docs/guides/auth/jwts
+
+## Request encoding follow-up (2026-11-15, staging source only)
+
+The bounded request reader now rejects malformed or truncated UTF-8 with HTTP 400 rather than silently replacing bytes inside financial JSON. It preserves an initial byte-order mark in raw text so webhook verification does not hash a normalized body; JSON parsing rejects that mark. Malformed webhook encoding returns 400 before Plaid or database work. Regression cases cover invalid bytes, split and truncated sequences, BOM byte preservation, and webhook rejection.
+
+Verified the prior head `0e0254f` has successful GitHub checks for smoke-test, worker-isolation, server-security, PWA, and dependency audit. Cloudflare's two preview builds still report failure; their hosting state is not established by successful GitHub checks. Local follow-up validation: full Node suite passed (145 tests), all 8 focused request-reader tests passed, 55 banking contract/isolation checks passed, and 24 Python deployment safeguards passed. No live service, database, authentication setting, or production deployment changed.
+
+The user explicitly authorized uploading this follow-up on 2026-11-15. The connected GitHub app was used because command-line git had no credentials. No live service or production deployment was changed.

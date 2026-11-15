@@ -57,3 +57,33 @@ test('oversized webhook returns 413 before Plaid or database access', async () =
   assert.equal(response.status, 413);
   assert.deepEqual(await response.json(), { error: 'Payload too large' });
 });
+
+
+test('invalid UTF-8 cannot silently change financial JSON strings', async () => {
+  for (const chunks of [
+    [Uint8Array.from([34, 0xff, 34])],
+    [Uint8Array.from([34, 0xe2]), Uint8Array.from([34])],
+    [Uint8Array.from([34, 0xe2, 0x82])]
+  ]) {
+    const request = streamed(chunks);
+    await assert.rejects(readJson(request), { status: 400, message: 'Invalid UTF-8' });
+    assert.equal(request.body.locked, false);
+  }
+});
+
+test('raw text preserves a UTF-8 BOM for webhook byte-hash verification', async () => {
+  const bytes = encode('\uFEFF{"ok":true}');
+  assert.deepEqual(encode(await readRequestText(streamed([bytes.slice(0, 1), bytes.slice(1)]), 20)), bytes);
+  await assert.rejects(readJson(streamed([bytes])), { status: 400, message: 'Invalid JSON' });
+});
+
+test('malformed UTF-8 webhook is rejected before external or database work', async () => {
+  const header = Buffer.from(JSON.stringify({ alg: 'ES256', kid: 'test-key' })).toString('base64url');
+  const claims = Buffer.from(JSON.stringify({ iat: Math.floor(Date.now()/1000), request_body_sha256: '0'.repeat(64) })).toString('base64url');
+  const response = await worker.fetch(new Request('https://worker.test/plaid-webhook', {
+    method: 'POST', headers: { 'Plaid-Verification': `${header}.${claims}.signature` },
+    body: Uint8Array.from([34, 0xff, 34])
+  }), { PLAID_ENV: 'sandbox' });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { error: 'Invalid webhook' });
+});
