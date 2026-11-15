@@ -14,8 +14,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      # Repository currently has no package-lock.json; npm ci requires one.
-      - run: npm install --no-package-lock --ignore-scripts --no-audit --no-fund
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Audit production dependencies for high-severity vulnerabilities
+        run: npm audit --omit=dev --audit-level=high
       - run: npm test
       - name: Verify production Docker image builds
         run: docker build --tag flowpay-frontend-ci .
@@ -33,3 +34,8 @@ jobs:
         run: node --check cloudflare/staging-worker.mjs
       - name: Run banking isolation and sync contract tests
         run: node --test cloudflare/tests/account-isolation.test.mjs test/worker-sync-contract.test.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test staging inspection and deployment safeguards without credentials
+        run: python3 -m unittest discover -s cloudflare/tests -v
