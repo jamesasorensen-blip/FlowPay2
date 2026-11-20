@@ -1,5 +1,6 @@
 // Guest-only upcoming paycheck dashboard. Uses the same state as the calculator.
-document.addEventListener('DOMContentLoaded',function(){
+function initGuestPaychecks(){
+ try{
  const escText=s=>String(s??'');
  const upcoming=()=>[...(state.paychecks||[])].filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date));
  const shell=document.createElement('section');
@@ -32,4 +33,6 @@ document.addEventListener('DOMContentLoaded',function(){
  document.getElementById('guest-pay-delete').addEventListener('click',()=>{const id=document.getElementById('guest-pay-id').value;if(!id||!confirm('Delete this paycheck?'))return;state.paychecks=state.paychecks.filter(p=>String(p.id)!==id);change();refresh();close()});
  const originalRender=render;render=function(...args){const result=originalRender.apply(this,args);refresh();return result};
  try{refresh()}catch(error){const anchor=document.getElementById('guest-pay-visible-anchor');if(anchor)anchor.querySelector('p').textContent='Paycheck manager could not load: '+error.message;console.error(error)}
-});
+ }catch(error){const anchor=document.getElementById('guest-pay-visible-anchor');if(anchor){const p=anchor.querySelector('p');if(p)p.textContent='Paycheck manager error: '+error.message;}console.error('Guest paycheck init',error)}
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGuestPaychecks,{once:true});else initGuestPaychecks();
