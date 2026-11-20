@@ -1,0 +1,35 @@
+// Guest-only upcoming paycheck dashboard. Uses the same state as the calculator.
+(function(){
+ const escText=s=>String(s??'');
+ const upcoming=()=>[...(state.paychecks||[])].filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date));
+ const shell=document.createElement('section');
+ shell.id='guest-upcoming-paychecks';
+ shell.className='rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 my-4';
+ shell.innerHTML='<div class="flex items-center justify-between gap-3 mb-3"><h2 class="font-bold text-lg">Upcoming Paychecks</h2><button type="button" id="guest-pay-open" class="fp-ui-btn">Manage paychecks</button></div><div id="guest-pay-list" class="space-y-2"></div><p id="guest-pay-projection" class="text-xs text-slate-500 dark:text-slate-300 mt-3"></p>';
+ const modal=document.createElement('div');
+ modal.id='guest-pay-modal';modal.className='fixed inset-0 z-[150] hidden items-center justify-center bg-slate-950/80 p-4';
+ modal.innerHTML='<div role="dialog" aria-modal="true" aria-labelledby="guest-pay-title" class="bg-white dark:bg-slate-800 rounded-2xl p-5 w-full max-w-md text-slate-900 dark:text-white"><div class="flex justify-between items-center mb-4"><h2 id="guest-pay-title" class="font-bold text-lg">Upcoming Paycheck</h2><button type="button" id="guest-pay-close" aria-label="Close">✕</button></div><form id="guest-pay-form" class="space-y-3"><input type="hidden" id="guest-pay-id"><label class="block text-sm">Paycheck name<input id="guest-pay-name" required maxlength="120" class="block w-full p-2 rounded-lg border text-slate-900"></label><label class="block text-sm">Net amount ($)<input id="guest-pay-amount" type="number" required min="0.01" step="0.01" class="block w-full p-2 rounded-lg border text-slate-900"></label><label class="block text-sm">Payment date<input id="guest-pay-date" type="date" required class="block w-full p-2 rounded-lg border text-slate-900"></label><label class="block text-sm">Paycheck type<select id="guest-pay-type" class="block w-full p-2 rounded-lg border text-slate-900"><option value="actual">Actual (expected)</option><option value="potential">Potential (scenario)</option></select></label><div class="flex justify-between gap-2"><button type="button" id="guest-pay-delete" class="fp-ui-btn">Delete</button><button type="submit" class="fp-ui-btn fp-primary">Save paycheck</button></div></form></div>';
+ document.body.append(modal);
+ function close(){modal.classList.add('hidden');modal.classList.remove('flex')}
+ function open(p){document.getElementById('guest-pay-id').value=p?.id||'';document.getElementById('guest-pay-name').value=p?.name||'';document.getElementById('guest-pay-amount').value=p?.amount||'';document.getElementById('guest-pay-date').value=p?.date||day();document.getElementById('guest-pay-type').value=p?.status==='potential'?'potential':'actual';document.getElementById('guest-pay-delete').hidden=!p;modal.classList.remove('hidden');modal.classList.add('flex');document.getElementById('guest-pay-name').focus()}
+ function refresh(){
+  const dashboard=document.getElementById('view-dashboard');if(!dashboard)return;
+  if(!shell.isConnected)dashboard.insertBefore(shell,dashboard.firstChild);
+  const list=document.getElementById('guest-pay-list');list.replaceChildren();
+  const pays=upcoming();if(!pays.length){const empty=document.createElement('p');empty.className='text-sm text-slate-500';empty.textContent='No upcoming paychecks. Add one here or in the Future Paycheck Calculator.';list.append(empty)}
+  for(const p of pays){const row=document.createElement('div');row.className='flex justify-between items-center gap-2 border-b border-slate-200 dark:border-slate-700 py-2';
+   const details=document.createElement('div');details.className='min-w-0';const name=document.createElement('div');name.className='font-semibold break-words';name.textContent=escText(p.name);const meta=document.createElement('div');meta.className='text-xs text-slate-500 dark:text-slate-300';meta.textContent=p.date+' · '+(p.status==='potential'?'Potential':'Actual (expected)');details.append(name,meta);
+   const edit=document.createElement('button');edit.type='button';edit.className='fp-ui-btn shrink-0';edit.textContent=money(p.amount)+' · Edit';edit.addEventListener('click',()=>open(p));row.append(details,edit);list.append(row)}
+  const actual=pays.filter(p=>p.status==='actual').reduce((s,p)=>s+num(p.amount),0);
+  const potential=pays.filter(p=>p.status==='potential').reduce((s,p)=>s+num(p.amount),0);
+  document.getElementById('guest-pay-projection').textContent='Expected actual income: '+money(actual)+' · Potential income: '+money(potential)+'. Projected Safe to Spend after expected income: '+money(safeBreakdown().safe+actual)+'. Current Safe to Spend excludes money not yet received.';
+ }
+ document.getElementById('guest-pay-open').addEventListener('click',()=>open(null));
+ document.getElementById('guest-pay-close').addEventListener('click',close);
+ modal.addEventListener('click',e=>{if(e.target===modal)close()});
+ document.getElementById('guest-pay-form').addEventListener('submit',e=>{e.preventDefault();const id=document.getElementById('guest-pay-id').value;const name=document.getElementById('guest-pay-name').value.trim(),amount=Number(document.getElementById('guest-pay-amount').value),dateValue=document.getElementById('guest-pay-date').value,status=document.getElementById('guest-pay-type').value;if(!name||!Number.isFinite(amount)||amount<=0||!/^\\d{4}-\\d{2}-\\d{2}$/.test(dateValue))return;
+ let p=state.paychecks.find(p=>String(p.id)===id);if(p){Object.assign(p,{name,amount,date:dateValue,status})}else state.paychecks.push({id:uid(),name,amount,date:dateValue,status});change();refresh();close()});
+ document.getElementById('guest-pay-delete').addEventListener('click',()=>{const id=document.getElementById('guest-pay-id').value;if(!id||!confirm('Delete this paycheck?'))return;state.paychecks=state.paychecks.filter(p=>String(p.id)!==id);change();refresh();close()});
+ const originalRender=render;render=function(...args){const result=originalRender.apply(this,args);refresh();return result};
+ refresh();
+})();
