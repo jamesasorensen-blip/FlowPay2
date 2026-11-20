@@ -14,14 +14,16 @@ function initGuestPaychecks(){
  // Mount the dashboard card before binding its buttons.
  const dashboardHost=document.getElementById('view-dashboard');
  const existingAnchor=document.getElementById('guest-pay-visible-anchor');
- if(existingAnchor)existingAnchor.replaceWith(shell);
- else if(dashboardHost)dashboardHost.insertBefore(shell,dashboardHost.firstChild);
+ if(existingAnchor)existingAnchor.remove();
+ const savingsCard=document.getElementById('metric-card-savings');
+ if(savingsCard?.parentElement){savingsCard.parentElement.insertBefore(shell,savingsCard);shell.classList.add('col-span-full');}
+ else if(dashboardHost)dashboardHost.append(shell);
 
  function close(){modal.classList.add('hidden');modal.classList.remove('flex')}
  function open(p){document.getElementById('guest-pay-id').value=p?.id||'';document.getElementById('guest-pay-name').value=p?.name||'';document.getElementById('guest-pay-amount').value=p?.amount||'';document.getElementById('guest-pay-date').value=p?.date||day();document.getElementById('guest-pay-type').value=p?.status==='potential'?'potential':'actual';document.getElementById('guest-pay-delete').hidden=!p;modal.classList.remove('hidden');modal.classList.add('flex');document.getElementById('guest-pay-name').focus()}
  function refresh(){
   const dashboard=document.getElementById('view-dashboard');if(!dashboard)return;
-  if(!shell.isConnected){const anchor=document.getElementById('guest-pay-visible-anchor');if(anchor)anchor.replaceWith(shell);else dashboard.insertBefore(shell,dashboard.firstChild);}
+  if(!shell.isConnected){const savings=document.getElementById('metric-card-savings');if(savings?.parentElement)savings.parentElement.insertBefore(shell,savings);else dashboard.append(shell);}
   const list=document.getElementById('guest-pay-list');list.replaceChildren();
   const pays=upcoming();if(!pays.length){const empty=document.createElement('p');empty.className='text-sm text-slate-500';empty.textContent='No upcoming paychecks. Add one here or in the Future Paycheck Calculator.';list.append(empty)}
   for(const p of pays){const row=document.createElement('div');row.className='flex justify-between items-center gap-2 border-b border-slate-200 dark:border-slate-700 py-2';
