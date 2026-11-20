@@ -32,4 +32,4 @@ document.addEventListener('DOMContentLoaded',function(){
  document.getElementById('guest-pay-delete').addEventListener('click',()=>{const id=document.getElementById('guest-pay-id').value;if(!id||!confirm('Delete this paycheck?'))return;state.paychecks=state.paychecks.filter(p=>String(p.id)!==id);change();refresh();close()});
  const originalRender=render;render=function(...args){const result=originalRender.apply(this,args);refresh();return result};
  refresh();
-})();
+});
