@@ -80,7 +80,7 @@ body{padding-bottom:80px}
 html=html.replace('</main>', '<section id="guest-pay-visible-anchor" class="rounded-2xl border border-indigo-300 bg-indigo-50 dark:bg-slate-800 p-4 my-4"><h2 class="font-bold text-lg">Upcoming Paychecks</h2><p class="text-sm">Loading paycheck manager…</p></section></main>');
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 const paycheckRuntime=readFileSync(new URL('./guest-upcoming-paychecks-runtime.txt',import.meta.url),'utf8');
-html=html.replace('</body>', '<script>\n'+runtime+'\n'+paycheckRuntime+'\n</script>\n</body>');
+html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n</body>');
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
  if(html.includes(forbidden))throw new Error('Guest output contains forbidden integration: '+forbidden);
 }
