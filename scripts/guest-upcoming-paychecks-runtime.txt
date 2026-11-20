@@ -31,7 +31,17 @@ function initGuestPaychecks(){
    const edit=document.createElement('button');edit.type='button';edit.className='fp-ui-btn shrink-0';edit.replaceChildren();const amountLabel=document.createElement('span');amountLabel.className='text-emerald-600 dark:text-emerald-400 font-bold';amountLabel.textContent=money(p.amount);edit.append(amountLabel,document.createTextNode(' · Edit'));edit.addEventListener('click',()=>open(p));row.append(details,edit);list.append(row)}
   const actual=pays.filter(p=>p.status==='actual').reduce((s,p)=>s+num(p.amount),0);
   const potential=pays.filter(p=>p.status==='potential').reduce((s,p)=>s+num(p.amount),0);
-  document.getElementById('guest-pay-projection').textContent='Expected actual income: '+money(actual)+' · Potential income: '+money(potential)+'. Projected Safe to Spend after expected income: '+money(safeBreakdown().safe+actual)+'. Current Safe to Spend excludes money not yet received.';
+  const projection=document.getElementById('guest-pay-projection');
+  projection.replaceChildren();
+  const addText=text=>projection.append(document.createTextNode(text));
+  const addAmount=(value,classes,prefix='')=>{const span=document.createElement('span');span.className=classes;span.textContent=prefix+money(value);projection.append(span)};
+  addText('Expected actual income: ');
+  addAmount(actual,'italic font-semibold text-emerald-600 dark:text-emerald-400','+');
+  addText(' · Potential income: ');
+  addAmount(potential,'italic font-semibold text-purple-600 dark:text-purple-400','+');
+  addText('. Projected Safe to Spend after expected income: ');
+  addAmount(safeBreakdown().safe+actual,'font-semibold text-emerald-600 dark:text-emerald-400');
+  addText('. Current Safe to Spend excludes money not yet received.');
  }
  document.getElementById('guest-pay-open').addEventListener('click',()=>open(null));
  document.getElementById('guest-pay-close').addEventListener('click',close);
