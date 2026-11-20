@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded',function(){
  function open(p){document.getElementById('guest-pay-id').value=p?.id||'';document.getElementById('guest-pay-name').value=p?.name||'';document.getElementById('guest-pay-amount').value=p?.amount||'';document.getElementById('guest-pay-date').value=p?.date||day();document.getElementById('guest-pay-type').value=p?.status==='potential'?'potential':'actual';document.getElementById('guest-pay-delete').hidden=!p;modal.classList.remove('hidden');modal.classList.add('flex');document.getElementById('guest-pay-name').focus()}
  function refresh(){
   const dashboard=document.getElementById('view-dashboard');if(!dashboard)return;
-  if(!shell.isConnected)dashboard.insertBefore(shell,dashboard.firstChild);
+  if(!shell.isConnected){const anchor=document.getElementById('guest-pay-visible-anchor');if(anchor)anchor.replaceWith(shell);else dashboard.insertBefore(shell,dashboard.firstChild);}
   const list=document.getElementById('guest-pay-list');list.replaceChildren();
   const pays=upcoming();if(!pays.length){const empty=document.createElement('p');empty.className='text-sm text-slate-500';empty.textContent='No upcoming paychecks. Add one here or in the Future Paycheck Calculator.';list.append(empty)}
   for(const p of pays){const row=document.createElement('div');row.className='flex justify-between items-center gap-2 border-b border-slate-200 dark:border-slate-700 py-2';
@@ -31,5 +31,5 @@ document.addEventListener('DOMContentLoaded',function(){
  let p=state.paychecks.find(p=>String(p.id)===id);if(p){Object.assign(p,{name,amount,date:dateValue,status})}else state.paychecks.push({id:uid(),name,amount,date:dateValue,status});change();refresh();close()});
  document.getElementById('guest-pay-delete').addEventListener('click',()=>{const id=document.getElementById('guest-pay-id').value;if(!id||!confirm('Delete this paycheck?'))return;state.paychecks=state.paychecks.filter(p=>String(p.id)!==id);change();refresh();close()});
  const originalRender=render;render=function(...args){const result=originalRender.apply(this,args);refresh();return result};
- refresh();
+ try{refresh()}catch(error){const anchor=document.getElementById('guest-pay-visible-anchor');if(anchor)anchor.querySelector('p').textContent='Paycheck manager could not load: '+error.message;console.error(error)}
 });
