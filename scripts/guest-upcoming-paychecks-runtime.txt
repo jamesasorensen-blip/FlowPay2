@@ -1,5 +1,5 @@
 // Guest-only upcoming paycheck dashboard. Uses the same state as the calculator.
-(function(){
+document.addEventListener('DOMContentLoaded',function(){
  const escText=s=>String(s??'');
  const upcoming=()=>[...(state.paychecks||[])].filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date));
  const shell=document.createElement('section');
