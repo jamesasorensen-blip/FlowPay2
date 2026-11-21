@@ -23,7 +23,7 @@ test('guest persistence ignores production records and never writes production k
  vm.runInContext(scripts[0],context);
  const core=scripts.find(x=>x.includes('const defaults='));
  vm.runInContext(core,context);
- const runtime=scripts.at(-1).split("document.addEventListener('DOMContentLoaded'")[0];
+ const runtime=scripts.find(code=>code.includes('function guestSample()')).split("document.addEventListener('DOMContentLoaded'")[0];
  vm.runInContext(runtime,context);
  vm.runInContext('loadGuestBudget(); save();',context);
  assert.equal(vm.runInContext('state.balance',context),2840);
