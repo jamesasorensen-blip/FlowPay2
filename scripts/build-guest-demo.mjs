@@ -78,6 +78,9 @@ body{padding-bottom:80px}
 @media(max-width:640px){#fp4-shortcuts{display:none}#header-page-title{font-size:16px}header:has(#header-page-title){padding:12px}#fp-toolbar .fp-label{display:inline}#fp-toolbar{gap:7px}#fp2-save-status{white-space:normal}#guest-banner{font-size:12px}}
 </style></head>`);
 html=html.replace('</main>', '<section id="guest-pay-visible-anchor" class="rounded-2xl border border-indigo-300 bg-indigo-50 dark:bg-slate-800 p-4 my-4"><h2 class="font-bold text-lg">Upcoming Paychecks</h2><p class="text-sm">Loading paycheck manager…</p></section></main>');
+
+// Keep the compact next-bill summary identifiable as bills change.
+html=replaceOnce(html,"$('fp2-next').textContent=next?money(next.bill.amount):'None';","$('fp2-next').textContent=next?money(next.bill.amount):'None';\n   $('fp2-next').nextElementSibling.textContent=next?(next.bill.name||'Unnamed bill')+' · Next upcoming payment':'No upcoming bills';");
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 const paycheckRuntime=readFileSync(new URL('./guest-upcoming-paychecks-runtime.txt',import.meta.url),'utf8');
 html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n</body>');
