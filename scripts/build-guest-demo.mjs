@@ -83,9 +83,12 @@ html=html.replace('</main>', '<section id="guest-pay-visible-anchor" class="roun
 html=replaceOnce(html,"$('fp2-next').textContent=next?money(next.bill.amount):'None';","$('fp2-next').textContent=next?money(next.bill.amount):'None';\n   const nextLabel=$('fp2-next').previousElementSibling;\n   const nextDetail=$('fp2-next').nextElementSibling;\n   nextLabel.replaceChildren(document.createTextNode('Next Bill: '));\n   nextDetail.replaceChildren();\n   if(next){\n    const name=document.createElement('strong');\n    name.textContent=next.bill.name||'Unnamed bill';\n    name.style.color='#2563eb';\n    nextLabel.append(name);\n    const parts=String(next.date).split('-').map(Number);\n    const due=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]));\n    const weekdays=['Sun','Mon','Tues','Wed','Thurs','Fri','Sat'];\n    const stamp=String(parts[1]).padStart(2,'0')+'/'+String(parts[2]).padStart(2,'0')+'/'+String(parts[0]).slice(-2);\n    const when=document.createElement('em');\n    when.textContent='('+weekdays[due.getUTCDay()]+', '+stamp+')';\n    when.style.color='#2563eb';\n    nextDetail.append(when);\n   }else nextLabel.append(document.createTextNode('None'));");
 html=replaceOnce(html,"category:$('bill-category').value,frequency:","category:$('bill-category').value,icon:$('guest-bill-icon')?.value||'auto',frequency:");
 const billControls=readFileSync(new URL('./guest-bill-controls.txt',import.meta.url),'utf8');
+html=replaceOnce(html,"</i> Next Month Bills (","</i> Include Next Month's Bills (");
+html=replaceOnce(html,"</i> Buffer ($","</i> Emergency Savings Buffer ($");
+const shortcuts=readFileSync(new URL('./guest-dashboard-shortcuts.txt',import.meta.url),'utf8');
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 const paycheckRuntime=readFileSync(new URL('./guest-upcoming-paychecks-runtime.txt',import.meta.url),'utf8');
-html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n<script>\n'+billControls+'\n</script>\n</body>');
+html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n<script>\n'+billControls+'\n</script>\n<script>\n'+shortcuts+'\n</script>\n</body>');
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
  if(html.includes(forbidden))throw new Error('Guest output contains forbidden integration: '+forbidden);
 }
