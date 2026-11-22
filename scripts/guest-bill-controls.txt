@@ -10,6 +10,14 @@ function guestBillIcon(b){
 }
 function initGuestBillControls(){
  const style=document.createElement('style');style.textContent=`
+ #bills-table-body .guest-paid-detail{color:#94a3b8;text-decoration:line-through;text-decoration-thickness:2px;filter:grayscale(1)}
+ #bills-table-body .guest-paid-detail .guest-bill-icon{position:relative;opacity:.55}
+ #bills-table-body .guest-paid-detail .guest-bill-icon::after{content:'';position:absolute;left:0;right:0;top:50%;border-top:2px solid #94a3b8}
+ #bills-table-body .guest-status-paid{color:#15803d;font-weight:700;text-decoration:none}
+ #bills-table-body .guest-status-pending{color:#c2410c;font-weight:700;text-decoration:none}
+ .dark #bills-table-body .guest-status-paid{color:#4ade80}
+ .dark #bills-table-body .guest-status-pending{color:#fb923c}
+
  #bills-table-body [data-bill-action]{min-height:48px;min-width:64px;padding:12px 16px;border-radius:12px;font-weight:700;border:1px solid #c7d2fe;background:#eef2ff;color:#3730a3;margin:0;touch-action:manipulation}
  #bills-table-body [data-bill-action="delete"]{background:#fff1f2;border-color:#fecdd3;color:#be123c}
  #bills-table-body [data-bill-action]:active{transform:scale(.96);filter:brightness(.9)}
@@ -36,7 +44,24 @@ function initGuestBillControls(){
  select.addEventListener('change',preview);$('bill-name').addEventListener('input',preview);
  const oldEdit=editBill;editBill=function(id){oldEdit(id);hidden.value=state.bills.find(b=>String(b.id)===String(id))?.icon||'auto';preview()};
  $('open-add-bill-btn').addEventListener('click',()=>{hidden.value='auto';preview()});
- const oldRender=renderBills;renderBills=function(...args){const result=oldRender(...args);for(const row of $('bills-table-body').rows){const edit=row.querySelector('[data-bill-action="edit"]');if(!edit)continue;const bill=state.bills.find(b=>String(b.id)===edit.dataset.id);if(!bill)continue;['','Category','Frequency','Due date','Amount','Status',''].forEach((label,i)=>{if(label)row.cells[i].dataset.label=label});const icon=guestBillIcon(bill),badge=document.createElement('span');badge.className='guest-bill-icon';badge.textContent=icon[1];badge.setAttribute('role','img');badge.setAttribute('aria-label',icon[2]);row.cells[0].prepend(badge);const actions=document.createElement('div');actions.className='guest-bill-actions';while(row.cells[6].firstChild)actions.append(row.cells[6].firstChild);row.cells[6].append(actions);for(const button of actions.querySelectorAll('button'))button.type='button';}return result};
+ const oldRender=renderBills;renderBills=function(...args){const result=oldRender(...args);for(const row of $('bills-table-body').rows){const edit=row.querySelector('[data-bill-action="edit"]');if(!edit)continue;const bill=state.bills.find(b=>String(b.id)===edit.dataset.id);if(!bill)continue;['','Category','Frequency','Due date','Amount','Status',''].forEach((label,i)=>{if(label)row.cells[i].dataset.label=label});const icon=guestBillIcon(bill),badge=document.createElement('span');badge.className='guest-bill-icon';badge.textContent=icon[1];badge.setAttribute('role','img');badge.setAttribute('aria-label',icon[2]);row.cells[0].prepend(badge);const actions=document.createElement('div');actions.className='guest-bill-actions';while(row.cells[6].firstChild)actions.append(row.cells[6].firstChild);row.cells[6].append(actions);
+const toggle=actions.querySelector('[data-bill-action="toggle"]');
+const paid=toggle?.textContent.trim()==='Undo';
+for(let i=0;i<5;i++){
+ const detail=document.createElement('span');if(paid)detail.className='guest-paid-detail';
+ while(row.cells[i].firstChild)detail.append(row.cells[i].firstChild);
+ row.cells[i].append(detail);
+}
+const status=row.cells[5];status.className=paid?'guest-status-paid':'guest-status-pending';status.textContent=paid?'✓ Paid':'Pending';
+for(const button of actions.querySelectorAll('button')){
+ button.type='button';const action=button.dataset.billAction;const label=button.textContent.trim();
+ const mark=document.createElement('span');mark.setAttribute('aria-hidden','true');mark.style.marginRight='6px';
+ if(action==='toggle'){mark.textContent=paid?'↶':'✓';mark.style.color='#15803d'}
+ else if(action==='edit'){mark.innerHTML='<i class="fa-solid fa-pencil" aria-hidden="true"></i>'}
+ else if(action==='delete'){mark.textContent='✕';mark.style.color='#dc2626'}
+ button.replaceChildren(mark,document.createTextNode(label));
+}
+}return result};
  preview();renderBills();
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGuestBillControls,{once:true});else initGuestBillControls();
