@@ -46,7 +46,7 @@ function initGuestDashboardShortcuts(){
  }
  function update(){
   const monthHeading=$('metric-card-activebills')?.querySelector('span');
-  if(monthHeading)monthHeading.textContent='Total Remaining Unpaid Bills for '+new Date().toLocaleDateString(undefined,{month:'long'});
+  if(monthHeading){monthHeading.style.textTransform='none';const month=document.createElement('strong');month.style.fontWeight='800';month.textContent=new Date().toLocaleDateString(undefined,{month:'long'});monthHeading.replaceChildren(document.createTextNode('Total remaining unpaid bills for: '),month);}
 
   const safeLabel=$('fp2-safe')?.previousElementSibling;
   if(safeLabel&&!safeLabel.querySelector('[data-safe-spend-icon]')){
