@@ -32,9 +32,9 @@ function initGuestDashboardShortcuts(){
    payLabel.replaceChildren(document.createTextNode('Next Paycheck'+(pay?': ':'')));
    payLabel.style.removeProperty('color');
    if(pay){
-    const icon=document.createElement('span');icon.style.cssText='display:inline-flex;vertical-align:middle;margin:0 5px;width:26px;height:26px;color:#166534';
+    const icon=document.createElement('span');icon.style.cssText='display:inline-flex;vertical-align:middle;margin:0 5px;width:26px;height:26px;color:#000000';
     icon.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Paycheck received"><rect x="7" y="16" width="35" height="23" rx="2"/><path d="M27 22c-7-3-10 5-3 6s4 9-3 6m3-14v16M46 9h10v18H46zM46 12H33l-9 8m22 4h-7l-5 5c-4 4-9-1-6-4l7-8"/><path d="m7 51 8-8 10 10-8 8zM22 48l6-5h12c5 0 5 7 0 7H30m14-5 9-7c5-4 9 2 5 6L45 56H28l-3-3"/></svg>';
-    const name=document.createElement('strong');name.textContent=pay.name||'Unnamed job';name.style.color='#166534';payLabel.append(icon,name);
+    const name=document.createElement('strong');name.textContent=pay.name||'Unnamed job';name.style.color='#166534';payLabel.append(name,icon);
    }
   }
 
