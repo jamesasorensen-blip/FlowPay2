@@ -45,6 +45,9 @@ function initGuestDashboardShortcuts(){
   panel.addEventListener('close',()=>{tab.setAttribute('aria-expanded','false');tab.focus()});
  }
  function update(){
+  const monthHeading=$('metric-card-activebills')?.querySelector('span');
+  if(monthHeading)monthHeading.textContent='Total Remaining Unpaid Bills for '+new Date().toLocaleDateString(undefined,{month:'long'});
+
   const safeLabel=$('fp2-safe')?.previousElementSibling;
   if(safeLabel&&!safeLabel.querySelector('[data-safe-spend-icon]')){
    const icon=document.createElement('img');icon.dataset.safeSpendIcon='';icon.alt='Safe to spend';icon.width=40;icon.height=40;icon.decoding='async';icon.style.cssText='display:inline-block;vertical-align:middle;margin-left:6px;width:40px;height:40px;object-fit:contain';
@@ -90,5 +93,18 @@ function initGuestDashboardShortcuts(){
 
  }
  const oldRender=render;render=function(...args){const result=oldRender(...args);update();return result};update();
+ // Use local calendar boundaries, including daylight saving time changes.
+ let monthClockTimer;
+ function syncLocalCalendar(){
+  clearTimeout(monthClockTimer);
+  render();
+  const now=new Date();
+  const midnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
+  monthClockTimer=setTimeout(syncLocalCalendar,Math.max(1,midnight.getTime()-now.getTime()+25));
+ }
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)syncLocalCalendar()});
+ window.addEventListener('focus',syncLocalCalendar);
+ syncLocalCalendar();
+
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGuestDashboardShortcuts,{once:true});else initGuestDashboardShortcuts();
