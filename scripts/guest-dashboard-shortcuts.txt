@@ -76,6 +76,22 @@ function initGuestDashboardShortcuts(){
    note.hidden=deficit<=0;
    note.textContent=deficit>0?'-'+money(deficit):'';
    note.setAttribute('aria-label',deficit>0?'Balance shortfall: '+money(deficit):'');
+   let remaining=$('next-bill-remaining-balance');
+   if(!remaining){
+    remaining=document.createElement('div');remaining.id='next-bill-remaining-balance';
+    remaining.style.cssText='font-size:12px;font-weight:600;text-align:right;margin-top:6px;overflow-wrap:anywhere';
+    remaining.setAttribute('aria-live','polite');note.after(remaining);
+   }
+   remaining.hidden=!next;
+   remaining.replaceChildren();
+   if(next){
+    const value=document.createElement('strong');
+    const after=balance-amount;
+    value.textContent=money(after);
+    value.style.color=after<0?'#dc2626':'#15803d';
+    remaining.append(document.createTextNode('Remaining Balance After Bill is Paid: '),value);
+   }
+
   }
   const label=$('fp2-next')?.previousElementSibling;
   if(label){label.querySelector('[data-next-bill-icon]')?.remove();if(next){const icon=guestBillIcon(next.bill),badge=document.createElement('span');badge.dataset.nextBillIcon='';badge.textContent=icon[1]+' ';badge.setAttribute('role','img');badge.setAttribute('aria-label',icon[2]);label.querySelector('strong')?.prepend(badge)}}
