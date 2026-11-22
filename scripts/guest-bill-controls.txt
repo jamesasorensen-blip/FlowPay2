@@ -36,11 +36,11 @@ function initGuestBillControls(){
  const hidden=document.createElement('input');hidden.type='hidden';hidden.id='guest-bill-icon';hidden.value='auto';$('form-bill').append(hidden);
  const launch=document.createElement('button');launch.type='button';launch.id='guest-bill-icon-open';launch.className='w-full';select.parentElement.after(launch);
  const dialog=document.createElement('dialog');dialog.id='guest-icon-dialog';dialog.setAttribute('aria-labelledby','guest-icon-title');
- dialog.innerHTML='<h2 id="guest-icon-title" class="text-lg font-bold">Choose bill icon</h2><p>Automatic chooses a color icon from the category or bill name.</p><div id="guest-icon-grid"></div><button type="button" id="guest-icon-done">Done</button>';
+ dialog.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="guest-icon-title" class="text-lg font-bold">Choose bill icon</h2><button type="button" id="guest-icon-close" aria-label="Close bill icon picker" style="min-width:48px;min-height:48px;font-size:22px;flex-shrink:0">✕</button></div><p>Automatic chooses a color icon from the category or bill name.</p><div id="guest-icon-grid"></div><button type="button" id="guest-icon-done">Done</button>';
  document.body.append(dialog);
  function preview(){const b={icon:hidden.value,category:select.value,name:$('bill-name').value};const icon=guestBillIcon(b);launch.textContent=icon[1]+' Choose bill icon · '+(hidden.value==='auto'?'Automatic':icon[2]);for(const btn of dialog.querySelectorAll('[data-icon]'))btn.setAttribute('aria-pressed',String(btn.dataset.icon===hidden.value))}
  for(const [id,emoji,label] of guestBillIcons){const button=document.createElement('button');button.type='button';button.dataset.icon=id;button.textContent=emoji+' '+label;button.addEventListener('click',()=>{hidden.value=id;preview()});$('guest-icon-grid').append(button)}
- launch.addEventListener('click',()=>{preview();dialog.showModal()});$('guest-icon-done').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>launch.focus());
+ launch.addEventListener('click',()=>{preview();dialog.showModal()});$('guest-icon-done').addEventListener('click',()=>dialog.close());$('guest-icon-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>launch.focus());
  select.addEventListener('change',preview);$('bill-name').addEventListener('input',preview);
  const oldEdit=editBill;editBill=function(id){oldEdit(id);hidden.value=state.bills.find(b=>String(b.id)===String(id))?.icon||'auto';preview()};
  $('open-add-bill-btn').addEventListener('click',()=>{hidden.value='auto';preview()});
