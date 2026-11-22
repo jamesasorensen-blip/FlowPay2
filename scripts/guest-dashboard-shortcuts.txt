@@ -54,7 +54,7 @@ function initGuestDashboardShortcuts(){
    const netLabel=netValue.previousElementSibling;
    if(netLabel){
     const word=document.createElement('span');word.style.color=color;word.style.fontWeight='700';
-    word.textContent=deficit?'Deficit:':'↑ Surplus:';
+    word.textContent=deficit?'↓ Deficit:':'↑ Surplus:';
     netLabel.replaceChildren(document.createTextNode('Net '),word);
    }
    netValue.style.color=color;
