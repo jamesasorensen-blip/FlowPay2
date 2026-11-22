@@ -20,6 +20,30 @@ function initGuestDashboardShortcuts(){
  drawer.addEventListener('close',()=>{while(host.firstChild)source.append(host.firstChild);const target=opener?.isConnected?opener:$('guest-calculator-open');target?.focus()});
  $('guest-calculator-close').addEventListener('click',()=>drawer.close());
  $('form-paycheck-calc').addEventListener('submit',()=>{const count=state.paychecks.length;queueMicrotask(()=>{if(drawer.open&&state.paychecks.length>count)drawer.close()})},true);
+
+ const activityCard=$('activity-log')?.closest('.glass');
+ if(activityCard){
+  const activityStyle=document.createElement('style');activityStyle.textContent=`
+   #guest-activity-tab{position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:90;writing-mode:vertical-rl;min-width:44px;padding:18px 12px;border:1px solid #c7d2fe;border-radius:14px 0 0 14px;background:#4338ca;color:white;font-weight:700;box-shadow:0 3px 14px #0f172a33;touch-action:manipulation}
+   #guest-activity-tab:focus-visible,#guest-activity-close:focus-visible{outline:3px solid #60a5fa;outline-offset:3px}
+   #guest-activity-drawer{position:fixed;inset:0 0 0 auto;margin:0;width:min(440px,100%);max-width:100%;height:100dvh;max-height:100dvh;border:0;padding:20px;overflow:auto;background:#f8fafc;color:#0f172a;box-shadow:-12px 0 40px #0f172a33}
+   #guest-activity-drawer[open]{animation:guest-drawer-in .2s ease-out}
+   #guest-activity-drawer::backdrop{background:rgb(15 23 42 / .65)}
+   #guest-activity-drawer button{min-height:48px;padding:10px 16px}
+   #guest-activity-close{border:1px solid #94a3b8;border-radius:12px}
+   #guest-activity-drawer #activity-log{max-height:none;overflow:visible}
+   .dark #guest-activity-drawer{background:#0f172a;color:#f8fafc}
+   @media(prefers-reduced-motion:reduce){#guest-activity-drawer[open]{animation:none}}
+  `;document.head.append(activityStyle);
+  const tab=document.createElement('button');tab.type='button';tab.id='guest-activity-tab';tab.textContent='Recent Activity';tab.setAttribute('aria-haspopup','dialog');tab.setAttribute('aria-controls','guest-activity-drawer');tab.setAttribute('aria-expanded','false');
+  const panel=document.createElement('dialog');panel.id='guest-activity-drawer';panel.setAttribute('aria-labelledby','guest-activity-title');
+  panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px"><h2 id="guest-activity-title" class="font-bold text-lg">Recent Activity</h2><button id="guest-activity-close" type="button" aria-label="Close recent activity">Close ✕</button></div>';
+  const footer=activityCard.lastElementChild;if(footer?.querySelector('span'))footer.querySelector('span').textContent='Saved only in this browser.';
+  panel.append(activityCard);document.body.append(tab,panel);
+  tab.addEventListener('click',()=>{renderActivity();panel.showModal();tab.setAttribute('aria-expanded','true')});
+  $('guest-activity-close').addEventListener('click',()=>panel.close());
+  panel.addEventListener('close',()=>{tab.setAttribute('aria-expanded','false');tab.focus()});
+ }
  function update(){
   const safeLabel=$('fp2-safe')?.previousElementSibling;
   if(safeLabel&&!safeLabel.querySelector('[data-safe-spend-icon]')){
