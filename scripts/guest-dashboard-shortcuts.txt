@@ -45,6 +45,22 @@ function initGuestDashboardShortcuts(){
   panel.addEventListener('close',()=>{tab.setAttribute('aria-expanded','false');tab.focus()});
  }
  function update(){
+  const netValue=$('net-surplus-amount');
+  if(netValue){
+   const remainingBills=unpaidMonth(monthKey(day())).reduce((sum,o)=>sum+num(o.bill.amount),0);
+   const net=effectiveBalance()-remainingBills;
+   const deficit=net<0;
+   const color=deficit?'#dc2626':'#15803d';
+   const netLabel=netValue.previousElementSibling;
+   if(netLabel){
+    const word=document.createElement('span');word.style.color=color;word.style.fontWeight='700';
+    word.textContent=deficit?'Deficit:':'↑ Surplus:';
+    netLabel.replaceChildren(document.createTextNode('Net '),word);
+   }
+   netValue.style.color=color;
+   netValue.textContent=(deficit?'-':'+')+money(Math.abs(net));
+  }
+
   const monthHeading=$('metric-card-activebills')?.querySelector('span');
   if(monthHeading){monthHeading.style.textTransform='none';const month=document.createElement('strong');month.style.fontWeight='800';month.textContent=new Date().toLocaleDateString(undefined,{month:'long'});monthHeading.replaceChildren(document.createTextNode('Total remaining unpaid bills for: '),month);}
 
