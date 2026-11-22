@@ -1,0 +1,8 @@
+const test=require('node:test');const assert=require('node:assert/strict');const vm=require('node:vm');const fs=require('node:fs');
+const source=fs.readFileSync('scripts/guest-date-format.txt','utf8');const c=vm.createContext({document:{addEventListener(){}}});vm.runInContext(source,c);
+test('dates keep four digit years and do not shift date-only values across timezones',()=>{assert.equal(c.guestFormatDate('2026-01-03'),'01/03/2026');assert.equal(c.guestFormatDate('2028-02-29'),'02/29/2028');assert.equal(c.guestFormatDate(''),'');});
+test('date entry validates calendar dates and returns ISO for existing calculation code',()=>{assert.equal(c.guestParseDate('11/22/2026'),'2026-11-22');assert.equal(c.guestParseDate('02/29/2028'),'2028-02-29');for(const bad of ['02/29/2026','04/31/2026','13/01/2026','11/22/26','2026-11-22'])assert.equal(c.guestParseDate(bad),'');});
+test('date fields display US format while programmatic reads and writes remain ISO',()=>{
+ class Input{constructor(){this.raw='2026-11-22';this.listeners={};this.form=null}get value(){return this.raw}set value(v){this.raw=String(v)}setAttribute(){}setCustomValidity(v){this.error=v}addEventListener(k,v){this.listeners[k]=v}}
+ const input=new Input();c.HTMLInputElement=Input;c.document.querySelectorAll=()=>[input];c.initGuestDateInputs();assert.equal(input.raw,'11/22/2026');assert.equal(input.value,'2026-11-22');input.value='2027-01-01';assert.equal(input.raw,'01/01/2027');input.raw='02/30/2027';input.listeners.input();assert.ok(input.error);assert.equal(input.value,'');input.raw='03/02/2027';input.listeners.input();assert.equal(input.value,'2027-03-02');assert.equal(input.error,'');
+});
