@@ -5,7 +5,7 @@ function replaceOnce(text, from, to) {
   return text.replace(from,to);
 }
 let html=source;
-html=html.replaceAll('Active Month Bills','Total Unpaid Bills for this Month');
+html=html.replaceAll('Active Month Bills','Total Remaining Unpaid Bills');
 const authStart=html.indexOf('<!-- Supabase Auth integration:');
 const authEnd=html.indexOf('<!-- End FlowPay Plaid Sandbox -->');
 if(authStart<0||authEnd<authStart)throw new Error('Integration boundaries changed');
