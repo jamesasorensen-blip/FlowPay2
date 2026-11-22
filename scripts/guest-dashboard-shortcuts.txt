@@ -36,6 +36,20 @@ function initGuestDashboardShortcuts(){
   const section=$('guest-upcoming-paychecks');if(section&&!$('guest-calculator-open')){const button=document.createElement('button');button.id='guest-calculator-open';button.type='button';button.textContent='Open Future Paycheck Calculator';button.addEventListener('click',openCalculator);section.append(button)}
   const empty=$('guest-pay-list')?.querySelector('p');if(empty)empty.textContent='No upcoming paychecks. Add one here or open the calculator below.';
   const next=billsBetween(day(),plusMonths(day(),12)).find(o=>!isPaid(o));
+
+  const progress=$('next-bill-progress');
+  if(progress){
+   const amount=Number(next?.bill.amount)||0;
+   const balance=Number(effectiveBalance())||0;
+   const deficit=next?Math.max(0,amount-balance):0;
+   const track=progress.parentElement;
+   track.style.backgroundColor=deficit>0?'#dc2626':'';
+   let note=$('next-bill-deficit');
+   if(!note){note=document.createElement('div');note.id='next-bill-deficit';note.style.cssText='color:#dc2626;font-size:13px;font-weight:700;text-align:right;margin-top:4px';note.setAttribute('aria-live','polite');track.after(note)}
+   note.hidden=deficit<=0;
+   note.textContent=deficit>0?'-'+money(deficit):'';
+   note.setAttribute('aria-label',deficit>0?'Balance shortfall: '+money(deficit):'');
+  }
   const label=$('fp2-next')?.previousElementSibling;
   if(label){label.querySelector('[data-next-bill-icon]')?.remove();if(next){const icon=guestBillIcon(next.bill),badge=document.createElement('span');badge.dataset.nextBillIcon='';badge.textContent=icon[1]+' ';badge.setAttribute('role','img');badge.setAttribute('aria-label',icon[2]);label.querySelector('strong')?.prepend(badge)}}
   const pay=state.paychecks.filter(p=>p.status!=='received'&&p.date>=day()).sort((a,b)=>a.date.localeCompare(b.date))[0];
