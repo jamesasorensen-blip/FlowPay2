@@ -4,6 +4,7 @@ function replaceOnce(text, from, to) {
   if (!text.includes(from)) throw new Error('Guest build source marker missing: '+from.slice(0,80));
   return text.replace(from,to);
 }
+const dateRuntime=readFileSync(new URL('./guest-date-format.txt',import.meta.url),'utf8');
 let html=source;
 html=html.replaceAll('Active Month Bills','Total Remaining Unpaid Bills');
 const authStart=html.indexOf('<!-- Supabase Auth integration:');
@@ -22,6 +23,7 @@ const guestStorage={
  setItem(key,value){localStorage.setItem('flowpay_guest_v2:'+key,value)},
  removeItem(key){localStorage.removeItem('flowpay_guest_v2:'+key)}
 };
+${dateRuntime}
 window.flowpayActiveUserId='guest-local-v2';
 </script>`);
 html=html.replace(/<title>[^<]*<\/title>/,'<title>FlowPay — Guest workspace</title>');
@@ -90,6 +92,21 @@ const shortcuts=readFileSync(new URL('./guest-dashboard-shortcuts.txt',import.me
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 const paycheckRuntime=readFileSync(new URL('./guest-upcoming-paychecks-runtime.txt',import.meta.url),'utf8');
 html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n<script>\n'+billControls+'\n</script>\n<script>\n'+shortcuts+'\n</script>\n</body>');
+// Format only displayed values; stored keys, comparisons and date arithmetic remain ISO.
+for(const [from,to] of [
+ ["esc(o.date)","esc(guestFormatDate(o.date))"],
+ ["esc(p.date)","esc(guestFormatDate(p.date))"],
+ ["`Due ${upcoming.date}`","`Due ${guestFormatDate(upcoming.date)}`"],
+ ["$('modal-date-title').textContent=s;","$('modal-date-title').textContent=guestFormatDate(s);"],
+ ["$('modal-paycheck-date-label').textContent=s;","$('modal-paycheck-date-label').textContent=guestFormatDate(s);"],
+ ["labels:p.series.map(x=>x.date)","labels:p.series.map(x=>guestFormatDate(x.date))"],
+ ["new Date(a.time).toLocaleString()","guestFormatTimestamp(a.time)"],
+ ["new Date(entry.time).toLocaleString()","guestFormatTimestamp(entry.time)"],
+ ["tx.name+' · '+tx.date","tx.name+' · '+guestFormatDate(tx.date)"],
+ ["meta.textContent=p.date+","meta.textContent=guestFormatDate(p.date)+"],
+ ["String(parts[0]).slice(-2)","String(parts[0])"],
+ ["const formatDate=s=>{try{return new Date(s+'T12:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})}catch{return s}};","const formatDate=guestFormatDate;"]
+])html=html.replaceAll(from,to);
 for(const forbidden of ['supabase.co','workers.dev','cdn.plaid.com','flowpayGetAccessToken','flowpay_session_active','flowpay_user_account','fetch(','XMLHttpRequest','sendBeacon','serviceWorker.register']){
  if(html.includes(forbidden))throw new Error('Guest output contains forbidden integration: '+forbidden);
 }
