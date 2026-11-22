@@ -35,7 +35,7 @@ function initGuestDashboardShortcuts(){
    .dark #guest-activity-drawer{background:#0f172a;color:#f8fafc}
    @media(prefers-reduced-motion:reduce){#guest-activity-drawer[open]{animation:none}}
   `;document.head.append(activityStyle);
-  const tab=document.createElement('button');tab.type='button';tab.id='guest-activity-tab';tab.textContent='Recent Activity';tab.setAttribute('aria-haspopup','dialog');tab.setAttribute('aria-controls','guest-activity-drawer');tab.setAttribute('aria-expanded','false');
+  const tab=document.createElement('button');tab.type='button';tab.id='guest-activity-tab';tab.innerHTML='<i class="fa-solid fa-clock-rotate-left text-slate-500" aria-hidden="true" style="color:inherit;margin-bottom:8px"></i><span>Recent Activity</span>';tab.setAttribute('aria-haspopup','dialog');tab.setAttribute('aria-controls','guest-activity-drawer');tab.setAttribute('aria-expanded','false');
   const panel=document.createElement('dialog');panel.id='guest-activity-drawer';panel.setAttribute('aria-labelledby','guest-activity-title');
   panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px"><h2 id="guest-activity-title" class="font-bold text-lg">Recent Activity</h2><button id="guest-activity-close" type="button" aria-label="Close recent activity">Close ✕</button></div>';
   const footer=activityCard.lastElementChild;if(footer?.querySelector('span'))footer.querySelector('span').textContent='Saved only in this browser.';
