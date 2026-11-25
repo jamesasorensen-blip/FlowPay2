@@ -87,7 +87,7 @@ html=replaceOnce(html,"$('fp2-next').textContent=next?money(next.bill.amount):'N
 html=replaceOnce(html,"category:$('bill-category').value,frequency:","category:$('bill-category').value,icon:$('guest-bill-icon')?.value||'auto',frequency:");
 const billControls=readFileSync(new URL('./guest-bill-controls.txt',import.meta.url),'utf8');
 html=replaceOnce(html,"</i> Next Month Bills (","</i> Include Next Month's Bills (");
-html=replaceOnce(html,"</i> Buffer ($","</i> Emergency Savings Buffer ($");
+html=replaceOnce(html,'</i> Buffer ($<span id="buffer-display-val">75</span>)','</i> <span class="min-w-0 text-center leading-tight">Emergency Savings Buffer <span class="whitespace-nowrap">($<span id="buffer-display-val">75</span>)</span></span>');
 const shortcuts=readFileSync(new URL('./guest-dashboard-shortcuts.txt',import.meta.url),'utf8');
 const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.url),'utf8');
 
