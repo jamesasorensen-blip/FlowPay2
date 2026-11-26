@@ -25,3 +25,45 @@ function initGuestDateInputs(){
  }
 }
 document.addEventListener?.('DOMContentLoaded',()=>queueMicrotask(initGuestDateInputs),{once:true});
+
+function initGuestFirstDueDate(){
+ const input=document.getElementById('bill-due-date');
+ if(!input||input.dataset.guestStepper)return;
+ input.dataset.guestStepper='1';
+ const wrap=document.createElement('div');wrap.className='guest-due-controls';
+ input.before(wrap);wrap.append(input);
+ const style=document.createElement('style');style.textContent=`
+ .guest-due-controls{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:center}
+ .guest-due-controls input{min-width:0;cursor:pointer}
+ .guest-due-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;grid-column:1/-1}
+ .guest-due-steps>div{display:grid;grid-template-columns:1fr 1fr;gap:3px;text-align:center}
+ .guest-due-steps span{grid-column:1/-1;font-size:11px}
+ .guest-due-controls button,#guest-due-calendar button,#guest-due-calendar select,#guest-due-calendar input{border:1px solid #94a3b8;border-radius:8px;min-height:36px;padding:4px 7px;background:transparent;color:inherit}
+ #guest-due-calendar{width:min(350px,calc(100% - 24px));max-height:90vh;overflow:auto;padding:16px;border-radius:16px;background:#fff;color:#0f172a}
+ .dark #guest-due-calendar{background:#1e293b;color:#f1f5f9}
+ #guest-due-calendar::backdrop{background:#0009}
+ #guest-due-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center;margin:12px 0}
+ #guest-due-grid button{padding:2px;min-width:0}
+ #guest-due-grid button[aria-pressed=true]{background:#2563eb;color:white}
+ `;document.head.append(style);
+ const makeButton=(label,action,aria)=>{const b=document.createElement('button');b.type='button';b.textContent=label;if(aria)b.setAttribute('aria-label',aria);b.addEventListener('click',action);return b};
+ const parse=()=>{const p=input.value.split('-').map(Number);return p.length===3&&p.every(Boolean)?new Date(p[0],p[1]-1,p[2],12):new Date()};
+ const iso=d=>String(d.getFullYear()).padStart(4,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ const commit=d=>{input.value=iso(d);input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}))};
+ const shift=(unit,n)=>{const d=parse();if(unit==='Day')d.setDate(d.getDate()+n);else{const old=d.getDate();d.setDate(1);if(unit==='Month')d.setMonth(d.getMonth()+n);else d.setFullYear(d.getFullYear()+n);d.setDate(Math.min(old,new Date(d.getFullYear(),d.getMonth()+1,0).getDate()))}if(d.getFullYear()>=100&&d.getFullYear()<=9999)commit(d)};
+ const steps=document.createElement('div');steps.className='guest-due-steps';
+ for(const unit of ['Month','Day','Year']){const group=document.createElement('div');const label=document.createElement('span');label.textContent=unit;group.append(label,makeButton('▼',()=>shift(unit,-1),'Decrease '+unit),makeButton('▲',()=>shift(unit,1),'Increase '+unit));steps.append(group)}
+ const dialog=document.createElement('dialog');dialog.id='guest-due-calendar';dialog.setAttribute('aria-label','Choose first due date');
+ dialog.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center"><strong>First Due Date</strong><button type="button" data-close aria-label="Close calendar">✕</button></div><div style="display:flex;gap:5px;margin-top:12px;align-items:center"><button type="button" data-prev aria-label="Previous month">‹</button><select aria-label="Month"></select><input type="number" min="100" max="9999" aria-label="Year" style="width:75px;min-width:0"><button type="button" data-next aria-label="Next month">›</button></div><div id="guest-due-grid"></div>';
+ document.body.append(dialog);
+ const month=dialog.querySelector('select'),year=dialog.querySelector('input'),grid=dialog.querySelector('#guest-due-grid');
+ for(let i=0;i<12;i++){const o=document.createElement('option');o.value=i;o.textContent=new Date(2024,i,1).toLocaleString('en-US',{month:'short'});month.append(o)}
+ let y,m;
+ function draw(){month.value=m;year.value=y;grid.replaceChildren();for(const w of ['Su','Mo','Tu','We','Th','Fr','Sa']){const s=document.createElement('span');s.textContent=w;grid.append(s)}for(let i=0;i<new Date(y,m,1).getDay();i++)grid.append(document.createElement('span'));for(let i=1;i<=new Date(y,m+1,0).getDate();i++){const d=new Date(y,m,i,12);const b=makeButton(String(i),()=>{commit(d);dialog.close()},guestFormatDate(iso(d)));b.setAttribute('aria-pressed',String(input.value===iso(d)));grid.append(b)}}
+ function navigate(n){const d=new Date(y,m+n,1);if(d.getFullYear()>=100&&d.getFullYear()<=9999){y=d.getFullYear();m=d.getMonth();draw()}}
+ function open(){if(dialog.open)return;const d=parse();y=d.getFullYear();m=d.getMonth();draw();dialog.showModal()}
+ month.addEventListener('change',()=>{m=Number(month.value);draw()});year.addEventListener('change',()=>{const v=Number(year.value);if(Number.isInteger(v)&&v>=100&&v<=9999)y=v;draw()});
+ dialog.querySelector('[data-prev]').onclick=()=>navigate(-1);dialog.querySelector('[data-next]').onclick=()=>navigate(1);dialog.querySelector('[data-close]').onclick=()=>dialog.close();
+ wrap.append(makeButton('📅',open,'Open date calendar'),steps);input.addEventListener('click',open);
+}
+document.addEventListener('DOMContentLoaded',()=>queueMicrotask(initGuestFirstDueDate),{once:true});
