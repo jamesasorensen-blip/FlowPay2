@@ -64,6 +64,35 @@ function initGuestFirstDueDate(){
  function open(){if(dialog.open)return;const d=parse();y=d.getFullYear();m=d.getMonth();draw();dialog.showModal()}
  month.addEventListener('change',()=>{m=Number(month.value);draw()});year.addEventListener('change',()=>{const v=Number(year.value);if(Number.isInteger(v)&&v>=100&&v<=9999)y=v;draw()});
  dialog.querySelector('[data-prev]').onclick=()=>navigate(-1);dialog.querySelector('[data-next]').onclick=()=>navigate(1);dialog.querySelector('[data-close]').onclick=()=>dialog.close();
- wrap.append(makeButton('📅',open,'Open date calendar'),steps);input.addEventListener('click',open);
+ wrap.append(makeButton('📅',open,'Open date calendar'),steps);
+ // A tap on the date opens the picker; its manual-entry action returns focus to the text field.
+ const manual=makeButton('Type date manually',()=>{dialog.close();input.focus();input.select()},'Type date manually');
+ dialog.append(manual);
+ input.addEventListener('click',()=>{if(!input.value&&input.dataset.manualEntry!=='1')open()});
+ manual.addEventListener('click',()=>{input.dataset.manualEntry='1'});
+ input.addEventListener('blur',()=>{delete input.dataset.manualEntry});
+ const raw=Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value');
+ input.addEventListener('input',e=>{
+  const before=raw.get.call(input),pos=input.selectionStart??before.length;
+  const digits=before.replace(/[^0-9]/g,'').slice(0,8);
+  const deleting=String(e.inputType||'').startsWith('delete');
+  let formatted=digits.slice(0,2);
+  if(digits.length>2||(!deleting&&digits.length===2))formatted+='/'+digits.slice(2,4);
+  if(digits.length>4||(!deleting&&digits.length===4))formatted+='/'+digits.slice(4);
+  if(before!==formatted){
+   const count=before.slice(0,pos).replace(/[^0-9]/g,'').length;
+   raw.set.call(input,formatted);
+   let caret=0,seen=0;while(caret<formatted.length&&seen<count){if(/[0-9]/.test(formatted[caret]))seen++;caret++}
+   if(!deleting&&formatted[caret]==='/')caret++;
+   input.setSelectionRange(caret,caret);
+  }
+  input.setCustomValidity(formatted&&!guestParseDate(formatted)?'Enter a valid date in MM/DD/YYYY format.':'');
+ });
+ input.addEventListener('paste',e=>{
+  const pasted=e.clipboardData?.getData('text')||'';
+  const match=/^(\d{4})-(\d{2})-(\d{2})$/.exec(pasted.trim());
+  const digits=(match?match[2]+match[3]+match[1]:pasted.replace(/[^0-9]/g,''));
+  if(digits.length===8){e.preventDefault();raw.set.call(input,digits);input.dispatchEvent(new Event('input',{bubbles:true}));input.setSelectionRange(10,10)}
+ });
 }
 document.addEventListener('DOMContentLoaded',()=>queueMicrotask(initGuestFirstDueDate),{once:true});
