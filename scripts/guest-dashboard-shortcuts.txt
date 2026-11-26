@@ -61,6 +61,11 @@ function initGuestDashboardShortcuts(){
   tab.addEventListener('click',e=>{if(Date.now()<suppressUntil||collapsed){e.stopImmediatePropagation();if(Date.now()>=suppressUntil)setCollapsed(false)}},true);
   hide.addEventListener('click',e=>{if(Date.now()<suppressUntil)e.stopImmediatePropagation()},true);
   setCollapsed(collapsed);
+  function positionActivityHide(){if(collapsed)return;const rect=tab.getBoundingClientRect();hide.style.top=(rect.top-hide.getBoundingClientRect().height-6)+'px';hide.style.width=rect.width+'px'}
+  const activityResize=new ResizeObserver(positionActivityHide);activityResize.observe(tab);
+  window.addEventListener('resize',positionActivityHide);
+  positionActivityHide();
+
 
   tab.addEventListener('click',()=>{renderActivity();panel.showModal();tab.setAttribute('aria-expanded','true')});
   $('guest-activity-close').addEventListener('click',()=>panel.close());
