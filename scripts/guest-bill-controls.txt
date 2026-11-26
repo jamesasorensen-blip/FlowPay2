@@ -1,0 +1,67 @@
+// Touch-friendly recurring bills and locally saved icon choices.
+const guestBillIcons=[
+ ['auto','✨','Automatic'],['electric','⚡','Electricity'],['internet','🌐','Internet'],['home','🏠','Home'],['phone','📱','Phone'],['car','🚗','Car'],['health','🩺','Health'],['insurance','🛡️','Insurance'],['student','🎓','Education'],['medical','🏥','Medical'],['prescription','💊','Prescription'],['credit','💳','Credit card'],['loan','🏦','Loan'],['gym','🏋️','Fitness'],['stream','📺','Streaming'],['water','💧','Water'],['gas','🔥','Gas'],['food','🛒','Groceries'],['pet','🐾','Pets'],['bill','🧾','Bill']
+];
+function guestBillIcon(b){
+ const chosen=guestBillIcons.find(x=>x[0]===b.icon&&x[0]!=='auto');if(chosen)return chosen;
+ const text=(b.category+' '+b.name).toLowerCase();
+ const rules=[['electric',/electric|power|energy/],['internet',/internet|broadband|wifi/],['phone',/phone|mobile|cellular/],['prescription',/prescription|pharmacy|medication/],['health',/health insurance/],['insurance',/insurance/],['home',/rent|mortgage|housing/],['car',/car payment|auto loan|vehicle/],['student',/student|tuition|education/],['medical',/medical|hospital|doctor/],['credit',/credit card/],['loan',/loan/],['gym',/gym|fitness/],['stream',/streaming|netflix|hulu|disney|subscription/],['water',/water|sewer/],['gas',/natural gas|gas bill/],['food',/grocery|groceries/],['pet',/pet|veterinary/]];
+ const id=rules.find(x=>x[1].test(text))?.[0]||'bill';return guestBillIcons.find(x=>x[0]===id);
+}
+function initGuestBillControls(){
+ const style=document.createElement('style');style.textContent=`
+ #bills-table-body .guest-paid-detail{color:#94a3b8;text-decoration:line-through;text-decoration-thickness:2px;filter:grayscale(1)}
+ #bills-table-body .guest-paid-detail .guest-bill-icon{position:relative;opacity:.55}
+ #bills-table-body .guest-paid-detail .guest-bill-icon::after{content:'';position:absolute;left:0;right:0;top:50%;border-top:2px solid #94a3b8}
+ #bills-table-body .guest-status-paid{color:#15803d;font-weight:700;text-decoration:none}
+ #bills-table-body .guest-status-pending{color:#c2410c;font-weight:700;text-decoration:none}
+ .dark #bills-table-body .guest-status-paid{color:#4ade80}
+ .dark #bills-table-body .guest-status-pending{color:#fb923c}
+
+ #bills-table-body [data-bill-action]{min-height:48px;min-width:64px;padding:12px 16px;border-radius:12px;font-weight:700;border:1px solid #c7d2fe;background:#eef2ff;color:#3730a3;margin:0;touch-action:manipulation}
+ #bills-table-body [data-bill-action="delete"]{background:#fff1f2;border-color:#fecdd3;color:#be123c}
+ #bills-table-body [data-bill-action]:active{transform:scale(.96);filter:brightness(.9)}
+ #bills-table-body [data-bill-action]:focus-visible,#guest-icon-dialog button:focus-visible{outline:3px solid #2563eb;outline-offset:3px}
+ #bills-table-body .guest-bill-actions{display:flex;gap:12px;justify-content:flex-end;flex-wrap:wrap;padding:10px 0}
+ .guest-bill-icon{font-size:24px;display:inline-block;margin-right:10px;vertical-align:middle}
+ #guest-icon-dialog{border:0;border-radius:20px;padding:24px;max-width:440px;width:calc(100% - 24px);max-height:85vh;overflow:auto;color:#0f172a;background:white}
+ #guest-icon-dialog::backdrop{background:rgb(15 23 42 / .75)}
+ #guest-icon-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:16px 0}
+ #guest-icon-dialog button,#guest-bill-icon-open{min-height:48px;border:1px solid #cbd5e1;border-radius:12px;padding:10px;background:#f8fafc;color:#0f172a;touch-action:manipulation}
+ #guest-icon-grid [aria-pressed="true"]{border:3px solid #2563eb;background:#eff6ff}
+ @media(max-width:640px){table:has(#bills-table-body),#bills-table-body{display:block;width:100%}table:has(#bills-table-body) thead{display:none}#bills-table-body tr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;padding:16px 4px;border-bottom:1px solid #cbd5e1}#bills-table-body td{display:block;white-space:normal;overflow-wrap:anywhere}#bills-table-body td:first-child,#bills-table-body td:last-child{grid-column:1/-1}#bills-table-body td[data-label]::before{content:attr(data-label);display:block;font-size:11px;color:#64748b}#bills-table-body .guest-bill-actions{justify-content:flex-start}#bills-table-body td:last-child{min-width:0}#modal-bill input,#modal-bill select{min-height:48px;font-size:16px}}
+ `;document.head.append(style);
+ const categories=['Internet','Rent','Mortgage','Rent/Utilities','Phone Payment','Car Payment','Health Insurance','Car Insurance','Rental Insurance','Student Loan','Medical Bill','Prescription','Credit Card','Personal Loan','Gym Membership','Streaming Service','Electricity','Water','Gas'];
+ const select=$('bill-category');for(const name of categories){if(![...select.options].some(o=>o.value===name)){const o=document.createElement('option');o.value=name;o.textContent=name;select.append(o)}}
+ const hidden=document.createElement('input');hidden.type='hidden';hidden.id='guest-bill-icon';hidden.value='auto';$('form-bill').append(hidden);
+ const launch=document.createElement('button');launch.type='button';launch.id='guest-bill-icon-open';launch.className='w-full';select.parentElement.after(launch);
+ const dialog=document.createElement('dialog');dialog.id='guest-icon-dialog';dialog.setAttribute('aria-labelledby','guest-icon-title');
+ dialog.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><h2 id="guest-icon-title" class="text-lg font-bold">Choose bill icon</h2><button type="button" id="guest-icon-close" aria-label="Close bill icon picker" style="min-width:48px;min-height:48px;font-size:22px;flex-shrink:0">✕</button></div><p>Automatic chooses a color icon from the category or bill name.</p><div id="guest-icon-grid"></div><button type="button" id="guest-icon-done">Done</button>';
+ document.body.append(dialog);
+ function preview(){const b={icon:hidden.value,category:select.value,name:$('bill-name').value};const icon=guestBillIcon(b);launch.textContent=icon[1]+' Choose bill icon · '+(hidden.value==='auto'?'Automatic':icon[2]);for(const btn of dialog.querySelectorAll('[data-icon]'))btn.setAttribute('aria-pressed',String(btn.dataset.icon===hidden.value))}
+ for(const [id,emoji,label] of guestBillIcons){const button=document.createElement('button');button.type='button';button.dataset.icon=id;button.textContent=emoji+' '+label;button.addEventListener('click',()=>{hidden.value=id;preview()});$('guest-icon-grid').append(button)}
+ launch.addEventListener('click',()=>{preview();dialog.showModal()});$('guest-icon-done').addEventListener('click',()=>dialog.close());$('guest-icon-close').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>launch.focus());
+ select.addEventListener('change',preview);$('bill-name').addEventListener('input',preview);
+ const oldEdit=editBill;editBill=function(id){oldEdit(id);hidden.value=state.bills.find(b=>String(b.id)===String(id))?.icon||'auto';preview()};
+ $('open-add-bill-btn').addEventListener('click',()=>{hidden.value='auto';preview()});
+ const oldRender=renderBills;renderBills=function(...args){const result=oldRender(...args);for(const row of $('bills-table-body').rows){const edit=row.querySelector('[data-bill-action="edit"]');if(!edit)continue;const bill=state.bills.find(b=>String(b.id)===edit.dataset.id);if(!bill)continue;['','Category','Frequency','Due date','Amount','Status',''].forEach((label,i)=>{if(label)row.cells[i].dataset.label=label});const icon=guestBillIcon(bill),badge=document.createElement('span');badge.className='guest-bill-icon';badge.textContent=icon[1];badge.setAttribute('role','img');badge.setAttribute('aria-label',icon[2]);row.cells[0].prepend(badge);const actions=document.createElement('div');actions.className='guest-bill-actions';while(row.cells[6].firstChild)actions.append(row.cells[6].firstChild);row.cells[6].append(actions);
+const toggle=actions.querySelector('[data-bill-action="toggle"]');
+const paid=toggle?.textContent.trim()==='Undo';
+for(let i=0;i<5;i++){
+ const detail=document.createElement('span');if(paid)detail.className='guest-paid-detail';
+ while(row.cells[i].firstChild)detail.append(row.cells[i].firstChild);
+ row.cells[i].append(detail);
+}
+const status=row.cells[5];status.className=paid?'guest-status-paid':'guest-status-pending';status.textContent=paid?'✓ Paid':'Pending';
+for(const button of actions.querySelectorAll('button')){
+ button.type='button';const action=button.dataset.billAction;const label=button.textContent.trim();
+ const mark=document.createElement('span');mark.setAttribute('aria-hidden','true');mark.style.marginRight='6px';
+ if(action==='toggle'){mark.textContent=paid?'↶':'✓';mark.style.color='#15803d'}
+ else if(action==='edit'){mark.innerHTML='<i class="fa-solid fa-pencil" aria-hidden="true"></i>'}
+ else if(action==='delete'){mark.textContent='✕';mark.style.color='#dc2626'}
+ button.replaceChildren(mark,document.createTextNode(label));
+}
+}return result};
+ preview();renderBills();
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initGuestBillControls,{once:true});else initGuestBillControls();
