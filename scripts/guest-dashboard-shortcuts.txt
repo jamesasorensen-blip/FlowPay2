@@ -40,6 +40,28 @@ function initGuestDashboardShortcuts(){
   panel.innerHTML='<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px"><h2 id="guest-activity-title" class="font-bold text-lg">Recent Activity</h2><button id="guest-activity-close" type="button" aria-label="Close recent activity">Close ✕</button></div>';
   const footer=activityCard.lastElementChild;if(footer?.querySelector('span'))footer.querySelector('span').textContent='Saved only in this browser.';
   panel.append(activityCard);document.body.append(tab,panel);
+  const hide=document.createElement('button');hide.type='button';hide.id='guest-activity-hide';
+  const extra=document.createElement('style');extra.textContent=`
+   #guest-activity-hide{position:fixed;right:0;top:calc(50% - 100px);z-index:91;width:44px;height:36px;border-radius:10px 0 0 10px;background:#4338ca;color:white;border:1px solid #c7d2fe;touch-action:pan-y;font-size:22px}
+   #guest-activity-tab{touch-action:pan-y}
+   #guest-activity-tab[data-collapsed="true"]{writing-mode:horizontal-tb;min-width:24px;width:24px;padding:12px 2px;font-size:20px}
+   #guest-activity-tab[data-collapsed="true"] span,#guest-activity-tab[data-collapsed="true"] i{display:none}
+   #guest-activity-tab[data-collapsed="true"]::before{content:'‹'}
+   #guest-activity-hide[hidden]{display:none}
+  `;document.head.append(extra);document.body.append(hide);
+  let collapsed=guestStorage.getItem('activity-tab-collapsed')==='true';
+  function setCollapsed(value){collapsed=value;tab.dataset.collapsed=String(value);hide.hidden=value;hide.textContent='›';hide.setAttribute('aria-label','Hide Recent Activity tab');tab.setAttribute('aria-label',value?'Restore Recent Activity button':'Open Recent Activity');try{guestStorage.setItem('activity-tab-collapsed',String(value))}catch{}}
+  hide.addEventListener('click',()=>setCollapsed(true));
+  let start=null,suppressUntil=0;
+  for(const target of [tab,hide]){
+   target.addEventListener('pointerdown',e=>{start={x:e.clientX,y:e.clientY,id:e.pointerId};target.setPointerCapture?.(e.pointerId)});
+   target.addEventListener('pointercancel',()=>{start=null});
+   target.addEventListener('pointerup',e=>{if(!start||start.id!==e.pointerId)return;const dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;if(Math.abs(dx)>35&&Math.abs(dx)>Math.abs(dy)*1.4){setCollapsed(dx>0);suppressUntil=Date.now()+400}});
+  }
+  tab.addEventListener('click',e=>{if(Date.now()<suppressUntil||collapsed){e.stopImmediatePropagation();if(Date.now()>=suppressUntil)setCollapsed(false)}},true);
+  hide.addEventListener('click',e=>{if(Date.now()<suppressUntil)e.stopImmediatePropagation()},true);
+  setCollapsed(collapsed);
+
   tab.addEventListener('click',()=>{renderActivity();panel.showModal();tab.setAttribute('aria-expanded','true')});
   $('guest-activity-close').addEventListener('click',()=>panel.close());
   panel.addEventListener('close',()=>{tab.setAttribute('aria-expanded','false');tab.focus()});
