@@ -100,6 +100,37 @@ const runtime=readFileSync(new URL('./guest-workspace-runtime.txt',import.meta.u
  html=replaceOnce(html,'for(let i=0;i<offset;i++)grid.append','for(const [eventDate,events] of Object.entries(eventMap))if(eventDate<calendarMonth+"-01")for(const e of events)running+=num(e.amount);for(let i=0;i<offset;i++)grid.append');
  html=replaceOnce(html,'${money(running)}</div>${(eventMap[s]||[])','${money(running)}</div>${s>=start&&potentialIncomeThrough(s)>0?\`<div class="text-[9px] font-semibold ${safeBreakdown().safe+potentialIncomeThrough(s)<0?"text-rose-500":"text-emerald-600"}">Potential safe: ${potentialSafeLabel(safeBreakdown().safe+potentialIncomeThrough(s))}</div>\`:""}${(eventMap[s]||[])');
 
+
+ // Guest-only recurring bill frequency and inclusive end date.
+ html=replaceOnce(html,"!['weekly','monthly'].includes(b.frequency)","!['daily','weekly','monthly'].includes(b.frequency)");
+ html=replaceOnce(html,"let d=b.dueDate;if(d>end)return out;if(b.frequency==='weekly'){","if(b.endDate&&b.endDate<end)end=b.endDate;let d=b.dueDate;if(d>end||start>end)return out;if(b.frequency==='daily'){let x=d>start?d:start;for(;x<=end;x=plusDays(x,1))out.push({bill:b,date:x,key:b.id+'|'+x});return out}if(b.frequency==='weekly'){");
+ html=replaceOnce(html,"frequency:$('bill-frequency').value,dueDate:","frequency:$('bill-frequency').value,endDate:$('guest-bill-end').value,dueDate:");
+ html=replaceOnce(html,"if(!b.name||b.amount<=0||!b.dueDate)","if(b.endDate&&b.endDate<b.dueDate){toast('End date must be on or after the first due date.',true);return}if(!b.name||b.amount<=0||!b.dueDate)");
+ html=replaceOnce(html,"$('bill-frequency').value=b.frequency;","$('bill-frequency').value=b.frequency;$('guest-bill-end').value=b.endDate||'';$('guest-bill-end').dispatchEvent(new Event('change'));");
+ html=replaceOnce(html,"esc(o.bill.frequency)}</td>","esc(o.bill.frequency)}${o.bill.endDate?' · Until '+esc(guestFormatDate(o.bill.endDate)):''}</td>");
+ const recurrenceRuntime=`document.addEventListener('DOMContentLoaded',()=>queueMicrotask(()=>{
+ const f=document.getElementById('bill-frequency'),form=document.getElementById('form-bill');
+ if(!f||!form)return;
+ const daily=new Option('Daily','daily');f.insertBefore(daily,f.firstChild);
+ f.add(new Option('Until...','until'));
+ const hidden=document.createElement('input');hidden.type='hidden';hidden.id='guest-bill-end';form.append(hidden);
+ const summary=document.createElement('button');summary.type='button';summary.className='fp-ui-btn';f.after(summary);
+ const dialog=document.createElement('dialog');dialog.className='rounded-2xl p-5 bg-white dark:bg-slate-800 text-slate-900 dark:text-white';dialog.style.width='min(360px,calc(100% - 24px))';
+ dialog.innerHTML='<h2 class="font-bold text-lg mb-3">Recurring Bill End Date</h2><label class="block mb-2">Payment frequency<select class="block w-full p-2 rounded bg-slate-100 dark:bg-slate-700"><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label><label class="block mb-3">Until: <input type="date" class="block w-full p-2 rounded bg-slate-100 dark:bg-slate-700"></label><p class="text-xs mb-3">Payments stop after this date. Previous payments remain in history.</p><p role="alert" class="text-red-500 text-sm"></p><div class="flex flex-wrap gap-2"><button type="button" class="fp-ui-btn" data-apply>Apply End Date</button><button type="button" class="fp-ui-btn" data-clear>Remove End Date</button><button type="button" class="fp-ui-btn" data-cancel>Cancel</button></div>';
+ document.body.append(dialog);
+ const freq=dialog.querySelector('select'),end=dialog.querySelector('input'),error=dialog.querySelector('[role=alert]');
+ let previous=f.value;
+ function refresh(){summary.textContent=hidden.value?'Until: '+guestFormatDate(hidden.value):'Set end date…';previous=f.value}
+ function open(){freq.value=previous==='until'?'monthly':previous;end.value=hidden.value;error.textContent='';dialog.showModal()}
+ f.addEventListener('change',()=>{if(f.value==='until'){f.value=previous;open()}else previous=f.value});
+ summary.onclick=open;hidden.addEventListener('change',refresh);
+ dialog.querySelector('[data-apply]').onclick=()=>{const first=document.getElementById('bill-due-date').value;if(!end.value||end.value<first){error.textContent='Choose an end date on or after the first due date.';return}hidden.value=end.value;f.value=freq.value;refresh();dialog.close()};
+ dialog.querySelector('[data-clear]').onclick=()=>{hidden.value='';refresh();dialog.close()};
+ dialog.querySelector('[data-cancel]').onclick=()=>dialog.close();
+ form.addEventListener('reset',()=>{hidden.value='';queueMicrotask(refresh)});
+ refresh();
+}),{once:true});`;
+ html=html.replace('</body>','<script>'+recurrenceRuntime+'</script></body>');
 const paycheckRuntime=readFileSync(new URL('./guest-upcoming-paychecks-runtime.txt',import.meta.url),'utf8');
 html=html.replace('</body>', '<script>\n'+runtime+'\n</script>\n<script>\n'+paycheckRuntime+'\n</script>\n<script>\n'+billControls+'\n</script>\n<script>\n'+shortcuts+'\n</script>\n</body>');
 // Format only displayed values; stored keys, comparisons and date arithmetic remain ISO.
