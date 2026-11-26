@@ -25,3 +25,6 @@ Restore FlowPay Staging (zaynpzvhrskeierplvwj), then inspect the recovered setti
 
 ## Scope
 Read-only hosted inspection only. No project restoration, schema/Auth changes, secret changes, function/backend deployment, real bank linking or production changes were made. This checkpoint does not declare production readiness.
+
+## Authorized restoration follow-up
+User approved the next staging step. Supabase accepted the restore request for zaynpzvhrskeierplvwj. Subsequent status polls report COMING_UP, with no failure returned. Database/schema verification must wait for ACTIVE_HEALTHY. No schema, Auth configuration, credentials, Edge Functions, Cloudflare settings or production resources were changed by the restoration request.
