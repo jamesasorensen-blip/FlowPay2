@@ -1,4 +1,13 @@
 function initGuestDashboardShortcuts(){
+ // Dismiss only the requested modal backdrops, using the existing close path.
+ for(const id of ['modal-settings','modal-widget-order','modal-buffer','modal-balance','modal-active-month-bills','modal-savings']){
+  const modal=document.getElementById(id);if(!modal)continue;
+  let startedOutside=false;
+  modal.addEventListener('pointerdown',e=>{startedOutside=e.target===modal&&e.isPrimary&&e.button===0});
+  modal.addEventListener('pointercancel',()=>{startedOutside=false});
+  modal.addEventListener('click',e=>{const dismiss=startedOutside&&e.target===modal;startedOutside=false;if(dismiss&&!modal.classList.contains('hidden'))closeModal(id)});
+ }
+
  const style=document.createElement('style');style.textContent=`
  #guest-calculator-drawer{position:fixed;inset:0 0 0 auto;margin:0;height:100dvh;max-height:100dvh;width:min(720px,100%);max-width:100%;border:0;padding:20px;overflow:auto;background:#f8fafc;color:#0f172a;box-shadow:-12px 0 40px #0f172a33}
  #guest-calculator-drawer[open]{animation:guest-drawer-in .2s ease-out}
