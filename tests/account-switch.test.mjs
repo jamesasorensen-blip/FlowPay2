@@ -53,11 +53,20 @@ test('all inline scripts parse',()=>{
  for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))if(match[1].trim())new Function(match[1]);
 });
 
-const connectSource=html.slice(html.indexOf("  connectButton.addEventListener('click',async () => {"),html.indexOf("  refreshButton.addEventListener('click'"));
+const connectSource=html.slice(html.indexOf('  const oauthKey ='),html.indexOf('  async function refreshPanel()'));
 function connectHarness(refreshConsent,api){
  let callback;const configs=[],statuses=[];
  const window={Plaid:{create:config=>{configs.push(config);return {open(){}};}}};
- const h=Function('window','connectButton','refreshConsent','api','loadBanks','setStatus',`let busy=false,currentUser='A',generation=1,consentActive=true;const consentCheck={checked:false};const setBusy=value=>{busy=value};${connectSource}return {switchTo(id){currentUser=id;generation++;busy=true;},busy(){return busy;}};`)(window,{addEventListener:(_name,cb)=>{callback=cb;}},refreshConsent,api,async()=>{},s=>statuses.push(s));
+ const sessionStorage={setItem(){},removeItem(){}};
+ const location={href:'https://flowpay-staging.onrender.com/'};
+ const h=Function('window','connectButton','refreshConsent','api','setStatus','sessionStorage','location',`
+   let busy=false,currentUser='A',generation=1,consentActive=true,linkInProgress=false;
+   const consentCheck={checked:false};
+   const setBusy=value=>{busy=value}, updateButtons=()=>{}, loadBanks=async()=>{};
+   const showError=(_prefix,error)=>{throw error};
+   ${connectSource}
+   return {switchTo(id){currentUser=id;generation++;busy=true;},busy(){return busy;}};
+ `)(window,{addEventListener:(_name,cb)=>{callback=cb;}},refreshConsent,api,s=>statuses.push(s),sessionStorage,location);
  return {...h,click:()=>callback(),configs,statuses};
 }
 test('switch during consent refresh cannot create a Plaid Link for the new account',async()=>{
@@ -66,10 +75,11 @@ test('switch during consent refresh cannot create a Plaid Link for the new accou
  assert.equal(apiCalls,0);assert.equal(h.configs.length,0);assert.equal(h.busy(),true);
 });
 test('old Plaid callback cannot release the new account busy lock',async()=>{
- const exchange=deferred();const h=connectHarness(async()=>{},async path=>path==='/link-token'?{link_token:'synthetic'}:exchange.promise);
+ const exchange=deferred();const h=connectHarness(async()=>{},async path=>path==='/link-token'
+  ? {link_token:'synthetic',expiration:new Date(Date.now()+60000).toISOString()} : exchange.promise);
  await h.click();assert.equal(h.configs.length,1);
  const pending=h.configs[0].onSuccess('synthetic-public-token',{});h.switchTo('B');exchange.resolve({accounts_saved:1});await pending;
- assert.equal(h.busy(),true);assert.ok(!h.statuses.some(s=>s.startsWith('Test bank saved')));
+ assert.equal(h.busy(),true);assert.ok(!h.statuses.some(s=>s.startsWith('Test bank connected')));
 });
 const mfaSource=html.slice(html.indexOf('  async function retryAfterMfa()'),html.indexOf("  window.addEventListener('flowpay-mfa-verified'"));
 test('MFA retry cannot send a token after the initiating account changes',async()=>{
